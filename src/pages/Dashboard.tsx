@@ -4,6 +4,7 @@ import SummaryCards from '../components/dashboard/SummaryCards';
 import ProjectionChart from '../components/dashboard/ProjectionChart';
 import YearTable from '../components/dashboard/YearTable';
 import { getStrategyDisplayName } from '../engine/strategies';
+import ConfigPanel from '../components/dashboard/ConfigPanel';
 
 export default function Dashboard() {
   const { config } = useConfig();
@@ -32,6 +33,9 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      {/* Config editing */}
+      <ConfigPanel />
 
       {/* Summary cards */}
       <SummaryCards summary={result.summary} />
