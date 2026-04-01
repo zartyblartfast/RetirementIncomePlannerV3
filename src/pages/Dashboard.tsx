@@ -14,25 +14,32 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-baseline justify-between">
-        <div>
+      <div>
+        <div className="flex items-baseline justify-between">
           <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Strategy: <span className="font-medium text-gray-700">{getStrategyDisplayName(strategyId)}</span>
-            {' · '}Target: <span className="font-medium text-gray-700">
-              £{Math.round(config.target_income.net_annual).toLocaleString('en-GB')}/yr
-            </span>
-            {' · '}CPI: <span className="font-medium text-gray-700">
-              {(config.target_income.cpi_rate * 100).toFixed(1)}%
-            </span>
-          </p>
         </div>
-        {result.warnings.length > 0 && (
-          <div className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded px-2 py-1">
-            {result.warnings.length} warning{result.warnings.length > 1 ? 's' : ''}
-          </div>
-        )}
+        <p className="text-sm text-gray-500 mt-0.5">
+          Strategy: <span className="font-medium text-gray-700">{getStrategyDisplayName(strategyId)}</span>
+          {' · '}Target: <span className="font-medium text-gray-700">
+            £{Math.round(config.target_income.net_annual).toLocaleString('en-GB')}/yr
+          </span>
+          {' · '}CPI: <span className="font-medium text-gray-700">
+            {(config.target_income.cpi_rate * 100).toFixed(1)}%
+          </span>
+        </p>
       </div>
+
+      {/* Warnings */}
+      {result.warnings.length > 0 && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+          <h3 className="text-sm font-medium text-amber-800 mb-1">Warnings</h3>
+          <ul className="text-xs text-amber-700 space-y-0.5">
+            {result.warnings.map((w, i) => (
+              <li key={i}>• {w}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Config editing */}
       <ConfigPanel />

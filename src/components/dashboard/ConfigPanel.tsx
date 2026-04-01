@@ -1,8 +1,30 @@
 import { useState } from 'react';
-import { Settings, ChevronDown, ChevronUp } from 'lucide-react';
+import { Settings, ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
 import { useConfig } from '../../store/configStore';
 import { STRATEGIES, STRATEGY_IDS } from '../../engine/strategies';
-import type { PlannerConfig } from '../../engine/types';
+import type { PlannerConfig, DCPotConfig, TaxFreeAccountConfig } from '../../engine/types';
+
+const NOW_MONTH = new Date().toISOString().slice(0, 7);
+
+function newDcPot(name: string): DCPotConfig {
+  return {
+    name,
+    starting_balance: 0,
+    growth_rate: 0.05,
+    annual_fees: 0.004,
+    tax_free_portion: 0.25,
+    values_as_of: NOW_MONTH,
+  };
+}
+
+function newTfAccount(name: string): TaxFreeAccountConfig {
+  return {
+    name,
+    starting_balance: 0,
+    growth_rate: 0.035,
+    values_as_of: NOW_MONTH,
+  };
+}
 
 export default function ConfigPanel() {
   const { config, updateConfig } = useConfig();
@@ -32,14 +54,74 @@ export default function ConfigPanel() {
     }));
   }
 
-  function setPotBalance(type: 'dc' | 'tf', index: number, val: number) {
+  // ---- DC pot CRUD ---- //
+  function updateDcPot(index: number, field: keyof DCPotConfig, val: string | number) {
     updateConfig(prev => {
       const next = JSON.parse(JSON.stringify(prev)) as PlannerConfig;
-      if (type === 'dc') {
-        next.dc_pots[index]!.starting_balance = val;
+      const pot = next.dc_pots[index]!;
+      const oldName = pot.name;
+      if (field === 'name') {
+        pot.name = val as string;
+        next.withdrawal_priority = next.withdrawal_priority.map(n => n === oldName ? val as string : n);
       } else {
-        next.tax_free_accounts[index]!.starting_balance = val;
+        (pot as unknown as Record<string, unknown>)[field] = val;
       }
+      return next;
+    });
+  }
+
+  function addDcPot() {
+    updateConfig(prev => {
+      const name = `DC Pot ${prev.dc_pots.length + 1}`;
+      return {
+        ...prev,
+        dc_pots: [...prev.dc_pots, newDcPot(name)],
+        withdrawal_priority: [...prev.withdrawal_priority, name],
+      };
+    });
+  }
+
+  function removeDcPot(index: number) {
+    updateConfig(prev => {
+      const next = JSON.parse(JSON.stringify(prev)) as PlannerConfig;
+      const removed = next.dc_pots.splice(index, 1)[0]!;
+      next.withdrawal_priority = next.withdrawal_priority.filter(n => n !== removed.name);
+      return next;
+    });
+  }
+
+  // ---- Tax-free account CRUD ---- //
+  function updateTfAccount(index: number, field: keyof TaxFreeAccountConfig, val: string | number) {
+    updateConfig(prev => {
+      const next = JSON.parse(JSON.stringify(prev)) as PlannerConfig;
+      const acc = next.tax_free_accounts[index]!;
+      const oldName = acc.name;
+      if (field === 'name') {
+        acc.name = val as string;
+        next.withdrawal_priority = next.withdrawal_priority.map(n => n === oldName ? val as string : n);
+      } else {
+        (acc as unknown as Record<string, unknown>)[field] = val;
+      }
+      return next;
+    });
+  }
+
+  function addTfAccount() {
+    updateConfig(prev => {
+      const name = `ISA ${prev.tax_free_accounts.length + 1}`;
+      return {
+        ...prev,
+        tax_free_accounts: [...prev.tax_free_accounts, newTfAccount(name)],
+        withdrawal_priority: [...prev.withdrawal_priority, name],
+      };
+    });
+  }
+
+  function removeTfAccount(index: number) {
+    updateConfig(prev => {
+      const next = JSON.parse(JSON.stringify(prev)) as PlannerConfig;
+      const removed = next.tax_free_accounts.splice(index, 1)[0]!;
+      next.withdrawal_priority = next.withdrawal_priority.filter(n => n !== removed.name);
       return next;
     });
   }
@@ -58,7 +140,7 @@ export default function ConfigPanel() {
       </button>
 
       {open && (
-        <div className="px-4 pb-4 space-y-4 border-t border-gray-100 pt-3">
+        <div className="px-4 pb-4 space-y-5 border-t border-gray-100 pt-3">
           {/* Row 1: Income + Strategy */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <Field label="Target Net Income (£/yr)">
@@ -144,33 +226,134 @@ export default function ConfigPanel() {
             </div>
           )}
 
-          {/* Pot balances */}
+          {/* DC Pots */}
           <div>
-            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
-              Pot Balances
-            </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Drawdown Pots (DC)
+              </h4>
+              <button
+                onClick={addDcPot}
+                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" /> Add pot
+              </button>
+            </div>
+            {config.dc_pots.length === 0 && (
+              <p className="text-xs text-gray-400 italic">No drawdown pots configured.</p>
+            )}
+            <div className="space-y-3">
               {config.dc_pots.map((pot, i) => (
-                <Field key={pot.name} label={pot.name}>
-                  <input
-                    type="number"
-                    value={pot.starting_balance}
-                    step={1000}
-                    onChange={e => setPotBalance('dc', i, Number(e.target.value))}
-                    className="input-field"
-                  />
-                </Field>
+                <div key={i} className="grid grid-cols-[1fr_1fr_auto_auto_auto] sm:grid-cols-[2fr_1fr_0.8fr_0.8fr_0.8fr_auto] gap-2 items-end">
+                  <Field label="Name">
+                    <input
+                      type="text"
+                      value={pot.name}
+                      onChange={e => updateDcPot(i, 'name', e.target.value)}
+                      className="input-field"
+                    />
+                  </Field>
+                  <Field label="Balance (£)">
+                    <input
+                      type="number"
+                      value={pot.starting_balance}
+                      step={1000}
+                      onChange={e => updateDcPot(i, 'starting_balance', Number(e.target.value))}
+                      className="input-field"
+                    />
+                  </Field>
+                  <Field label="Growth (%)">
+                    <input
+                      type="number"
+                      value={(pot.growth_rate * 100).toFixed(1)}
+                      step={0.1}
+                      onChange={e => updateDcPot(i, 'growth_rate', Number(e.target.value) / 100)}
+                      className="input-field"
+                    />
+                  </Field>
+                  <Field label="Fees (%)">
+                    <input
+                      type="number"
+                      value={(pot.annual_fees * 100).toFixed(2)}
+                      step={0.01}
+                      onChange={e => updateDcPot(i, 'annual_fees', Number(e.target.value) / 100)}
+                      className="input-field"
+                    />
+                  </Field>
+                  <Field label="Tax-free (%)">
+                    <input
+                      type="number"
+                      value={(pot.tax_free_portion * 100).toFixed(0)}
+                      step={5}
+                      onChange={e => updateDcPot(i, 'tax_free_portion', Number(e.target.value) / 100)}
+                      className="input-field"
+                    />
+                  </Field>
+                  <button
+                    onClick={() => removeDcPot(i)}
+                    className="mb-0.5 p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                    title="Remove pot"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               ))}
+            </div>
+          </div>
+
+          {/* Tax-Free Accounts */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Tax-Free Accounts (ISA / equivalent)
+              </h4>
+              <button
+                onClick={addTfAccount}
+                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" /> Add account
+              </button>
+            </div>
+            {config.tax_free_accounts.length === 0 && (
+              <p className="text-xs text-gray-400 italic">No tax-free accounts configured.</p>
+            )}
+            <div className="space-y-3">
               {config.tax_free_accounts.map((acc, i) => (
-                <Field key={acc.name} label={acc.name}>
-                  <input
-                    type="number"
-                    value={acc.starting_balance}
-                    step={1000}
-                    onChange={e => setPotBalance('tf', i, Number(e.target.value))}
-                    className="input-field"
-                  />
-                </Field>
+                <div key={i} className="grid grid-cols-[1fr_1fr_auto_auto] sm:grid-cols-[2fr_1fr_0.8fr_auto] gap-2 items-end">
+                  <Field label="Name">
+                    <input
+                      type="text"
+                      value={acc.name}
+                      onChange={e => updateTfAccount(i, 'name', e.target.value)}
+                      className="input-field"
+                    />
+                  </Field>
+                  <Field label="Balance (£)">
+                    <input
+                      type="number"
+                      value={acc.starting_balance}
+                      step={1000}
+                      onChange={e => updateTfAccount(i, 'starting_balance', Number(e.target.value))}
+                      className="input-field"
+                    />
+                  </Field>
+                  <Field label="Growth (%)">
+                    <input
+                      type="number"
+                      value={(acc.growth_rate * 100).toFixed(1)}
+                      step={0.1}
+                      onChange={e => updateTfAccount(i, 'growth_rate', Number(e.target.value) / 100)}
+                      className="input-field"
+                    />
+                  </Field>
+                  <button
+                    onClick={() => removeTfAccount(i)}
+                    className="mb-0.5 p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                    title="Remove account"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               ))}
             </div>
           </div>
