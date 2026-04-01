@@ -74,7 +74,7 @@ export const DEFAULT_CONFIG: PlannerConfig = {
   ],
   withdrawal_priority: ['Employer DC Pot', 'Consolidated DC Pot', 'ISA'],
   tax: {
-    regime: 'Isle of Man',
+    regime: 'Custom',
     personal_allowance: 14500,
     bands: [
       { name: 'Lower rate', width: 6500, rate: 0.1 },

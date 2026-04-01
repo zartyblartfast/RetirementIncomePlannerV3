@@ -1,7 +1,7 @@
 /**
- * Tax calculation module — IoM and UK regimes.
+ * Tax calculation module — generic banded tax calculator.
  *
- * Port of V1 RetirementEngine.calculate_tax() and calculate_uk_tax().
+ * Supports any tax regime defined by personal allowance + bands.
  */
 
 import type { TaxConfig, TaxResult, TaxBandDetail } from './types';
@@ -82,10 +82,10 @@ function calculateBandedTax(
 }
 
 // ------------------------------------------------------------------ //
-//  IoM Tax
+//  Tax calculation (user-configured regime)
 // ------------------------------------------------------------------ //
 
-export function calculateIomTax(taxableIncome: number, taxCfg: TaxConfig): TaxResult {
+export function calculateTax(taxableIncome: number, taxCfg: TaxConfig): TaxResult {
   const bands: BandInput[] = taxCfg.bands.map(b => ({
     name: `${Math.round(b.rate * 100)}%`,
     width: b.width,
@@ -102,21 +102,6 @@ export function calculateIomTax(taxableIncome: number, taxCfg: TaxConfig): TaxRe
 }
 
 // ------------------------------------------------------------------ //
-//  UK Tax (for comparison)
-// ------------------------------------------------------------------ //
-
-const UK_PERSONAL_ALLOWANCE = 12570;
-const UK_BANDS: BandInput[] = [
-  { name: 'Basic 20%', width: 37700, rate: 0.20 },
-  { name: 'Higher 40%', width: 74870, rate: 0.40 },
-  { name: 'Additional 45%', width: null, rate: 0.45 },
-];
-
-export function calculateUkTax(taxableIncome: number): TaxResult {
-  return calculateBandedTax(taxableIncome, UK_PERSONAL_ALLOWANCE, UK_BANDS);
-}
-
-// ------------------------------------------------------------------ //
 //  Gross-up solver (binary search)
 // ------------------------------------------------------------------ //
 
@@ -128,7 +113,7 @@ export function grossUp(
 ): number {
   if (netNeeded <= 0) return 0;
 
-  const taxOnExisting = calculateIomTax(guaranteedTaxable, taxCfg).total;
+  const taxOnExisting = calculateTax(guaranteedTaxable, taxCfg).total;
   let lo = netNeeded;
   let hi = netNeeded * 3;
 
@@ -136,7 +121,7 @@ export function grossUp(
     const mid = (lo + hi) / 2;
     const taxablePart = mid * (1 - taxFreePortion);
     const totalTaxable = guaranteedTaxable + taxablePart;
-    const totalTax = calculateIomTax(totalTaxable, taxCfg).total;
+    const totalTax = calculateTax(totalTaxable, taxCfg).total;
     const marginalTax = totalTax - taxOnExisting;
     const netFromDc = mid - marginalTax;
 
@@ -164,14 +149,14 @@ export function monthlyGrossUp(
 ): number {
   if (netNeeded <= 0) return 0;
 
-  const taxOnExisting = calculateIomTax(taxableBase, taxCfg).total;
+  const taxOnExisting = calculateTax(taxableBase, taxCfg).total;
   let lo = netNeeded;
   let hi = netNeeded * 3;
 
   for (let i = 0; i < 60; i++) {
     const mid = (lo + hi) / 2;
     const taxablePart = mid * (1 - taxFreePortion);
-    const totalTax = calculateIomTax(taxableBase + taxablePart, taxCfg).total;
+    const totalTax = calculateTax(taxableBase + taxablePart, taxCfg).total;
     const marginalTax = totalTax - taxOnExisting;
     const netFromDc = mid - marginalTax;
 

@@ -186,9 +186,7 @@ export interface YearRow {
   withdrawal_detail: Record<string, number>;
   total_taxable_income: number;
   tax_due: number;
-  uk_tax_due: number;
-  iom_tax_breakdown: TaxResult;
-  uk_tax_breakdown: TaxResult;
+  tax_breakdown: TaxResult;
   net_income_achieved: number;
   shortfall: boolean;
   pot_balances: Record<string, number>;
@@ -208,8 +206,6 @@ export interface ProjectionSummary {
   remaining_pots: Record<string, number>;
   remaining_tf: Record<string, number>;
   total_tax_paid: number;
-  total_uk_tax_paid: number;
-  uk_tax_saving: number;
   avg_effective_tax_rate: number;
   first_pot_exhausted_age: number | null;
   depletion_events: DepletionEvent[];

@@ -111,12 +111,8 @@ function ExpandedDetail({ yr }: { yr: YearRow }) {
       <div>
         <h4 className="font-semibold text-gray-700 mb-1">Tax</h4>
         <div className="flex justify-between text-gray-600">
-          <span>IoM tax</span>
+          <span>Tax due</span>
           <span>{fmt(yr.tax_due)}</span>
-        </div>
-        <div className="flex justify-between text-gray-600">
-          <span>UK tax (comparison)</span>
-          <span>{fmt(yr.uk_tax_due)}</span>
         </div>
         <div className="flex justify-between text-gray-600">
           <span>Taxable income</span>

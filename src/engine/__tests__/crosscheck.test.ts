@@ -51,14 +51,6 @@ describe('V1 ↔ V2 Cross-check — Summary', () => {
     expect(Math.abs(s.total_tax_paid - 129055.25)).toBeLessThan(TOL_CUM);
   });
 
-  it('total_uk_tax_paid ≈ 163938.04', () => {
-    expect(Math.abs(s.total_uk_tax_paid - 163938.04)).toBeLessThan(TOL_CUM);
-  });
-
-  it('uk_tax_saving ≈ 34882.79', () => {
-    expect(Math.abs(s.uk_tax_saving - 34882.79)).toBeLessThan(TOL_CUM);
-  });
-
   it('avg_effective_tax_rate ≈ 12.2', () => {
     expect(Math.abs(s.avg_effective_tax_rate - 12.2)).toBeLessThan(0.5);
   });
@@ -125,10 +117,6 @@ describe('V1 ↔ V2 Cross-check — Year 1 (age 68)', () => {
 
   it('tax_due ≈ 2705.84', () => {
     expect(Math.abs(y1.tax_due - 2705.84)).toBeLessThan(TOL);
-  });
-
-  it('uk_tax_due ≈ 3741.84', () => {
-    expect(Math.abs(y1.uk_tax_due - 3741.84)).toBeLessThan(TOL);
   });
 
   it('net_income_achieved ≈ 30410.53', () => {

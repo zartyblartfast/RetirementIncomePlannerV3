@@ -1,5 +1,5 @@
 import type { ProjectionSummary } from '../../engine/types';
-import { TrendingUp, TrendingDown, Shield, AlertTriangle, PiggyBank, Landmark } from 'lucide-react';
+import { Shield, AlertTriangle, PiggyBank, Landmark } from 'lucide-react';
 
 interface Props {
   summary: ProjectionSummary;
@@ -14,8 +14,6 @@ export default function SummaryCards({ summary }: Props) {
     sustainable,
     remaining_capital,
     total_tax_paid,
-    total_uk_tax_paid,
-    uk_tax_saving,
     avg_effective_tax_rate,
     first_shortfall_age,
     first_pot_exhausted_age,
@@ -25,7 +23,7 @@ export default function SummaryCards({ summary }: Props) {
   } = summary;
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       {/* Sustainability */}
       <div className={`rounded-lg border p-4 ${sustainable ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
         <div className="flex items-center gap-2 mb-1">
@@ -56,31 +54,15 @@ export default function SummaryCards({ summary }: Props) {
         )}
       </div>
 
-      {/* IoM Tax */}
+      {/* Total Tax */}
       <div className="rounded-lg border border-gray-200 bg-white p-4">
         <div className="flex items-center gap-2 mb-1">
           <Landmark className="w-5 h-5 text-purple-600" />
-          <h3 className="text-sm font-medium text-gray-600">Total IoM Tax</h3>
+          <h3 className="text-sm font-medium text-gray-600">Total Tax</h3>
         </div>
         <p className="text-xl font-bold text-gray-900">{fmt(total_tax_paid)}</p>
         <p className="text-xs text-gray-500 mt-1">
           Effective rate: {avg_effective_tax_rate}%
-        </p>
-      </div>
-
-      {/* Tax Saving */}
-      <div className="rounded-lg border border-gray-200 bg-white p-4">
-        <div className="flex items-center gap-2 mb-1">
-          {uk_tax_saving > 0
-            ? <TrendingDown className="w-5 h-5 text-green-600" />
-            : <TrendingUp className="w-5 h-5 text-red-600" />}
-          <h3 className="text-sm font-medium text-gray-600">IoM vs UK Saving</h3>
-        </div>
-        <p className={`text-xl font-bold ${uk_tax_saving > 0 ? 'text-green-700' : 'text-red-700'}`}>
-          {uk_tax_saving > 0 ? '' : '-'}{fmt(Math.abs(uk_tax_saving))}
-        </p>
-        <p className="text-xs text-gray-500 mt-1">
-          UK tax would be {fmt(total_uk_tax_paid)}
         </p>
       </div>
     </div>

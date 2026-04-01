@@ -20,7 +20,7 @@ import type {
   StrategyState,
 } from './types';
 
-import { calculateIomTax, calculateUkTax, grossUp } from './tax';
+import { calculateTax, grossUp } from './tax';
 import { normalizeConfig, computeAnnualTarget } from './strategies';
 
 // ------------------------------------------------------------------ //
@@ -130,11 +130,9 @@ function buildYearRow(
   tfBalances: Record<string, number>,
   dcMeta: Record<string, DcMeta>,
   tfMeta: Record<string, TfMeta>,
-  iomTax: TaxResult,
-  ukTax: TaxResult,
+  tax: TaxResult,
 ): YearRow {
-  const taxDue = iomTax.total;
-  const ukTaxDue = ukTax.total;
+  const taxDue = tax.total;
   const netIncome = agg.guaranteed_gross + agg.dc_gross + agg.tf_total - taxDue;
   const totalTaxable = agg.guaranteed_taxable + (agg.dc_gross - agg.dc_tf);
   const totalCapital = sumValues(dcBalances) + sumValues(tfBalances);
@@ -182,9 +180,7 @@ function buildYearRow(
     withdrawal_detail: wd,
     total_taxable_income: round2(totalTaxable),
     tax_due: round2(taxDue),
-    uk_tax_due: round2(ukTaxDue),
-    iom_tax_breakdown: iomTax,
-    uk_tax_breakdown: ukTax,
+    tax_breakdown: tax,
     net_income_achieved: round2(netIncome),
     shortfall: netIncome < agg.target_annual - 1,
     pot_balances: Object.fromEntries(
@@ -409,7 +405,6 @@ export function runProjection(
   let firstShortfallAge: number | null = null;
   let firstPotExhaustedAge: number | null = null;
   let totalTax = 0;
-  let totalUkTax = 0;
   const depletionEvents: DepletionEvent[] = [];
   const depletedPots = new Set<string>();
 
@@ -467,12 +462,10 @@ export function runProjection(
         // Finalise previous year
         const totalTaxableYr = currentAgg.guaranteed_taxable
           + (currentAgg.dc_gross - currentAgg.dc_tf);
-        const iomTax = calculateIomTax(totalTaxableYr, taxCfg);
-        const ukTax = calculateUkTax(totalTaxableYr);
-        const yrRow = buildYearRow(currentAgg, dcBalances, tfBalances, dcMeta, tfMeta, iomTax, ukTax);
+        const yearTax = calculateTax(totalTaxableYr, taxCfg);
+        const yrRow = buildYearRow(currentAgg, dcBalances, tfBalances, dcMeta, tfMeta, yearTax);
         years.push(yrRow);
-        totalTax += iomTax.total;
-        totalUkTax += ukTax.total;
+        totalTax += yearTax.total;
         if (yrRow.shortfall && firstShortfallAge === null) {
           firstShortfallAge = yrRow.age;
         }
@@ -550,7 +543,7 @@ export function runProjection(
       if (strategyId === 'fixed_target') {
         // target already set
       } else if (strategyMode === 'pot_net') {
-        const taxOnGuar = calculateIomTax(estGuarTaxable, taxCfg).total;
+        const taxOnGuar = calculateTax(estGuarTaxable, taxCfg).total;
         const guarNet = estGuarGross - taxOnGuar;
         targetAnnual = strategyAmount + guarNet;
         currentAgg.target_annual = targetAnnual;
@@ -574,7 +567,7 @@ export function runProjection(
         }
         const estDcTaxable = achievable * dcFrac * (1 - wavgTfp);
         const totalTaxableEst = estGuarTaxable + estDcTaxable;
-        const taxEst = calculateIomTax(totalTaxableEst, taxCfg).total;
+        const taxEst = calculateTax(totalTaxableEst, taxCfg).total;
         const estNet = estGuarGross + achievable - taxEst;
         targetAnnual = estNet;
         currentAgg.target_annual = targetAnnual;
@@ -639,7 +632,7 @@ export function runProjection(
     // Annualised DC gross-up ratio (PAYE-like)
     const estGuarTaxableM = guarTaxableMo * 12;
     const estGuarGrossM = guarGrossMo * 12;
-    const annualTaxOnGuar = calculateIomTax(estGuarTaxableM, taxCfg).total;
+    const annualTaxOnGuar = calculateTax(estGuarTaxableM, taxCfg).total;
     const netFromGuarM = estGuarGrossM - annualTaxOnGuar;
     const annualShortfallM = Math.max(0, monthlyTarget * 12 - netFromGuarM);
     const totalDcBal = Object.values(dcBalances).reduce((s, v) => s + Math.max(0, v), 0);
@@ -797,12 +790,10 @@ export function runProjection(
   if (currentAgg !== null && currentAgg.months_counted > 0) {
     const totalTaxableFinal = currentAgg.guaranteed_taxable
       + (currentAgg.dc_gross - currentAgg.dc_tf);
-    const iomTax = calculateIomTax(totalTaxableFinal, taxCfg);
-    const ukTax = calculateUkTax(totalTaxableFinal);
-    const yrRow = buildYearRow(currentAgg, dcBalances, tfBalances, dcMeta, tfMeta, iomTax, ukTax);
+    const finalTax = calculateTax(totalTaxableFinal, taxCfg);
+    const yrRow = buildYearRow(currentAgg, dcBalances, tfBalances, dcMeta, tfMeta, finalTax);
     years.push(yrRow);
-    totalTax += iomTax.total;
-    totalUkTax += ukTax.total;
+    totalTax += finalTax.total;
     if (yrRow.shortfall && firstShortfallAge === null) {
       firstShortfallAge = yrRow.age;
     }
@@ -828,8 +819,6 @@ export function runProjection(
     remaining_pots: Object.fromEntries(Object.entries(dcBalances).map(([n, b]) => [n, round2(b)])),
     remaining_tf: Object.fromEntries(Object.entries(tfBalances).map(([n, b]) => [n, round2(b)])),
     total_tax_paid: round2(totalTax),
-    total_uk_tax_paid: round2(totalUkTax),
-    uk_tax_saving: round2(totalUkTax - totalTax),
     avg_effective_tax_rate: totalTaxableSum > 0
       ? round2((totalTax / totalTaxableSum) * 100)
       : 0,

@@ -22,16 +22,11 @@ describe('Projection — Simple config', () => {
     expect(result.summary).toHaveProperty('sustainable');
     expect(result.summary).toHaveProperty('remaining_capital');
     expect(result.summary).toHaveProperty('total_tax_paid');
-    expect(result.summary).toHaveProperty('uk_tax_saving');
     expect(result.summary.end_age).toBe(90);
   });
 
   it('total tax is positive', () => {
     expect(result.summary.total_tax_paid).toBeGreaterThan(0);
-  });
-
-  it('UK tax saving is positive (IoM cheaper than UK)', () => {
-    expect(result.summary.uk_tax_saving).toBeGreaterThan(0);
   });
 
   it('net income achieved in first year is close to target', () => {
@@ -75,15 +70,10 @@ describe('Projection — Default config', () => {
     expect(empWd).toBeGreaterThan(0);
   });
 
-  it('tax breakdown has IoM bands', () => {
+  it('tax breakdown has bands', () => {
     const yr1 = result.years[0]!;
-    expect(yr1.iom_tax_breakdown.bands.length).toBeGreaterThan(0);
-    expect(yr1.iom_tax_breakdown.personal_allowance).toBe(14500);
-  });
-
-  it('UK tax comparison is calculated', () => {
-    const yr1 = result.years[0]!;
-    expect(yr1.uk_tax_due).toBeGreaterThan(0);
+    expect(yr1.tax_breakdown.bands.length).toBeGreaterThan(0);
+    expect(yr1.tax_breakdown.personal_allowance).toBe(14500);
   });
 
   it('pot P&L has opening/growth/fees/closing', () => {
