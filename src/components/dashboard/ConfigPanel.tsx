@@ -26,13 +26,13 @@ function newTfAccount(name: string): TaxFreeAccountConfig {
   };
 }
 
-function newGuaranteedIncome(name: string): GuaranteedIncomeConfig {
+function newGuaranteedIncome(name: string, retirementDate: string): GuaranteedIncomeConfig {
   return {
     name,
     gross_annual: 0,
     indexation_rate: 0.03,
-    start_age: 67,
-    end_age: null,
+    start_date: retirementDate || NOW_MONTH,
+    end_date: null,
     taxable: true,
     values_as_of: NOW_MONTH,
   };
@@ -46,7 +46,7 @@ export default function ConfigPanel() {
   const strategyDef = STRATEGIES[strategyId];
   const strategyParams = config.drawdown_strategy_params ?? {};
 
-  function setNested(path: string, val: number) {
+  function setNested(path: string, val: number | string) {
     updateConfig(prev => {
       const next = JSON.parse(JSON.stringify(prev)) as PlannerConfig;
       const parts = path.split('.');
@@ -78,7 +78,10 @@ export default function ConfigPanel() {
   function addGuaranteed() {
     updateConfig(prev => ({
       ...prev,
-      guaranteed_income: [...prev.guaranteed_income, newGuaranteedIncome(`Pension ${prev.guaranteed_income.length + 1}`)],
+      guaranteed_income: [
+        ...prev.guaranteed_income,
+        newGuaranteedIncome(`Pension ${prev.guaranteed_income.length + 1}`, prev.personal.retirement_date),
+      ],
     }));
   }
 
@@ -177,7 +180,40 @@ export default function ConfigPanel() {
 
       {open && (
         <div className="px-4 pb-4 space-y-5 border-t border-gray-100 pt-3">
-          {/* Row 1: Income + Strategy */}
+          {/* Personal */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <Field label="Date of Birth">
+              <input
+                type="month"
+                value={config.personal.date_of_birth}
+                onChange={e => setNested('personal.date_of_birth', e.target.value)}
+                className="input-field"
+              />
+            </Field>
+
+            <Field label="Retirement Date">
+              <input
+                type="month"
+                value={config.personal.retirement_date}
+                onChange={e => setNested('personal.retirement_date', e.target.value)}
+                className="input-field"
+              />
+            </Field>
+
+            <Field label="Plan Until Age">
+              <input
+                type="number"
+                value={config.personal.end_age}
+                step={1}
+                min={60}
+                max={120}
+                onChange={e => setNested('personal.end_age', Number(e.target.value))}
+                className="input-field"
+              />
+            </Field>
+          </div>
+
+          {/* Income + Strategy */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <Field label="Target Net Income (£/yr)">
               <input
@@ -195,18 +231,6 @@ export default function ConfigPanel() {
                 value={(config.target_income.cpi_rate * 100).toFixed(1)}
                 step={0.1}
                 onChange={e => setNested('target_income.cpi_rate', Number(e.target.value) / 100)}
-                className="input-field"
-              />
-            </Field>
-
-            <Field label="End Age">
-              <input
-                type="number"
-                value={config.personal.end_age}
-                step={1}
-                min={60}
-                max={120}
-                onChange={e => setNested('personal.end_age', Number(e.target.value))}
                 className="input-field"
               />
             </Field>
@@ -307,12 +331,11 @@ export default function ConfigPanel() {
                       className="input-field"
                     />
                   </Field>
-                  <Field label="Start Age">
+                  <Field label="Starts">
                     <input
-                      type="number"
-                      value={gi.start_age ?? 67}
-                      step={1}
-                      onChange={e => updateGuaranteed(i, 'start_age', Number(e.target.value))}
+                      type="month"
+                      value={gi.start_date ?? ''}
+                      onChange={e => updateGuaranteed(i, 'start_date', e.target.value)}
                       className="input-field"
                     />
                   </Field>
