@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Settings, ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
 import { useConfig } from '../../store/configStore';
 import { STRATEGIES, STRATEGY_IDS } from '../../engine/strategies';
-import type { PlannerConfig, DCPotConfig, TaxFreeAccountConfig } from '../../engine/types';
+import type { PlannerConfig, GuaranteedIncomeConfig, DCPotConfig, TaxFreeAccountConfig } from '../../engine/types';
 
 const NOW_MONTH = new Date().toISOString().slice(0, 7);
 
@@ -22,6 +22,18 @@ function newTfAccount(name: string): TaxFreeAccountConfig {
     name,
     starting_balance: 0,
     growth_rate: 0.035,
+    values_as_of: NOW_MONTH,
+  };
+}
+
+function newGuaranteedIncome(name: string): GuaranteedIncomeConfig {
+  return {
+    name,
+    gross_annual: 0,
+    indexation_rate: 0.03,
+    start_age: 67,
+    end_age: null,
+    taxable: true,
     values_as_of: NOW_MONTH,
   };
 }
@@ -52,6 +64,30 @@ export default function ConfigPanel() {
       ...prev,
       drawdown_strategy_params: { ...prev.drawdown_strategy_params, [key]: val },
     }));
+  }
+
+  // ---- Guaranteed income CRUD ---- //
+  function updateGuaranteed(index: number, field: string, val: string | number | boolean | null) {
+    updateConfig(prev => {
+      const next = JSON.parse(JSON.stringify(prev)) as PlannerConfig;
+      (next.guaranteed_income[index] as unknown as Record<string, unknown>)[field] = val;
+      return next;
+    });
+  }
+
+  function addGuaranteed() {
+    updateConfig(prev => ({
+      ...prev,
+      guaranteed_income: [...prev.guaranteed_income, newGuaranteedIncome(`Pension ${prev.guaranteed_income.length + 1}`)],
+    }));
+  }
+
+  function removeGuaranteed(index: number) {
+    updateConfig(prev => {
+      const next = JSON.parse(JSON.stringify(prev)) as PlannerConfig;
+      next.guaranteed_income.splice(index, 1);
+      return next;
+    });
   }
 
   // ---- DC pot CRUD ---- //
@@ -225,6 +261,82 @@ export default function ConfigPanel() {
               </div>
             </div>
           )}
+
+          {/* Guaranteed Income */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Guaranteed Income (Pensions)
+              </h4>
+              <button
+                onClick={addGuaranteed}
+                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" /> Add pension
+              </button>
+            </div>
+            {config.guaranteed_income.length === 0 && (
+              <p className="text-xs text-gray-400 italic">No guaranteed income sources configured.</p>
+            )}
+            <div className="space-y-3">
+              {config.guaranteed_income.map((gi, i) => (
+                <div key={i} className="grid grid-cols-[1fr_1fr_auto_auto_auto_auto] sm:grid-cols-[2fr_1fr_0.8fr_0.7fr_0.7fr_auto] gap-2 items-end">
+                  <Field label="Name">
+                    <input
+                      type="text"
+                      value={gi.name}
+                      onChange={e => updateGuaranteed(i, 'name', e.target.value)}
+                      className="input-field"
+                    />
+                  </Field>
+                  <Field label="Gross Annual (£)">
+                    <input
+                      type="number"
+                      value={gi.gross_annual}
+                      step={100}
+                      onChange={e => updateGuaranteed(i, 'gross_annual', Number(e.target.value))}
+                      className="input-field"
+                    />
+                  </Field>
+                  <Field label="Indexation (%)">
+                    <input
+                      type="number"
+                      value={(gi.indexation_rate * 100).toFixed(1)}
+                      step={0.1}
+                      onChange={e => updateGuaranteed(i, 'indexation_rate', Number(e.target.value) / 100)}
+                      className="input-field"
+                    />
+                  </Field>
+                  <Field label="Start Age">
+                    <input
+                      type="number"
+                      value={gi.start_age ?? 67}
+                      step={1}
+                      onChange={e => updateGuaranteed(i, 'start_age', Number(e.target.value))}
+                      className="input-field"
+                    />
+                  </Field>
+                  <Field label="Taxable">
+                    <select
+                      value={gi.taxable ? 'yes' : 'no'}
+                      onChange={e => updateGuaranteed(i, 'taxable', e.target.value === 'yes')}
+                      className="input-field"
+                    >
+                      <option value="yes">Yes</option>
+                      <option value="no">No</option>
+                    </select>
+                  </Field>
+                  <button
+                    onClick={() => removeGuaranteed(i)}
+                    className="mb-0.5 p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                    title="Remove pension"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
 
           {/* DC Pots */}
           <div>
