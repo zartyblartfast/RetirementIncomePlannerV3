@@ -379,7 +379,7 @@ export default function ConfigPanel() {
             )}
             <div className="space-y-3">
               {config.dc_pots.map((pot, i) => (
-                <div key={i} className="grid grid-cols-[1fr_1fr_auto_auto_auto] sm:grid-cols-[2fr_1fr_0.8fr_0.8fr_0.8fr_auto] gap-2 items-end">
+                <div key={i} className="grid grid-cols-2 sm:grid-cols-[2fr_1fr_0.8fr_0.8fr_0.8fr_1fr_auto] gap-2 items-end">
                   <Field label="Name">
                     <input
                       type="text"
@@ -424,6 +424,14 @@ export default function ConfigPanel() {
                       className="input-field"
                     />
                   </Field>
+                  <Field label="Value as of">
+                    <input
+                      type="month"
+                      value={pot.values_as_of ?? ''}
+                      onChange={e => updateDcPot(i, 'values_as_of', e.target.value)}
+                      className="input-field"
+                    />
+                  </Field>
                   <button
                     onClick={() => removeDcPot(i)}
                     className="mb-0.5 p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
@@ -454,7 +462,7 @@ export default function ConfigPanel() {
             )}
             <div className="space-y-3">
               {config.tax_free_accounts.map((acc, i) => (
-                <div key={i} className="grid grid-cols-[1fr_1fr_auto_auto] sm:grid-cols-[2fr_1fr_0.8fr_auto] gap-2 items-end">
+                <div key={i} className="grid grid-cols-2 sm:grid-cols-[2fr_1fr_0.8fr_1fr_auto] gap-2 items-end">
                   <Field label="Name">
                     <input
                       type="text"
@@ -478,6 +486,14 @@ export default function ConfigPanel() {
                       value={(acc.growth_rate * 100).toFixed(1)}
                       step={0.1}
                       onChange={e => updateTfAccount(i, 'growth_rate', Number(e.target.value) / 100)}
+                      className="input-field"
+                    />
+                  </Field>
+                  <Field label="Value as of">
+                    <input
+                      type="month"
+                      value={acc.values_as_of ?? ''}
+                      onChange={e => updateTfAccount(i, 'values_as_of', e.target.value)}
                       className="input-field"
                     />
                   </Field>
