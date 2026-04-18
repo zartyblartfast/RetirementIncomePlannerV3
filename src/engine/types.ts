@@ -137,6 +137,7 @@ export interface StrategyDefinition {
   display_name: string;
   description: string;
   params: StrategyParamDef[];
+  portfolio_driven?: boolean;
 }
 
 export interface StrategyParamDef {

@@ -1,9 +1,10 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { LayoutDashboard, GitCompareArrows, ClipboardCheck } from 'lucide-react'
+import { LayoutDashboard, GitCompareArrows, Target, ClipboardCheck } from 'lucide-react'
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/what-if', label: 'What If', icon: GitCompareArrows },
+  { to: '/optimise', label: 'Optimise', icon: Target },
   { to: '/review', label: 'Review', icon: ClipboardCheck },
 ]
 

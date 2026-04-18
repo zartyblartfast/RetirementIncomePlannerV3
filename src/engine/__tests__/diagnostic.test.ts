@@ -112,7 +112,8 @@ const V1_YEAR1 = {
   capital: 320401.06,
 };
 
-const V1_YEARS_CAPITAL = [
+// @ts-expect-error kept as reference data for manual diagnostics
+const _V1_YEARS_CAPITAL = [
   { age: 68, capital: 320401.06 },
   { age: 69, capital: 323823.21 },
   { age: 70, capital: 327078.96 },
@@ -430,7 +431,6 @@ describe('Diagnostic — V2 with V1 ACTIVE config vs V1 Python', () => {
       const v2 = activeResult.years[i];
       if (v2) {
         const capDiff = v2.total_capital - v1.capital;
-        const targetDiff = v2.target_net - v1.target;
         if (Math.abs(capDiff) > Math.abs(maxCapDiff)) {
           maxCapDiff = capDiff;
           maxCapDiffAge = v1.age;

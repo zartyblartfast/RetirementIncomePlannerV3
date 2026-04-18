@@ -11,7 +11,7 @@
  * Port of V1 backtest_engine.py
  */
 
-import type { PlannerConfig } from './types';
+import type { PlannerConfig, ProjectionResult } from './types';
 import { runProjection } from './projection';
 
 // ------------------------------------------------------------------ //
@@ -167,7 +167,12 @@ function computePotAnnualReturn(
 
   // Fallback: allocation template
   const alloc = potConfig.allocation;
-  if (!alloc) return null;
+  if (!alloc) {
+    // No holdings AND no allocation — use diversified_growth as default
+    const fallbackReturn = resolveAssetClassReturn('diversified_growth', yearStr, annualReturns, hdm);
+    if (fallbackReturn !== null) return fallbackReturn;
+    return null;
+  }
 
   if (alloc.mode === 'template' && alloc.template_id) {
     const templates: Record<string, PortfolioTemplate> = {};
@@ -659,6 +664,122 @@ export function extractStressTest(
       timeline: buildTimeline(bestW),
     },
   };
+}
+
+// ------------------------------------------------------------------ //
+//  Convenience helpers for scenario comparison
+// ------------------------------------------------------------------ //
+
+export interface KeyWindowStarts {
+  worst:  { start: number; label: string };
+  median: { start: number; label: string };
+  best:   { start: number; label: string };
+}
+
+/**
+ * Run a full backtest on a reference config and return the worst, median,
+ * and best window start years (by remaining capital).
+ * All compared scenarios should then use runProjectionForWindow() with one
+ * of these start years so they share the same historical period.
+ */
+export function getKeyWindowStarts(cfg: PlannerConfig): KeyWindowStarts | null {
+  const bt = runBacktest(cfg);
+  if (bt.windows.length === 0) return null;
+
+  const finals = bt.windows.map(w => w.result.summary.remaining_capital);
+  const sorted = [...finals].sort((a, b) => a - b);
+
+  // Worst = lowest capital
+  const worstVal = sorted[0]!;
+  let worstIdx = 0;
+  for (let i = 0; i < finals.length; i++) {
+    if (Math.abs(finals[i]! - worstVal) < Math.abs(finals[worstIdx]! - worstVal)) worstIdx = i;
+  }
+
+  // Median
+  const medianVal = sorted[Math.floor(sorted.length / 2)]!;
+  let medianIdx = 0;
+  let minDiff = Math.abs(finals[0]! - medianVal);
+  for (let i = 1; i < finals.length; i++) {
+    const diff = Math.abs(finals[i]! - medianVal);
+    if (diff < minDiff) { minDiff = diff; medianIdx = i; }
+  }
+
+  // Best = highest capital
+  const bestVal = sorted[sorted.length - 1]!;
+  let bestIdx = 0;
+  for (let i = 0; i < finals.length; i++) {
+    if (Math.abs(finals[i]! - bestVal) < Math.abs(finals[bestIdx]! - bestVal)) bestIdx = i;
+  }
+
+  function makeLabel(w: BacktestWindow) {
+    const [dobY, dobM] = parseYm(cfg.personal.date_of_birth);
+    const [retY, retM] = parseYm(cfg.personal.retirement_date);
+    const retAge = Math.floor(((retY * 12 + retM - 1) - (dobY * 12 + dobM - 1)) / 12);
+    const nYears = cfg.personal.end_age - retAge;
+    return `${w.window_start}-${w.window_start + nYears - 1}`;
+  }
+
+  return {
+    worst:  { start: bt.windows[worstIdx]!.window_start,  label: makeLabel(bt.windows[worstIdx]!) },
+    median: { start: bt.windows[medianIdx]!.window_start, label: makeLabel(bt.windows[medianIdx]!) },
+    best:   { start: bt.windows[bestIdx]!.window_start,   label: makeLabel(bt.windows[bestIdx]!) },
+  };
+}
+
+/**
+ * Backward-compat convenience — return just the median start year.
+ */
+export function getMedianWindowStart(cfg: PlannerConfig): number | null {
+  const keys = getKeyWindowStarts(cfg);
+  return keys?.median.start ?? null;
+}
+
+/**
+ * Run a single projection for a specific historical window start year.
+ * Injects the window's growth and CPI schedules into the config.
+ *
+ * extraYears: if > 0, the projection loop extends beyond end_age by this
+ * many years while strategies still target the original end_age.  This is
+ * useful for comparison charts that want to show capital trends beyond the
+ * plan horizon.
+ */
+export function runProjectionForWindow(
+  cfg: PlannerConfig,
+  windowStartYear: number,
+  extraYears = 0,
+): ProjectionResult {
+  const annualReturns = historicalReturns.annual_returns;
+  const hdm = assetModel.historical_data_mapping as Record<string, HistDataMapping>;
+
+  const [dobY, dobM] = parseYm(cfg.personal.date_of_birth);
+  const [retY, retM] = parseYm(cfg.personal.retirement_date);
+  const retirementAge = Math.floor(((retY * 12 + retM - 1) - (dobY * 12 + dobM - 1)) / 12);
+  const nYears = cfg.personal.end_age - retirementAge + extraYears;
+
+  const windowCfg: PlannerConfig = JSON.parse(JSON.stringify(cfg));
+  const schedules = buildSchedules(windowCfg, windowStartYear, nYears, annualReturns, assetModel, hdm);
+  windowCfg._dc_growth_schedules = schedules._dc_growth_schedules;
+  windowCfg._tf_growth_schedules = schedules._tf_growth_schedules;
+  windowCfg.cpi_rate_schedule = schedules.cpi_rate_schedule;
+
+  if (extraYears > 0) {
+    (windowCfg as unknown as Record<string, unknown>).projection_end_age =
+      cfg.personal.end_age + extraYears;
+  }
+
+  return runProjection(windowCfg);
+}
+
+/**
+ * Convenience: run backtest and return the median window's projection.
+ * For single-scenario use only.  For multi-scenario comparison, use
+ * getMedianWindowStart() + runProjectionForWindow() instead.
+ */
+export function runMedianProjection(cfg: PlannerConfig): ProjectionResult {
+  const windowStart = getMedianWindowStart(cfg);
+  if (windowStart === null) return runProjection(cfg);
+  return runProjectionForWindow(cfg, windowStart);
 }
 
 // Backward compat alias

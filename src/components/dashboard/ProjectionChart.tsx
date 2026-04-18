@@ -86,7 +86,6 @@ export default function ProjectionChart({ years, summary, strategyName }: Props)
   );
 
   const planEndAge = summary.end_age;
-  const depletionAge = summary.first_pot_exhausted_age;
   const subtitle = strategyName ? `Drawdown Strategy: ${strategyName}` : undefined;
 
   return (
@@ -127,15 +126,7 @@ export default function ProjectionChart({ years, summary, strategyName }: Props)
               strokeWidth={2}
               label={{ value: `Plan end (${planEndAge})`, position: 'top', fill: '#dc3545', fontSize: 11, fontWeight: 600 }}
             />
-            {depletionAge && (
-              <ReferenceLine
-                x={depletionAge}
-                stroke="#6b7280"
-                strokeDasharray="3 3"
-                strokeWidth={2}
-                label={{ value: `First pot depleted (${depletionAge})`, position: 'insideTopRight', fill: '#6b7280', fontSize: 11 }}
-              />
-            )}
+
           </AreaChart>
         </ResponsiveContainer>
       </div>

@@ -98,6 +98,7 @@ interface AnnualAgg {
   withdrawal_detail: Record<string, number>;
   pnl: Record<string, { opening: number; growth: number; fees: number; withdrawal: number }>;
   months_counted: number;
+  monthly_target_sum: number;
 }
 
 interface DcMeta {
@@ -183,7 +184,7 @@ function buildYearRow(
     tax_due: round2(taxDue),
     tax_breakdown: tax,
     net_income_achieved: round2(netIncome),
-    shortfall: netIncome < agg.target_annual - 1,
+    shortfall: netIncome < agg.monthly_target_sum - 1,
     pot_balances: Object.fromEntries(
       Object.entries(dcBalances).map(([n, b]) => [n, round2(b)])
     ),
@@ -455,6 +456,7 @@ export function runProjection(
       withdrawal_detail: {},
       pnl: pnlInit,
       months_counted: 0,
+      monthly_target_sum: 0,
     };
   }
 
@@ -734,6 +736,36 @@ export function runProjection(
       }
     }
 
+    // ---- Step 3b: Residual cleardown ---- //
+    // If a pot balance is small but non-zero after withdrawal, sweep it into
+    // income and close the pot.  Mirrors real-world provider behaviour.
+    const CLEARDOWN_THRESHOLD = 50;
+    for (const pname of Object.keys(dcBalances)) {
+      const bal = dcBalances[pname]!;
+      if (bal > 0.01 && bal < CLEARDOWN_THRESHOLD && !depletedPots.has(pname)) {
+        const tfp = dcMeta[pname]!.tax_free_portion;
+        currentAgg!.dc_gross += bal;
+        currentAgg!.dc_tf += bal * tfp;
+        const netFromRes = bal / dcGrossPerNet;
+        currentAgg!.withdrawal_detail[pname] = (currentAgg!.withdrawal_detail[pname] ?? 0) + netFromRes;
+        currentAgg!.pnl[pname]!.withdrawal += bal;
+        monthlyWithdrawalDetail[pname] = (monthlyWithdrawalDetail[pname] ?? 0) + netFromRes;
+        monthlyGrossIncome += bal;
+        dcBalances[pname] = 0;
+      }
+    }
+    for (const pname of Object.keys(tfBalances)) {
+      const bal = tfBalances[pname]!;
+      if (bal > 0.01 && bal < CLEARDOWN_THRESHOLD && !depletedPots.has(pname)) {
+        currentAgg!.tf_total += bal;
+        currentAgg!.withdrawal_detail[pname] = (currentAgg!.withdrawal_detail[pname] ?? 0) + bal;
+        currentAgg!.pnl[pname]!.withdrawal += bal;
+        monthlyWithdrawalDetail[pname] = (monthlyWithdrawalDetail[pname] ?? 0) + bal;
+        monthlyGrossIncome += bal;
+        tfBalances[pname] = 0;
+      }
+    }
+
     // ---- Step 4: Depletion detection ---- //
     for (const pname of Object.keys(dcBalances)) {
       if (dcBalances[pname]! <= 0 && !depletedPots.has(pname)) {
@@ -766,11 +798,12 @@ export function runProjection(
       }
     }
 
-    // ---- Step 5: Monthly CPI on target ---- //
+    // ---- Step 5: Track actual target used this month, then apply CPI ---- //
+    currentAgg!.monthly_target_sum += monthlyTarget;
+    currentAgg!.months_counted++;
     if (useMonthlyFromCpi) {
       monthlyTarget *= (1 + monthlyCpi);
     }
-    currentAgg!.months_counted++;
 
     // ---- Step 6: Collect monthly row ---- //
     if (monthlyRows !== null) {

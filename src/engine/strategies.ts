@@ -30,6 +30,7 @@ export const STRATEGIES: Record<string, StrategyDefinition> = {
   fixed_percentage: {
     display_name: 'Fixed Percentage',
     description: 'Withdraw a fixed percentage of the investable portfolio each year.',
+    portfolio_driven: true,
     params: [
       { key: 'withdrawal_rate', label: 'Withdrawal Rate (%)', type: 'number', step: 0.1, default: 4.0 },
     ],
@@ -63,6 +64,7 @@ export const STRATEGIES: Record<string, StrategyDefinition> = {
   arva: {
     display_name: 'ARVA',
     description: 'Annually Recalculated Virtual Annuity — withdrawal recalculated each year to target depletion by end age.',
+    portfolio_driven: true,
     params: [
       { key: 'assumed_real_return_pct', label: 'Assumed Real Return (%)', type: 'number', step: 0.5, default: 3.0,
         tooltip: 'The real (after-inflation) return ARVA assumes when calculating withdrawals.' },
@@ -71,6 +73,7 @@ export const STRATEGIES: Record<string, StrategyDefinition> = {
   arva_guardrails: {
     display_name: 'ARVA + Guardrails',
     description: 'ARVA with caps on year-to-year spending changes to reduce volatility.',
+    portfolio_driven: true,
     params: [
       { key: 'assumed_real_return_pct', label: 'Assumed Real Return (%)', type: 'number', step: 0.5, default: 3.0,
         tooltip: 'The real (after-inflation) return ARVA assumes when calculating withdrawals.' },

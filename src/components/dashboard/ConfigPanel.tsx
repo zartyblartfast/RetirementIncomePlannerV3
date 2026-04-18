@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Settings, ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
-import { useConfig } from '../../store/configStore';
+import { Settings, ChevronDown, ChevronUp, Plus, Trash2, Download, Upload } from 'lucide-react';
+import { useConfig, exportConfigToFile, importConfigFromFile } from '../../store/configStore';
 import { STRATEGIES, STRATEGY_IDS } from '../../engine/strategies';
 import type { PlannerConfig, GuaranteedIncomeConfig, DCPotConfig, TaxFreeAccountConfig } from '../../engine/types';
 
@@ -39,8 +39,20 @@ function newGuaranteedIncome(name: string, retirementDate: string): GuaranteedIn
 }
 
 export default function ConfigPanel() {
-  const { config, updateConfig } = useConfig();
+  const { config, setConfig, updateConfig } = useConfig();
   const [open, setOpen] = useState(true);
+  const [importError, setImportError] = useState<string | null>(null);
+
+  function handleExport() {
+    exportConfigToFile(config);
+  }
+
+  function handleImport() {
+    setImportError(null);
+    importConfigFromFile()
+      .then(cfg => { setConfig(cfg); })
+      .catch(err => { setImportError(err.message); });
+  }
 
   const strategyId = config.drawdown_strategy ?? 'fixed_target';
   const strategyDef = STRATEGIES[strategyId];
@@ -180,6 +192,26 @@ export default function ConfigPanel() {
 
       {open && (
         <div className="px-4 pb-4 space-y-5 border-t border-gray-100 pt-3">
+          {/* Export / Import */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={handleExport}
+              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Export Config
+            </button>
+            <button
+              onClick={handleImport}
+              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              Import Config
+            </button>
+            {importError && (
+              <span className="text-xs text-red-600">{importError}</span>
+            )}
+          </div>
           {/* Personal */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <Field label="Date of Birth">
@@ -215,13 +247,14 @@ export default function ConfigPanel() {
 
           {/* Income + Strategy */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <Field label="Target Net Income (£/yr)">
+            <Field label="Target Net Income (£/yr)" tooltip={strategyDef?.portfolio_driven ? 'Not used — this strategy derives income from the portfolio' : undefined}>
               <input
                 type="number"
                 value={config.target_income.net_annual}
                 step={500}
+                disabled={!!strategyDef?.portfolio_driven}
                 onChange={e => setNested('target_income.net_annual', Number(e.target.value))}
-                className="input-field"
+                className={`input-field ${strategyDef?.portfolio_driven ? 'opacity-40 cursor-not-allowed' : ''}`}
               />
             </Field>
 

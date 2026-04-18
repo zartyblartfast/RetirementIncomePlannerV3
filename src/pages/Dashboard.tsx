@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useConfig } from '../store/configStore';
 import { useProjection } from '../hooks/useProjection';
 import SummaryCards from '../components/dashboard/SummaryCards';
@@ -6,10 +7,25 @@ import YearTable from '../components/dashboard/YearTable';
 import { getStrategyDisplayName } from '../engine/strategies';
 import ConfigPanel from '../components/dashboard/ConfigPanel';
 
+function deepClone<T>(obj: T): T {
+  return JSON.parse(JSON.stringify(obj));
+}
+
+const EXTRA_YEARS = 5;
+
 export default function Dashboard() {
   const { config } = useConfig();
   const result = useProjection(config);
   const strategyId = config.drawdown_strategy ?? 'fixed_target';
+
+  // Extended projection for charts — shows a few years past plan end
+  const extendedConfig = useMemo(() => {
+    const cfg = deepClone(config);
+    (cfg as unknown as Record<string, unknown>).projection_end_age =
+      cfg.personal.end_age + EXTRA_YEARS;
+    return cfg;
+  }, [config]);
+  const chartResult = useProjection(extendedConfig);
 
   return (
     <div className="space-y-6">
@@ -47,8 +63,8 @@ export default function Dashboard() {
       {/* Summary cards */}
       <SummaryCards summary={result.summary} />
 
-      {/* Charts */}
-      <ProjectionChart years={result.years} summary={result.summary} strategyName={getStrategyDisplayName(strategyId)} />
+      {/* Charts (extended beyond end_age for visibility) */}
+      <ProjectionChart years={chartResult.years} summary={result.summary} strategyName={getStrategyDisplayName(strategyId)} />
 
       {/* Year-by-year table */}
       <div>
