@@ -47,12 +47,30 @@
         "source": "Robert Shiller S&P 500 dataset (Consumer Price Index column)",
         "coverage": "1900-2022",
         "notes": "Annual change in monthly CPI level"
+      },
+      "uk_equity_total": {
+        "description": "UK equity total return (capital gains + dividends)",
+        "source": "1900-2016: Bank of England Millennium uk_equity_price + era-appropriate dividend yield (Dimson-Marsh-Staunton). 2017-2024: FTSE All-Share total return (FTSE Russell / Bloomberg).",
+        "coverage": "1900-2024",
+        "includes_dividends": true,
+        "dividend_yield_assumptions": {
+          "1900-1913": "4.8% (Edwardian era)",
+          "1914-1918": "5.0% (WW1)",
+          "1919-1939": "5.0% (Interwar)",
+          "1940-1944": "4.5% (WW2)",
+          "1945-1979": "4.2% (Post-war)",
+          "1980-1999": "3.8% (Thatcher/bull market era)",
+          "2000-2009": "3.5% (2000s)",
+          "2010-2016": "3.2% (Post-GFC low-yield era)",
+          "2017-2024": "Direct FTSE All-Share total return"
+        },
+        "notes": "Preferred series for backtesting. Replaces uk_equity_price in all blends."
       }
     },
     "asset_class_mapping": {
       "global_equity": {
-        "method": "Weighted blend: 70% us_equity + 30% uk_equity_price",
-        "notes": "UK component understates total return due to missing dividends. US component (S&P 500) includes dividends. US weighting higher because it includes total return."
+        "method": "Weighted blend: 70% us_equity + 30% uk_equity_total",
+        "notes": "UK component now includes dividends (uk_equity_total). Both US and UK series are total return."
       },
       "diversified_growth": {
         "method": "Synthetic: 60% global_equity + 40% uk_gilts",
@@ -76,7 +94,7 @@
       }
     },
     "limitations": [
-      "UK equity returns are PRICE ONLY (no dividends). Historical UK dividend yield was ~3-5%, so actual total returns were higher than shown.",
+      "UK equity total return (uk_equity_total) includes estimated dividends 1900-2016 and FTSE All-Share actual total return 2017-2024. Dividend yield assumptions are era-based estimates from Dimson-Marsh-Staunton research, not exact historical figures.",
       "Bond returns are approximated from yield changes using 10-year duration assumption. Actual bond returns depend on the specific maturity held.",
       "BoE Millennium data ends at 2016. 2017+ uses S&P 500 data only for equity/bonds.",
       "Property returns are synthetic (no direct historical UK property data in sources used).",
@@ -92,7 +110,8 @@
       "uk_gilts": 0.006857,
       "cash": 0.04,
       "uk_cpi": 0.040583,
-      "us_cpi": -0.036709
+      "us_cpi": -0.036709,
+      "uk_equity_total": 0.1119
     },
     "1901": {
       "us_equity": 0.203785,
@@ -101,7 +120,8 @@
       "uk_gilts": 0.011149,
       "cash": 0.04,
       "uk_cpi": -0.003,
-      "us_cpi": 0.049934
+      "us_cpi": 0.049934,
+      "uk_equity_total": 0.0653
     },
     "1902": {
       "us_equity": 0.054088,
@@ -110,7 +130,8 @@
       "uk_gilts": 0.028423,
       "cash": 0.04,
       "uk_cpi": 0.0,
-      "us_cpi": 0.071339
+      "us_cpi": 0.071339,
+      "uk_equity_total": 0.0746
     },
     "1903": {
       "us_equity": -0.140373,
@@ -119,7 +140,8 @@
       "uk_gilts": 0.015605,
       "cash": 0.04,
       "uk_cpi": 0.011033,
-      "us_cpi": -0.054907
+      "us_cpi": -0.054907,
+      "uk_equity_total": 0.0297
     },
     "1904": {
       "us_equity": 0.302892,
@@ -128,7 +150,8 @@
       "uk_gilts": 0.020545,
       "cash": 0.03,
       "uk_cpi": -0.003968,
-      "us_cpi": 0.046972
+      "us_cpi": 0.046972,
+      "uk_equity_total": 0.1223
     },
     "1905": {
       "us_equity": 0.196364,
@@ -137,7 +160,8 @@
       "uk_gilts": 0.033577,
       "cash": 0.04,
       "uk_cpi": 0.003984,
-      "us_cpi": 0.0
+      "us_cpi": 0.0,
+      "uk_equity_total": 0.119
     },
     "1906": {
       "us_equity": 0.073375,
@@ -146,7 +170,8 @@
       "uk_gilts": 0.023305,
       "cash": 0.06,
       "uk_cpi": -0.000992,
-      "us_cpi": 0.05549
+      "us_cpi": 0.05549,
+      "uk_equity_total": 0.1111
     },
     "1907": {
       "us_equity": -0.287602,
@@ -155,7 +180,8 @@
       "uk_gilts": 0.014527,
       "cash": 0.07,
       "uk_cpi": 0.015889,
-      "us_cpi": -0.021253
+      "us_cpi": -0.021253,
+      "uk_equity_total": 0.0043
     },
     "1908": {
       "us_equity": 0.435312,
@@ -164,7 +190,8 @@
       "uk_gilts": 0.037391,
       "cash": 0.025,
       "uk_cpi": 0.012708,
-      "us_cpi": 0.033143
+      "us_cpi": 0.033143,
+      "uk_equity_total": 0.0929
     },
     "1909": {
       "us_equity": 0.189369,
@@ -173,7 +200,8 @@
       "uk_gilts": 0.020234,
       "cash": 0.045,
       "uk_cpi": 0.001931,
-      "us_cpi": 0.105088
+      "us_cpi": 0.105088,
+      "uk_equity_total": 0.124
     },
     "1910": {
       "us_equity": -0.075728,
@@ -182,7 +210,8 @@
       "uk_gilts": 0.019711,
       "cash": 0.045,
       "uk_cpi": 0.021195,
-      "us_cpi": -0.076076
+      "us_cpi": -0.076076,
+      "uk_equity_total": 0.064
     },
     "1911": {
       "us_equity": 0.058564,
@@ -191,7 +220,8 @@
       "uk_gilts": 0.02448,
       "cash": 0.04,
       "uk_cpi": 0.00283,
-      "us_cpi": -0.020585
+      "us_cpi": -0.020585,
+      "uk_equity_total": 0.0419
     },
     "1912": {
       "us_equity": 0.082327,
@@ -200,7 +230,8 @@
       "uk_gilts": 0.01856,
       "cash": 0.05,
       "uk_cpi": 0.028222,
-      "us_cpi": 0.073009
+      "us_cpi": 0.073009,
+      "uk_equity_total": 0.069
     },
     "1913": {
       "us_equity": -0.091684,
@@ -209,7 +240,8 @@
       "uk_gilts": 0.022441,
       "cash": 0.05,
       "uk_cpi": 0.006404,
-      "us_cpi": 0.030928
+      "us_cpi": 0.030928,
+      "uk_equity_total": 0.02
     },
     "1914": {
       "us_equity": -0.033582,
@@ -218,7 +250,8 @@
       "uk_gilts": 0.028792,
       "cash": 0.05,
       "uk_cpi": 0.025455,
-      "us_cpi": 0.01
+      "us_cpi": 0.01,
+      "uk_equity_total": 0.063738
     },
     "1915": {
       "us_equity": 0.348299,
@@ -227,7 +260,8 @@
       "uk_gilts": -0.002743,
       "cash": 0.05,
       "uk_cpi": 0.125,
-      "us_cpi": 0.019802
+      "us_cpi": 0.019802,
+      "uk_equity_total": -0.19674
     },
     "1916": {
       "us_equity": 0.092827,
@@ -236,7 +270,8 @@
       "uk_gilts": -0.00727,
       "cash": 0.06,
       "uk_cpi": 0.181,
-      "us_cpi": 0.126214
+      "us_cpi": 0.126214,
+      "uk_equity_total": 0.163182
     },
     "1917": {
       "us_equity": -0.235714,
@@ -245,7 +280,8 @@
       "uk_gilts": 0.01659,
       "cash": 0.05,
       "uk_cpi": 0.252,
-      "us_cpi": 0.181034
+      "us_cpi": 0.181034,
+      "uk_equity_total": 0.133732
     },
     "1918": {
       "us_equity": 0.245588,
@@ -254,7 +290,8 @@
       "uk_gilts": 0.061181,
       "cash": 0.05,
       "uk_cpi": 0.22,
-      "us_cpi": 0.20438
+      "us_cpi": 0.20438,
+      "uk_equity_total": 0.169205
     },
     "1919": {
       "us_equity": 0.196203,
@@ -263,7 +300,8 @@
       "uk_gilts": 0.023437,
       "cash": 0.06,
       "uk_cpi": 0.101,
-      "us_cpi": 0.145455
+      "us_cpi": 0.145455,
+      "uk_equity_total": 0.107199
     },
     "1920": {
       "us_equity": -0.179372,
@@ -272,7 +310,8 @@
       "uk_gilts": -0.026512,
       "cash": 0.07,
       "uk_cpi": 0.154,
-      "us_cpi": 0.026455
+      "us_cpi": 0.026455,
+      "uk_equity_total": -0.243843
     },
     "1921": {
       "us_equity": 0.140969,
@@ -281,7 +320,8 @@
       "uk_gilts": 0.070285,
       "cash": 0.05,
       "uk_cpi": -0.086,
-      "us_cpi": -0.108247
+      "us_cpi": -0.108247,
+      "uk_equity_total": 0.07642
     },
     "1922": {
       "us_equity": 0.270862,
@@ -290,7 +330,8 @@
       "uk_gilts": 0.132814,
       "cash": 0.03,
       "uk_cpi": -0.14,
-      "us_cpi": -0.023121
+      "us_cpi": -0.023121,
+      "uk_equity_total": 0.226
     },
     "1923": {
       "us_equity": 0.034169,
@@ -299,7 +340,8 @@
       "uk_gilts": 0.053458,
       "cash": 0.04,
       "uk_cpi": -0.06,
-      "us_cpi": 0.023669
+      "us_cpi": 0.023669,
+      "uk_equity_total": 0.035544
     },
     "1924": {
       "us_equity": 0.252632,
@@ -308,7 +350,8 @@
       "uk_gilts": 0.035245,
       "cash": 0.04,
       "uk_cpi": -0.007,
-      "us_cpi": 0.0
+      "us_cpi": 0.0,
+      "uk_equity_total": 0.144909
     },
     "1925": {
       "us_equity": 0.285433,
@@ -317,7 +360,8 @@
       "uk_gilts": 0.037133,
       "cash": 0.05,
       "uk_cpi": 0.003,
-      "us_cpi": 0.034682
+      "us_cpi": 0.034682,
+      "uk_equity_total": 0.094129
     },
     "1926": {
       "us_equity": 0.138042,
@@ -326,7 +370,8 @@
       "uk_gilts": 0.035835,
       "cash": 0.05,
       "uk_cpi": -0.008,
-      "us_cpi": -0.011173
+      "us_cpi": -0.011173,
+      "uk_equity_total": 0.074151
     },
     "1927": {
       "us_equity": 0.351371,
@@ -335,7 +380,8 @@
       "uk_gilts": 0.041932,
       "cash": 0.045,
       "uk_cpi": -0.024,
-      "us_cpi": -0.022599
+      "us_cpi": -0.022599,
+      "uk_equity_total": 0.132535
     },
     "1928": {
       "us_equity": 0.37457,
@@ -344,7 +390,8 @@
       "uk_gilts": 0.054847,
       "cash": 0.045,
       "uk_cpi": -0.003,
-      "us_cpi": -0.011561
+      "us_cpi": -0.011561,
+      "uk_equity_total": 0.131007
     },
     "1929": {
       "us_equity": -0.033693,
@@ -353,7 +400,8 @@
       "uk_gilts": 0.015196,
       "cash": 0.05,
       "uk_cpi": -0.009,
-      "us_cpi": 0.005848
+      "us_cpi": 0.005848,
+      "uk_equity_total": -0.023678
     },
     "1930": {
       "us_equity": -0.229439,
@@ -362,7 +410,8 @@
       "uk_gilts": 0.0926,
       "cash": 0.03,
       "uk_cpi": -0.028,
-      "us_cpi": -0.063953
+      "us_cpi": -0.063953,
+      "uk_equity_total": -0.144426
     },
     "1931": {
       "us_equity": -0.402966,
@@ -371,7 +420,8 @@
       "uk_gilts": -0.0109,
       "cash": 0.06,
       "uk_cpi": -0.043,
-      "us_cpi": -0.093168
+      "us_cpi": -0.093168,
+      "uk_equity_total": -0.184599
     },
     "1932": {
       "us_equity": -0.132701,
@@ -380,7 +430,8 @@
       "uk_gilts": 0.1665,
       "cash": 0.02,
       "uk_cpi": -0.026,
-      "us_cpi": -0.10274
+      "us_cpi": -0.10274,
+      "uk_equity_total": 0.106229
     },
     "1933": {
       "us_equity": 0.526393,
@@ -389,7 +440,8 @@
       "uk_gilts": 0.0587,
       "cash": 0.02,
       "uk_cpi": -0.021,
-      "us_cpi": 0.007634
+      "us_cpi": 0.007634,
+      "uk_equity_total": 0.181524
     },
     "1934": {
       "us_equity": -0.026078,
@@ -398,7 +450,8 @@
       "uk_gilts": 0.0665,
       "cash": 0.02,
       "uk_cpi": 0.0,
-      "us_cpi": 0.015152
+      "us_cpi": 0.015152,
+      "uk_equity_total": 0.097048
     },
     "1935": {
       "us_equity": 0.458963,
@@ -407,7 +460,8 @@
       "uk_gilts": 0.070258,
       "cash": 0.02,
       "uk_cpi": 0.007,
-      "us_cpi": 0.029851
+      "us_cpi": 0.029851,
+      "uk_equity_total": 0.10815
     },
     "1936": {
       "us_equity": 0.363497,
@@ -416,7 +470,8 @@
       "uk_gilts": 0.028029,
       "cash": 0.02,
       "uk_cpi": 0.007,
-      "us_cpi": 0.014493
+      "us_cpi": 0.014493,
+      "uk_equity_total": 0.196545
     },
     "1937": {
       "us_equity": -0.307151,
@@ -425,7 +480,8 @@
       "uk_gilts": -0.0092,
       "cash": 0.02,
       "uk_cpi": 0.034,
-      "us_cpi": 0.028571
+      "us_cpi": 0.028571,
+      "uk_equity_total": -0.11122
     },
     "1938": {
       "us_equity": 0.197822,
@@ -434,7 +490,8 @@
       "uk_gilts": 0.04076,
       "cash": 0.02,
       "uk_cpi": 0.016,
-      "us_cpi": -0.027778
+      "us_cpi": -0.027778,
+      "uk_equity_total": -0.046104
     },
     "1939": {
       "us_equity": 0.023641,
@@ -443,7 +500,8 @@
       "uk_gilts": -0.016175,
       "cash": 0.02,
       "uk_cpi": 0.028,
-      "us_cpi": 0.0
+      "us_cpi": 0.0,
+      "uk_equity_total": 0.015517
     },
     "1940": {
       "us_equity": -0.094584,
@@ -452,7 +510,8 @@
       "uk_gilts": 0.077847,
       "cash": 0.02,
       "uk_cpi": 0.168,
-      "us_cpi": 0.007143
+      "us_cpi": 0.007143,
+      "uk_equity_total": -0.027421
     },
     "1941": {
       "us_equity": -0.100665,
@@ -461,7 +520,8 @@
       "uk_gilts": 0.061415,
       "cash": 0.02,
       "uk_cpi": 0.108,
-      "us_cpi": 0.099291
+      "us_cpi": 0.099291,
+      "uk_equity_total": 0.110241
     },
     "1942": {
       "us_equity": 0.15411,
@@ -470,7 +530,8 @@
       "uk_gilts": 0.036667,
       "cash": 0.02,
       "uk_cpi": 0.071,
-      "us_cpi": 0.090323
+      "us_cpi": 0.090323,
+      "uk_equity_total": 0.115281
     },
     "1943": {
       "us_equity": 0.269958,
@@ -479,7 +540,8 @@
       "uk_gilts": 0.016332,
       "cash": 0.02,
       "uk_cpi": 0.034,
-      "us_cpi": 0.029586
+      "us_cpi": 0.029586,
+      "uk_equity_total": 0.109728
     },
     "1944": {
       "us_equity": 0.196864,
@@ -488,7 +550,8 @@
       "uk_gilts": 0.030436,
       "cash": 0.02,
       "uk_cpi": 0.027,
-      "us_cpi": 0.022989
+      "us_cpi": 0.022989,
+      "uk_equity_total": 0.101388
     },
     "1945": {
       "us_equity": 0.373282,
@@ -497,7 +560,8 @@
       "uk_gilts": 0.032257,
       "cash": 0.02,
       "uk_cpi": 0.028,
-      "us_cpi": 0.022472
+      "us_cpi": 0.022472,
+      "uk_equity_total": 0.087872
     },
     "1946": {
       "us_equity": -0.085978,
@@ -506,7 +570,8 @@
       "uk_gilts": 0.059836,
       "cash": 0.02,
       "uk_cpi": 0.031,
-      "us_cpi": 0.181319
+      "us_cpi": 0.181319,
+      "uk_equity_total": 0.080278
     },
     "1947": {
       "us_equity": 0.048909,
@@ -515,7 +580,8 @@
       "uk_gilts": 0.012854,
       "cash": 0.02,
       "uk_cpi": 0.07,
-      "us_cpi": 0.088372
+      "us_cpi": 0.088372,
+      "uk_equity_total": -0.011763
     },
     "1948": {
       "us_equity": 0.072522,
@@ -524,7 +590,8 @@
       "uk_gilts": 0.012792,
       "cash": 0.02,
       "uk_cpi": 0.077,
-      "us_cpi": 0.029915
+      "us_cpi": 0.029915,
+      "uk_equity_total": 0.029013
     },
     "1949": {
       "us_equity": 0.163924,
@@ -533,7 +600,8 @@
       "uk_gilts": 0.027296,
       "cash": 0.02,
       "uk_cpi": 0.028,
-      "us_cpi": -0.020747
+      "us_cpi": -0.020747,
+      "uk_equity_total": 0.003349
     },
     "1950": {
       "us_equity": 0.28295,
@@ -542,7 +610,8 @@
       "uk_gilts": 0.012838,
       "cash": 0.02,
       "uk_cpi": 0.039185,
-      "us_cpi": 0.059322
+      "us_cpi": 0.059322,
+      "uk_equity_total": 0.081726
     },
     "1951": {
       "us_equity": 0.256709,
@@ -551,7 +620,8 @@
       "uk_gilts": -0.035612,
       "cash": 0.025,
       "uk_cpi": 0.090498,
-      "us_cpi": 0.06
+      "us_cpi": 0.06,
+      "uk_equity_total": 0.066182
     },
     "1952": {
       "us_equity": 0.172576,
@@ -560,7 +630,8 @@
       "uk_gilts": -0.038221,
       "cash": 0.04,
       "uk_cpi": 0.106501,
-      "us_cpi": 0.007547
+      "us_cpi": 0.007547,
+      "uk_equity_total": -0.008633
     },
     "1953": {
       "us_equity": 0.009217,
@@ -569,7 +640,8 @@
       "uk_gilts": 0.083717,
       "cash": 0.035,
       "uk_cpi": 0.03625,
-      "us_cpi": 0.007491
+      "us_cpi": 0.007491,
+      "uk_equity_total": 0.202
     },
     "1954": {
       "us_equity": 0.470399,
@@ -578,7 +650,8 @@
       "uk_gilts": 0.0655,
       "cash": 0.03,
       "uk_cpi": 0.022919,
-      "us_cpi": -0.007435
+      "us_cpi": -0.007435,
+      "uk_equity_total": 0.386828
     },
     "1955": {
       "us_equity": 0.344295,
@@ -587,7 +660,8 @@
       "uk_gilts": -0.062504,
       "cash": 0.045,
       "uk_cpi": 0.050708,
-      "us_cpi": 0.003745
+      "us_cpi": 0.003745,
+      "uk_equity_total": 0.057779
     },
     "1956": {
       "us_equity": 0.061935,
@@ -596,7 +670,8 @@
       "uk_gilts": -0.057012,
       "cash": 0.055,
       "uk_cpi": 0.051627,
-      "us_cpi": 0.029851
+      "us_cpi": 0.029851,
+      "uk_equity_total": -0.047968
     },
     "1957": {
       "us_equity": -0.093023,
@@ -605,7 +680,8 @@
       "uk_gilts": 0.036542,
       "cash": 0.07,
       "uk_cpi": 0.03842,
-      "us_cpi": 0.028986
+      "us_cpi": 0.028986,
+      "uk_equity_total": 0.008572
     },
     "1958": {
       "us_equity": 0.3697,
@@ -614,7 +690,8 @@
       "uk_gilts": 0.036433,
       "cash": 0.04,
       "uk_cpi": 0.028777,
-      "us_cpi": 0.017606
+      "us_cpi": 0.017606,
+      "uk_equity_total": 0.374
     },
     "1959": {
       "us_equity": 0.138344,
@@ -623,7 +700,8 @@
       "uk_gilts": 0.085817,
       "cash": 0.04,
       "uk_cpi": 0.005994,
-      "us_cpi": 0.017301
+      "us_cpi": 0.017301,
+      "uk_equity_total": 0.475934
     },
     "1960": {
       "us_equity": -0.005249,
@@ -632,7 +710,8 @@
       "uk_gilts": -0.017658,
       "cash": 0.05,
       "uk_cpi": 0.007944,
-      "us_cpi": 0.013605
+      "us_cpi": 0.013605,
+      "uk_equity_total": -0.00512
     },
     "1961": {
       "us_equity": 0.298592,
@@ -641,7 +720,8 @@
       "uk_gilts": 0.013567,
       "cash": 0.06,
       "uk_cpi": 0.032512,
-      "us_cpi": 0.006711
+      "us_cpi": 0.006711,
+      "uk_equity_total": 0.016725
     },
     "1962": {
       "us_equity": -0.097156,
@@ -650,7 +730,8 @@
       "uk_gilts": 0.10765,
       "cash": 0.045,
       "uk_cpi": 0.041985,
-      "us_cpi": 0.013333
+      "us_cpi": 0.013333,
+      "uk_equity_total": 0.016551
     },
     "1963": {
       "us_equity": 0.220466,
@@ -659,7 +740,8 @@
       "uk_gilts": 0.130854,
       "cash": 0.04,
       "uk_cpi": 0.021062,
-      "us_cpi": 0.016447
+      "us_cpi": 0.016447,
+      "uk_equity_total": 0.177966
     },
     "1964": {
       "us_equity": 0.1657,
@@ -668,7 +750,8 @@
       "uk_gilts": -0.001046,
       "cash": 0.07,
       "uk_cpi": 0.032287,
-      "us_cpi": 0.009709
+      "us_cpi": 0.009709,
+      "uk_equity_total": -0.054699
     },
     "1965": {
       "us_equity": 0.12494,
@@ -677,7 +760,8 @@
       "uk_gilts": -0.038817,
       "cash": 0.06,
       "uk_cpi": 0.042572,
-      "us_cpi": 0.019231
+      "us_cpi": 0.019231,
+      "uk_equity_total": 0.104506
     },
     "1966": {
       "us_equity": -0.082089,
@@ -686,7 +770,8 @@
       "uk_gilts": 0.032417,
       "cash": 0.07,
       "uk_cpi": 0.04,
-      "us_cpi": 0.034591
+      "us_cpi": 0.034591,
+      "uk_equity_total": -0.064646
     },
     "1967": {
       "us_equity": 0.207672,
@@ -695,7 +780,8 @@
       "uk_gilts": 0.086892,
       "cash": 0.08,
       "uk_cpi": 0.022436,
-      "us_cpi": 0.030395
+      "us_cpi": 0.030395,
+      "uk_equity_total": 0.363151
     },
     "1968": {
       "us_equity": 0.149738,
@@ -704,7 +790,8 @@
       "uk_gilts": -0.013917,
       "cash": 0.07,
       "uk_cpi": 0.039969,
-      "us_cpi": 0.047198
+      "us_cpi": 0.047198,
+      "uk_equity_total": 0.421931
     },
     "1969": {
       "us_equity": -0.114836,
@@ -713,7 +800,8 @@
       "uk_gilts": -0.056992,
       "cash": 0.08,
       "uk_cpi": 0.051997,
-      "us_cpi": 0.061972
+      "us_cpi": 0.061972,
+      "uk_equity_total": -0.113931
     },
     "1970": {
       "us_equity": 0.02283,
@@ -722,7 +810,8 @@
       "uk_gilts": 0.107883,
       "cash": 0.07,
       "uk_cpi": 0.065186,
-      "us_cpi": 0.055703
+      "us_cpi": 0.055703,
+      "uk_equity_total": -0.019134
     },
     "1971": {
       "us_equity": 0.135369,
@@ -731,7 +820,8 @@
       "uk_gilts": 0.143675,
       "cash": 0.05,
       "uk_cpi": 0.094149,
-      "us_cpi": 0.032663
+      "us_cpi": 0.032663,
+      "uk_equity_total": 0.446536
     },
     "1972": {
       "us_equity": 0.216598,
@@ -740,7 +830,8 @@
       "uk_gilts": 0.049192,
       "cash": 0.09,
       "uk_cpi": 0.071911,
-      "us_cpi": 0.034063
+      "us_cpi": 0.034063,
+      "uk_equity_total": 0.22174
     },
     "1973": {
       "us_equity": -0.164596,
@@ -749,7 +840,8 @@
       "uk_gilts": -0.134583,
       "cash": 0.13,
       "uk_cpi": 0.093463,
-      "us_cpi": 0.087059
+      "us_cpi": 0.087059,
+      "uk_equity_total": -0.303183
     },
     "1974": {
       "us_equity": -0.254379,
@@ -758,7 +850,8 @@
       "uk_gilts": -0.25925,
       "cash": 0.115,
       "uk_cpi": 0.157315,
-      "us_cpi": 0.123377
+      "us_cpi": 0.123377,
+      "uk_equity_total": -0.507838
     },
     "1975": {
       "us_equity": 0.377367,
@@ -767,7 +860,8 @@
       "uk_gilts": 0.244567,
       "cash": 0.1125,
       "uk_cpi": 0.227005,
-      "us_cpi": 0.069364
+      "us_cpi": 0.069364,
+      "uk_equity_total": 1.406082
     },
     "1976": {
       "us_equity": 0.226043,
@@ -776,7 +870,8 @@
       "uk_gilts": 0.088983,
       "cash": 0.1425,
       "uk_cpi": 0.156573,
-      "us_cpi": 0.048649
+      "us_cpi": 0.048649,
+      "uk_equity_total": -0.040642
     },
     "1977": {
       "us_equity": -0.059312,
@@ -785,7 +880,8 @@
       "uk_gilts": 0.295183,
       "cash": 0.07,
       "uk_cpi": 0.149425,
-      "us_cpi": 0.06701
+      "us_cpi": 0.06701,
+      "uk_equity_total": 0.536807
     },
     "1978": {
       "us_equity": 0.078448,
@@ -794,7 +890,8 @@
       "uk_gilts": 0.109775,
       "cash": 0.125,
       "uk_cpi": 0.074722,
-      "us_cpi": 0.090177
+      "us_cpi": 0.090177,
+      "uk_equity_total": 0.102692
     },
     "1979": {
       "us_equity": 0.180418,
@@ -803,7 +900,8 @@
       "uk_gilts": 0.040567,
       "cash": 0.17,
       "uk_cpi": 0.113724,
-      "us_cpi": 0.132939
+      "us_cpi": 0.132939,
+      "uk_equity_total": 0.070387
     },
     "1980": {
       "us_equity": 0.295547,
@@ -812,7 +910,8 @@
       "uk_gilts": 0.030883,
       "cash": 0.14,
       "uk_cpi": 0.151543,
-      "us_cpi": 0.125163
+      "us_cpi": 0.125163,
+      "uk_equity_total": 0.306449
     },
     "1981": {
       "us_equity": -0.022996,
@@ -821,7 +920,8 @@
       "uk_gilts": 0.042225,
       "cash": 0.14375,
       "uk_cpi": 0.118098,
-      "us_cpi": 0.089224
+      "us_cpi": 0.089224,
+      "uk_equity_total": 0.097169
     },
     "1982": {
       "us_equity": 0.181502,
@@ -830,7 +930,8 @@
       "uk_gilts": 0.328667,
       "cash": 0.1,
       "uk_cpi": 0.08111,
-      "us_cpi": 0.038298
+      "us_cpi": 0.038298,
+      "uk_equity_total": 0.261713
     },
     "1983": {
       "us_equity": 0.230201,
@@ -839,7 +940,8 @@
       "uk_gilts": 0.312517,
       "cash": 0.090625,
       "uk_cpi": 0.04935,
-      "us_cpi": 0.03791
+      "us_cpi": 0.03791,
+      "uk_equity_total": 0.26354
     },
     "1984": {
       "us_equity": 0.046411,
@@ -848,7 +950,8 @@
       "uk_gilts": 0.126767,
       "cash": 0.095,
       "uk_cpi": 0.04258,
-      "us_cpi": 0.039487
+      "us_cpi": 0.039487,
+      "uk_equity_total": 0.280553
     },
     "1985": {
       "us_equity": 0.308207,
@@ -857,7 +960,8 @@
       "uk_gilts": 0.127025,
       "cash": 0.11375,
       "uk_cpi": 0.049223,
-      "us_cpi": 0.037987
+      "us_cpi": 0.037987,
+      "uk_equity_total": 0.205512
     },
     "1986": {
       "us_equity": 0.23917,
@@ -866,7 +970,8 @@
       "uk_gilts": 0.1932,
       "cash": 0.10875,
       "uk_cpi": 0.033261,
-      "us_cpi": 0.010979
+      "us_cpi": 0.010979,
+      "uk_equity_total": 0.250667
     },
     "1987": {
       "us_equity": 0.004867,
@@ -875,7 +980,8 @@
       "uk_gilts": 0.157767,
       "cash": 0.08375,
       "uk_cpi": 0.032049,
-      "us_cpi": 0.044344
+      "us_cpi": 0.044344,
+      "uk_equity_total": 0.070715
     },
     "1988": {
       "us_equity": 0.187759,
@@ -884,7 +990,8 @@
       "uk_gilts": 0.085208,
       "cash": 0.12875,
       "uk_cpi": 0.037592,
-      "us_cpi": 0.044194
+      "us_cpi": 0.044194,
+      "uk_equity_total": 0.120736
     },
     "1989": {
       "us_equity": 0.300759,
@@ -893,7 +1000,8 @@
       "uk_gilts": 0.045258,
       "cash": 0.14875,
       "uk_cpi": 0.052376,
-      "us_cpi": 0.046473
+      "us_cpi": 0.046473,
+      "uk_equity_total": 0.322957
     },
     "1990": {
       "us_equity": -0.02226,
@@ -902,7 +1010,8 @@
       "uk_gilts": -0.059258,
       "cash": 0.13875,
       "uk_cpi": 0.069727,
-      "us_cpi": 0.061063
+      "us_cpi": 0.061063,
+      "uk_equity_total": -0.076877
     },
     "1991": {
       "us_equity": 0.21889,
@@ -911,7 +1020,8 @@
       "uk_gilts": 0.287775,
       "cash": 0.10375,
       "uk_cpi": 0.075326,
-      "us_cpi": 0.030643
+      "us_cpi": 0.030643,
+      "uk_equity_total": 0.150137
     },
     "1992": {
       "us_equity": 0.153201,
@@ -920,7 +1030,8 @@
       "uk_gilts": 0.205217,
       "cash": 0.06875,
       "uk_cpi": 0.042615,
-      "us_cpi": 0.029007
+      "us_cpi": 0.029007,
+      "uk_equity_total": 0.182507
     },
     "1993": {
       "us_equity": 0.098453,
@@ -929,7 +1040,8 @@
       "uk_gilts": 0.250217,
       "cash": 0.05375,
       "uk_cpi": 0.025065,
-      "us_cpi": 0.027484
+      "us_cpi": 0.027484,
+      "uk_equity_total": 0.268198
     },
     "1994": {
       "us_equity": 0.005172,
@@ -938,7 +1050,8 @@
       "uk_gilts": 0.004842,
       "cash": 0.06125,
       "uk_cpi": 0.019785,
-      "us_cpi": 0.026749
+      "us_cpi": 0.026749,
+      "uk_equity_total": -0.039636
     },
     "1995": {
       "us_equity": 0.380435,
@@ -947,7 +1060,8 @@
       "uk_gilts": 0.074075,
       "cash": 0.06375,
       "uk_cpi": 0.026565,
-      "us_cpi": 0.025384
+      "us_cpi": 0.025384,
+      "uk_equity_total": 0.224952
     },
     "1996": {
       "us_equity": 0.233627,
@@ -956,7 +1070,8 @@
       "uk_gilts": 0.124333,
       "cash": 0.059375,
       "uk_cpi": 0.024003,
-      "us_cpi": 0.033225
+      "us_cpi": 0.033225,
+      "uk_equity_total": 0.146288
     },
     "1997": {
       "us_equity": 0.315668,
@@ -965,7 +1080,8 @@
       "uk_gilts": 0.155475,
       "cash": 0.0725,
       "uk_cpi": 0.018246,
-      "us_cpi": 0.017024
+      "us_cpi": 0.017024,
+      "uk_equity_total": 0.246337
     },
     "1998": {
       "us_equity": 0.253416,
@@ -974,7 +1090,8 @@
       "uk_gilts": 0.223333,
       "cash": 0.0625,
       "uk_cpi": 0.015574,
-      "us_cpi": 0.016119
+      "us_cpi": 0.016119,
+      "uk_equity_total": 0.124975
     },
     "1999": {
       "us_equity": 0.214546,
@@ -983,7 +1100,8 @@
       "uk_gilts": 0.099217,
       "cash": 0.055,
       "uk_cpi": 0.013287,
-      "us_cpi": 0.026846
+      "us_cpi": 0.026846,
+      "uk_equity_total": 0.250182
     },
     "2000": {
       "us_equity": -0.057032,
@@ -992,7 +1110,8 @@
       "uk_gilts": 0.0279,
       "cash": 0.06,
       "uk_cpi": 0.007965,
-      "us_cpi": 0.033868
+      "us_cpi": 0.033868,
+      "uk_equity_total": -0.014891
     },
     "2001": {
       "us_equity": -0.127926,
@@ -1001,7 +1120,8 @@
       "uk_gilts": 0.090608,
       "cash": 0.04,
       "uk_cpi": 0.012335,
-      "us_cpi": 0.015517
+      "us_cpi": 0.015517,
+      "uk_equity_total": -0.126254
     },
     "2002": {
       "us_equity": -0.200606,
@@ -1010,7 +1130,8 @@
       "uk_gilts": 0.052442,
       "cash": 0.04,
       "uk_cpi": 0.012589,
-      "us_cpi": 0.023769
+      "us_cpi": 0.023769,
+      "uk_equity_total": -0.207089
     },
     "2003": {
       "us_equity": 0.221146,
@@ -1019,7 +1140,8 @@
       "uk_gilts": 0.087388,
       "cash": 0.0375,
       "uk_cpi": 0.013616,
-      "us_cpi": 0.018795
+      "us_cpi": 0.018795,
+      "uk_equity_total": 0.176191
     },
     "2004": {
       "us_equity": 0.127711,
@@ -1028,7 +1150,8 @@
       "uk_gilts": 0.013851,
       "cash": 0.0475,
       "uk_cpi": 0.013435,
-      "us_cpi": 0.032556
+      "us_cpi": 0.032556,
+      "uk_equity_total": 0.128849
     },
     "2005": {
       "us_equity": 0.070947,
@@ -1037,7 +1160,8 @@
       "uk_gilts": 0.094904,
       "cash": 0.045,
       "uk_cpi": 0.020569,
-      "us_cpi": 0.034157
+      "us_cpi": 0.034157,
+      "uk_equity_total": 0.217682
     },
     "2006": {
       "us_equity": 0.142013,
@@ -1046,7 +1170,8 @@
       "uk_gilts": 0.037611,
       "cash": 0.05,
       "uk_cpi": 0.023287,
-      "us_cpi": 0.025407
+      "us_cpi": 0.025407,
+      "uk_equity_total": 0.1718
     },
     "2007": {
       "us_equity": 0.063915,
@@ -1055,7 +1180,8 @@
       "uk_gilts": -0.004286,
       "cash": 0.055,
       "uk_cpi": 0.023228,
-      "us_cpi": 0.040833
+      "us_cpi": 0.040833,
+      "uk_equity_total": 0.059294
     },
     "2008": {
       "us_equity": -0.387549,
@@ -1064,7 +1190,8 @@
       "uk_gilts": 0.082935,
       "cash": 0.02,
       "uk_cpi": 0.036019,
-      "us_cpi": 0.000905
+      "us_cpi": 0.000905,
+      "uk_equity_total": -0.313419
     },
     "2009": {
       "us_equity": 0.290841,
@@ -1073,7 +1200,8 @@
       "uk_gilts": 0.129252,
       "cash": 0.005,
       "uk_cpi": 0.021653,
-      "us_cpi": 0.027208
+      "us_cpi": 0.027208,
+      "uk_equity_total": 0.307122
     },
     "2010": {
       "us_equity": 0.138583,
@@ -1082,7 +1210,8 @@
       "uk_gilts": 0.037174,
       "cash": 0.005,
       "uk_cpi": 0.032982,
-      "us_cpi": 0.014957
+      "us_cpi": 0.014957,
+      "uk_equity_total": 0.154494
     },
     "2011": {
       "us_equity": 0.02273,
@@ -1091,7 +1220,8 @@
       "uk_gilts": 0.089193,
       "cash": 0.005,
       "uk_cpi": 0.044637,
-      "us_cpi": 0.02961
+      "us_cpi": 0.02961,
+      "uk_equity_total": -0.042224
     },
     "2012": {
       "us_equity": 0.16908,
@@ -1100,7 +1230,8 @@
       "uk_gilts": 0.159271,
       "cash": 0.005,
       "uk_cpi": 0.028282,
-      "us_cpi": 0.017415
+      "us_cpi": 0.017415,
+      "uk_equity_total": 0.133233
     },
     "2013": {
       "us_equity": 0.295636,
@@ -1109,7 +1240,8 @@
       "uk_gilts": -0.030791,
       "cash": 0.005,
       "uk_cpi": 0.025648,
-      "us_cpi": 0.015026
+      "us_cpi": 0.015026,
+      "uk_equity_total": 0.166073
     },
     "2014": {
       "us_equity": 0.158166,
@@ -1118,7 +1250,8 @@
       "uk_gilts": 0.009469,
       "cash": 0.005,
       "uk_cpi": 0.01461,
-      "us_cpi": 0.007552
+      "us_cpi": 0.007552,
+      "uk_equity_total": 0.031089
     },
     "2015": {
       "us_equity": 0.021029,
@@ -1127,7 +1260,8 @@
       "uk_gilts": 0.098062,
       "cash": 0.005,
       "uk_cpi": 0.000401,
-      "us_cpi": 0.007325
+      "us_cpi": 0.007325,
+      "uk_equity_total": 0.000616
     },
     "2016": {
       "us_equity": 0.115989,
@@ -1136,51 +1270,60 @@
       "uk_gilts": 0.078301,
       "cash": 0.0025,
       "uk_cpi": 0.006597,
-      "us_cpi": 0.020716
+      "us_cpi": 0.020716,
+      "uk_equity_total": 0.143172
     },
     "2017": {
       "us_equity": 0.207707,
       "us_bonds": 0.0339,
       "uk_cpi": 0.029441,
-      "us_cpi": 0.021083
+      "us_cpi": 0.021083,
+      "uk_equity_total": 0.1328
     },
     "2018": {
       "us_equity": -0.016244,
       "us_bonds": -0.019,
       "uk_cpi": 0.020972,
-      "us_cpi": 0.019106
+      "us_cpi": 0.019106,
+      "uk_equity_total": -0.0943
     },
     "2019": {
       "us_equity": 0.26007,
       "us_bonds": 0.1253,
       "uk_cpi": 0.013072,
-      "us_cpi": 0.022848
+      "us_cpi": 0.022848,
+      "uk_equity_total": 0.1932
     },
     "2020": {
       "us_equity": 0.181582,
       "us_bonds": 0.1116,
       "uk_cpi": 0.006452,
-      "us_cpi": 0.01362
+      "us_cpi": 0.01362,
+      "uk_equity_total": -0.0982
     },
     "2021": {
       "us_equity": 0.2814,
       "us_bonds": -0.0447,
       "uk_cpi": 0.054029,
-      "us_cpi": 0.070373
+      "us_cpi": 0.070373,
+      "uk_equity_total": 0.1849
     },
     "2022": {
       "us_equity": -0.148771,
       "us_bonds": -0.2003,
       "uk_cpi": 0.105126,
-      "us_cpi": 0.064562
+      "us_cpi": 0.064562,
+      "uk_equity_total": 0.0174
     },
     "2023": {
       "us_equity": 0.197493,
-      "uk_cpi": 0.039308
+      "uk_cpi": 0.039308,
+      "uk_equity_total": 0.0775
     },
     "2024": {
       "us_equity": 0.282998,
-      "uk_cpi": 0.025719
+      "uk_cpi": 0.025719,
+      "uk_equity_total": 0.0982
     },
     "2025": {
       "us_equity": 0.140099,

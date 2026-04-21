@@ -1,9 +1,9 @@
 {
   "schema_version": "1.0",
   "assumptions_id": "six_asset_model_generic",
-  "version_tag": "v1.0.0",
+  "version_tag": "v1.1.0",
   "name": "6-Asset Retirement Planning Model (Generic Defaults)",
-  "version_date": "2026-03-04",
+  "version_date": "2026-04-21",
   "currency": "GBP",
   "return_convention": {
     "type": "nominal",
@@ -374,10 +374,10 @@
       "method": "blend",
       "components": [
         {"series": "us_equity", "weight": 0.7},
-        {"series": "uk_equity_price", "weight": 0.3}
+        {"series": "uk_equity_total", "weight": 0.3}
       ],
       "fallback": "us_equity",
-      "notes": "UK component is price-only (no dividends). US includes dividends. US weighted higher for this reason."
+      "notes": "Both components are total return (price + dividends). UK uses uk_equity_total: DMS-estimated dividends 1900-2016, FTSE All-Share actual total return 2017-2024."
     },
     "diversified_growth": {
       "method": "blend",
@@ -417,6 +417,16 @@
     }
   },
   "changelog": [
+    {
+      "version_date": "2026-04-21",
+      "version_tag": "v1.1.0",
+      "changes": [
+        "Fixed global_equity historical blend: swapped uk_equity_price (price-only) for uk_equity_total (total return including dividends).",
+        "uk_equity_total covers 1900-2016 using BoE Millennium price data + era-appropriate dividend yield estimates from Dimson-Marsh-Staunton research.",
+        "uk_equity_total extends to 2024 using FTSE All-Share actual total return data (FTSE Russell / Bloomberg).",
+        "This corrects a systematic understatement of global_equity historical returns (~0.9-1.5% p.a. depending on era). Golden file tests regenerated."
+      ]
+    },
     {
       "version_date": "2026-03-04",
       "version_tag": "v1.0.0",
