@@ -3,6 +3,7 @@ import { Settings, ChevronDown, ChevronUp, Plus, Trash2, Download, Upload } from
 import { useConfig, exportConfigToFile, importConfigFromFile } from '../../store/configStore';
 import { STRATEGIES, STRATEGY_IDS } from '../../engine/strategies';
 import type { PlannerConfig, GuaranteedIncomeConfig, DCPotConfig, TaxFreeAccountConfig } from '../../engine/types';
+import GrowthSuggestionPopover from '../common/GrowthSuggestionPopover';
 
 const NOW_MONTH = new Date().toISOString().slice(0, 7);
 
@@ -433,13 +434,19 @@ export default function ConfigPanel() {
                     />
                   </Field>
                   <Field label="Growth (%)">
-                    <input
-                      type="number"
-                      value={(pot.growth_rate * 100).toFixed(1)}
-                      step={0.1}
-                      onChange={e => updateDcPot(i, 'growth_rate', Number(e.target.value) / 100)}
-                      className="input-field"
-                    />
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        value={(pot.growth_rate * 100).toFixed(1)}
+                        step={0.1}
+                        onChange={e => updateDcPot(i, 'growth_rate', Number(e.target.value) / 100)}
+                        className="input-field"
+                      />
+                      <GrowthSuggestionPopover
+                        allocation={pot.allocation}
+                        onSelect={(rate) => updateDcPot(i, 'growth_rate', rate)}
+                      />
+                    </div>
                   </Field>
                   <Field label="Fees (%)">
                     <input
@@ -556,13 +563,19 @@ export default function ConfigPanel() {
                     />
                   </Field>
                   <Field label="Growth (%)">
-                    <input
-                      type="number"
-                      value={(acc.growth_rate * 100).toFixed(1)}
-                      step={0.1}
-                      onChange={e => updateTfAccount(i, 'growth_rate', Number(e.target.value) / 100)}
-                      className="input-field"
-                    />
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        value={(acc.growth_rate * 100).toFixed(1)}
+                        step={0.1}
+                        onChange={e => updateTfAccount(i, 'growth_rate', Number(e.target.value) / 100)}
+                        className="input-field"
+                      />
+                      <GrowthSuggestionPopover
+                        allocation={acc.allocation}
+                        onSelect={(rate) => updateTfAccount(i, 'growth_rate', rate)}
+                      />
+                    </div>
                   </Field>
                   <Field label="Value as of">
                     <input
