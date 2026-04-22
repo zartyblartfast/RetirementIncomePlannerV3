@@ -4,6 +4,7 @@ import { useProjection } from '../hooks/useProjection';
 import SummaryCards from '../components/dashboard/SummaryCards';
 import ProjectionChart from '../components/dashboard/ProjectionChart';
 import YearTable from '../components/dashboard/YearTable';
+import VerificationPanel from '../components/dashboard/VerificationPanel';
 import { getStrategyDisplayName } from '../engine/strategies';
 import ConfigPanel from '../components/dashboard/ConfigPanel';
 
@@ -71,6 +72,9 @@ export default function Dashboard() {
         <h2 className="text-lg font-semibold text-gray-800 mb-3">Year-by-Year Breakdown</h2>
         <YearTable years={result.years} />
       </div>
+
+      {/* Verification panel */}
+      <VerificationPanel result={result} />
     </div>
   );
 }
