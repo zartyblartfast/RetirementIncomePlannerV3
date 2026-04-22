@@ -434,13 +434,13 @@ export default function ConfigPanel() {
                     />
                   </Field>
                   <Field label="Growth (%)">
-                    <div className="flex items-center gap-2">
+                    <div className="mt-1 flex items-center gap-2">
                       <input
                         type="number"
                         value={(pot.growth_rate * 100).toFixed(1)}
                         step={0.1}
                         onChange={e => updateDcPot(i, 'growth_rate', Number(e.target.value) / 100)}
-                        className="input-field"
+                        className="input-field mt-0 min-w-0"
                       />
                       <GrowthSuggestionPopover
                         allocation={pot.allocation}
@@ -563,13 +563,13 @@ export default function ConfigPanel() {
                     />
                   </Field>
                   <Field label="Growth (%)">
-                    <div className="flex items-center gap-2">
+                    <div className="mt-1 flex items-center gap-2">
                       <input
                         type="number"
                         value={(acc.growth_rate * 100).toFixed(1)}
                         step={0.1}
                         onChange={e => updateTfAccount(i, 'growth_rate', Number(e.target.value) / 100)}
-                        className="input-field"
+                        className="input-field mt-0 min-w-0"
                       />
                       <GrowthSuggestionPopover
                         allocation={acc.allocation}
