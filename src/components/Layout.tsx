@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { LayoutDashboard, GitCompareArrows, Target, ClipboardCheck } from 'lucide-react'
+import { useConfig } from '../store/configStore'
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -9,6 +10,15 @@ const navItems = [
 ]
 
 export default function Layout() {
+  const { resetToDefault } = useConfig()
+
+  function handleReset() {
+    const confirmed = window.confirm(
+      'This will clear all your settings and return to the welcome screen. Continue?'
+    )
+    if (confirmed) resetToDefault()
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-gray-900 text-white">
@@ -37,6 +47,13 @@ export default function Layout() {
                   {label}
                 </NavLink>
               ))}
+              <button
+                onClick={handleReset}
+                className="text-xs text-gray-500 hover:text-red-400 transition-colors"
+                title="Reset all settings"
+              >
+                Reset
+              </button>
             </div>
           </div>
         </div>
