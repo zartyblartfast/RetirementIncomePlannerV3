@@ -45,7 +45,7 @@ export default function Layout() {
         <Outlet />
       </main>
       <footer className="text-center text-gray-400 text-xs py-4 mt-8">
-        Retirement Income Planner V2 &copy; 2025
+        Retirement Income Planner V3 &copy; 2026
       </footer>
     </div>
   )

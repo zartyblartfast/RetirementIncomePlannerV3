@@ -1,4 +1,4 @@
-# Retirement Income Planner V2
+# Retirement Income Planner V3
 
 A client-side retirement income planning tool built with React, TypeScript, and TailwindCSS.
 All user data is stored in the browser — no server required.

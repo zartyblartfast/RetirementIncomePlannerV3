@@ -29,12 +29,12 @@ export const DEFAULT_CONFIG: PlannerConfig = {
   guaranteed_income: [
     {
       name: 'State Pension',
-      gross_annual: 11500,
+      gross_annual: 11973,
       indexation_rate: 0.025,
       start_date: '2032-01',
       end_date: null,
       taxable: true,
-      values_as_of: '2025-01',
+      values_as_of: '2026-04',
     },
   ],
   dc_pots: [
@@ -44,7 +44,7 @@ export const DEFAULT_CONFIG: PlannerConfig = {
       growth_rate: 0.04,
       annual_fees: 0.005,
       tax_free_portion: 0.25,
-      values_as_of: '2025-01',
+      values_as_of: '2026-04',
     },
   ],
   tax_free_accounts: [
@@ -52,7 +52,7 @@ export const DEFAULT_CONFIG: PlannerConfig = {
       name: 'ISA',
       starting_balance: 30000,
       growth_rate: 0.035,
-      values_as_of: '2025-01',
+      values_as_of: '2026-04',
     },
   ],
   withdrawal_priority: ['DC Pension', 'ISA'],
