@@ -49,7 +49,11 @@ export default function ConfigPanel() {
   }
 
   function handleImport() {
-    setImportError(null);
+    const confirmed = window.confirm(
+      'This will replace your current config with the file you select. Continue?'
+    )
+    if (!confirmed) return
+    setImportError(null)
     importConfigFromFile()
       .then(cfg => { setConfig(cfg); })
       .catch(err => { setImportError(err.message); });
