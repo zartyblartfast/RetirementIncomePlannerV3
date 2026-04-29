@@ -84,6 +84,10 @@ export function loadConfig(): PlannerConfig {
   return JSON.parse(JSON.stringify(DEFAULT_CONFIG));
 }
 
+export function hasStoredConfig(): boolean {
+  return localStorage.getItem(STORAGE_KEY) !== null;
+}
+
 export function saveConfig(cfg: PlannerConfig): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
 }
