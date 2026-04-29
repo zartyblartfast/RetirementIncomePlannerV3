@@ -72,9 +72,18 @@ function buildConfig(data: WizardData): PlannerConfig {
   cfg.target_income.cpi_rate = data.cpiRate;
 
   if (data.hasStatePension) {
+    const baseGi = DEFAULT_CONFIG.guaranteed_income[0] ?? {
+      name: 'State Pension',
+      gross_annual: 11973,
+      indexation_rate: 0.025,
+      start_date: cfg.personal.retirement_date,
+      end_date: null as null,
+      taxable: true,
+      values_as_of: currentYYYYMM(),
+    }
     cfg.guaranteed_income = [
       {
-        ...DEFAULT_CONFIG.guaranteed_income[0],
+        ...baseGi,
         gross_annual: data.statePensionGross,
         start_date: data.statePensionStart,
       },
