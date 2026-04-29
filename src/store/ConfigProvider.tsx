@@ -3,10 +3,11 @@
  */
 
 import { useState, useCallback, type ReactNode } from 'react';
-import { ConfigContext, loadConfig, saveConfig, resetConfig } from './configStore';
+import { ConfigContext, loadConfig, saveConfig, resetConfig, hasStoredConfig } from './configStore';
 import type { PlannerConfig } from '../engine/types';
 
 export default function ConfigProvider({ children }: { children: ReactNode }) {
+  const [isFirstVisit, setIsFirstVisit] = useState<boolean>(() => !hasStoredConfig());
   const [config, setConfigState] = useState<PlannerConfig>(() => loadConfig());
 
   const setConfig = useCallback((cfg: PlannerConfig) => {
@@ -25,10 +26,18 @@ export default function ConfigProvider({ children }: { children: ReactNode }) {
   const resetToDefault = useCallback(() => {
     const def = resetConfig();
     setConfigState(def);
+    setIsFirstVisit(true);
+  }, []);
+
+  const markConfigured = useCallback(() => {
+    setIsFirstVisit(false);
   }, []);
 
   return (
-    <ConfigContext.Provider value={{ config, setConfig, updateConfig, resetToDefault }}>
+    <ConfigContext.Provider value={{
+      config, setConfig, updateConfig, resetToDefault,
+      isFirstVisit, markConfigured,
+    }}>
       {children}
     </ConfigContext.Provider>
   );

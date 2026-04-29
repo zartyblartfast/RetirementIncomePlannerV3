@@ -150,6 +150,8 @@ export interface ConfigContextValue {
   setConfig: (cfg: PlannerConfig) => void;
   updateConfig: (updater: (prev: PlannerConfig) => PlannerConfig) => void;
   resetToDefault: () => void;
+  isFirstVisit: boolean;
+  markConfigured: () => void;
 }
 
 export const ConfigContext = createContext<ConfigContextValue | null>(null);
