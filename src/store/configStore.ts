@@ -7,6 +7,7 @@
 
 import { createContext, useContext } from 'react';
 import type { PlannerConfig } from '../engine/types';
+import { normalizeLoadedConfig } from './configMigration';
 
 const STORAGE_KEY = 'rip_v2_config';
 
@@ -18,7 +19,6 @@ export const DEFAULT_CONFIG: PlannerConfig = {
   personal: {
     date_of_birth: '1965-01',
     retirement_date: '2032-01',
-    retirement_age: 67,
     end_age: 90,
     currency: 'GBP',
   },
@@ -76,7 +76,7 @@ export function loadConfig(): PlannerConfig {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      return JSON.parse(raw) as PlannerConfig;
+      return normalizeLoadedConfig(JSON.parse(raw));
     }
   } catch {
     // Corrupted data — fall through to default
@@ -123,7 +123,7 @@ export function importConfigFromFile(): Promise<PlannerConfig> {
       const reader = new FileReader();
       reader.onload = () => {
         try {
-          const cfg = JSON.parse(reader.result as string) as PlannerConfig;
+          const cfg = normalizeLoadedConfig(JSON.parse(reader.result as string));
           // Basic validation: check required top-level keys
           if (!cfg.personal || !cfg.target_income || !cfg.tax) {
             reject(new Error('Invalid config file: missing required sections'));

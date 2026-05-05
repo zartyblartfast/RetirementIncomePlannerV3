@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Settings, ChevronDown, ChevronUp, Plus, Trash2, Download, Upload } from 'lucide-react';
 import { useConfig, exportConfigToFile, importConfigFromFile } from '../../store/configStore';
 import { STRATEGIES, STRATEGY_IDS } from '../../engine/strategies';
+import { TAX_RULE_PACKS, taxConfigFromRulePack } from '../../engine/taxRulePacks';
 import type { PlannerConfig, GuaranteedIncomeConfig, DCPotConfig, TaxFreeAccountConfig } from '../../engine/types';
 import GrowthSuggestionPopover from '../common/GrowthSuggestionPopover';
 
@@ -80,6 +81,15 @@ export default function ConfigPanel() {
     updateConfig(prev => ({
       ...prev,
       drawdown_strategy_params: { ...prev.drawdown_strategy_params, [key]: val },
+    }));
+  }
+
+  function setTaxRulePack(rulePackId: string) {
+    updateConfig(prev => ({
+      ...prev,
+      tax: rulePackId === 'custom'
+        ? { ...prev.tax, rule_pack_id: undefined }
+        : taxConfigFromRulePack(rulePackId),
     }));
   }
 
@@ -297,6 +307,19 @@ export default function ConfigPanel() {
               >
                 {STRATEGY_IDS.map(id => (
                   <option key={id} value={id}>{STRATEGIES[id]!.display_name}</option>
+                ))}
+              </select>
+            </Field>
+
+            <Field label="Tax Jurisdiction">
+              <select
+                value={config.tax.rule_pack_id ?? 'custom'}
+                onChange={e => setTaxRulePack(e.target.value)}
+                className="input-field"
+              >
+                <option value="custom">Custom</option>
+                {TAX_RULE_PACKS.map(pack => (
+                  <option key={pack.id} value={pack.id}>{pack.label}</option>
                 ))}
               </select>
             </Field>

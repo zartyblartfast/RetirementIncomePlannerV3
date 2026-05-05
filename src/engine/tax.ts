@@ -16,6 +16,17 @@ interface BandInput {
   rate: number;
 }
 
+function resolvePersonalAllowance(taxableIncome: number, taxCfg: TaxConfig): number {
+  const taper = taxCfg.personal_allowance_taper;
+  if (!taper || taxableIncome <= taper.starts_at) {
+    return taxCfg.personal_allowance;
+  }
+
+  const minimum = taper.minimum_allowance ?? 0;
+  const reduction = (taxableIncome - taper.starts_at) * taper.rate;
+  return Math.max(minimum, taxCfg.personal_allowance - reduction);
+}
+
 function calculateBandedTax(
   taxableIncome: number,
   personalAllowance: number,
@@ -94,7 +105,7 @@ export function calculateTax(taxableIncome: number, taxCfg: TaxConfig): TaxResul
 
   return calculateBandedTax(
     taxableIncome,
-    taxCfg.personal_allowance,
+    resolvePersonalAllowance(taxableIncome, taxCfg),
     bands,
     taxCfg.tax_cap_enabled ?? false,
     taxCfg.tax_cap_amount ?? 200000,

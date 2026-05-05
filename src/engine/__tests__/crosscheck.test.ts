@@ -83,8 +83,8 @@ describe('V1 ↔ V2 Cross-check — Year 1 (age 68)', () => {
     expect(y1.age).toBe(68);
   });
 
-  it('target_net ≈ 30000', () => {
-    expect(Math.abs(y1.target_net - 30000)).toBeLessThan(TOL);
+  it('target_net is the sum of monthly CPI-adjusted targets ≈ 30410.30', () => {
+    expect(Math.abs(y1.target_net - 30410.30)).toBeLessThan(TOL);
   });
 
   it('guaranteed_total ≈ 25767.70', () => {
@@ -149,8 +149,8 @@ describe('V1 ↔ V2 Cross-check — Last Year (age 90)', () => {
     expect(yLast.age).toBe(90);
   });
 
-  it('target_net ≈ 57483.10', () => {
-    expect(Math.abs(yLast.target_net - 57483.10)).toBeLessThan(TOL_CUM);
+  it('target_net is the sum of monthly CPI-adjusted targets ≈ 58269.28', () => {
+    expect(Math.abs(yLast.target_net - 58269.28)).toBeLessThan(TOL_CUM);
   });
 
   it('net_income_achieved ≈ 58269.74', () => {

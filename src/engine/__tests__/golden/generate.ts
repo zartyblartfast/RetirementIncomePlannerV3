@@ -16,7 +16,6 @@ const BASE_CONFIG: PlannerConfig = {
   personal: {
     date_of_birth: '1960-01',
     retirement_date: '2028-01',
-    retirement_age: 68,
     end_age: 78,
     currency: 'GBP',
   },
@@ -112,7 +111,6 @@ const SHORTFALL_CONFIG: PlannerConfig = {
   personal: {
     date_of_birth: '1960-01',
     retirement_date: '2028-01',
-    retirement_age: 68,
     end_age: 78,
     currency: 'GBP',
   },

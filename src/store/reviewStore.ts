@@ -9,6 +9,7 @@
  */
 
 import type { PlannerConfig } from '../engine/types';
+import { stripLegacyRetirementAge } from './configMigration';
 
 const STORAGE_KEY = 'rip_v2_reviews';
 
@@ -56,7 +57,11 @@ function emptyStore(): ReviewStore {
 export function loadReviewStore(): ReviewStore {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as ReviewStore;
+    if (raw) {
+      const store = JSON.parse(raw) as ReviewStore;
+      stripLegacyRetirementAge(store.baseline_config);
+      return store;
+    }
   } catch {
     // Corrupted — return empty
   }

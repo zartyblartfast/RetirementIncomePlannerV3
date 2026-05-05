@@ -11,6 +11,7 @@ import { runProjection } from './projection';
 import { runProjectionForWindow, getKeyWindowStarts } from './backtest';
 import type { KeyWindowStarts } from './backtest';
 import { normalizeConfig } from './strategies';
+import { deriveRetirementAge, retirementDateForAge } from './dateUtils';
 
 // ------------------------------------------------------------------ //
 //  Types
@@ -256,13 +257,10 @@ export function findMaxSustainableAge(
   windowStart?: number,
 ): MaxAgeResult {
   const currentEndAge = baseCfg.personal.end_age;
-  const retirementAge = baseCfg.personal.retirement_age ??
-    Math.floor(
-      (parseInt(baseCfg.personal.retirement_date.split('-')[0]!) * 12 +
-        parseInt(baseCfg.personal.retirement_date.split('-')[1]!) -
-        parseInt(baseCfg.personal.date_of_birth.split('-')[0]!) * 12 -
-        parseInt(baseCfg.personal.date_of_birth.split('-')[1]!)) / 12,
-    );
+  const retirementAge = deriveRetirementAge(
+    baseCfg.personal.date_of_birth,
+    baseCfg.personal.retirement_date,
+  );
 
   // Check current sustainability
   const currentResult = runProj(clone(baseCfg), windowStart);
@@ -367,27 +365,17 @@ export function retirementAgeSweep(
   minAge = 58,
   maxAge = 75,
 ): RetirementAgeSweepPoint[] {
-  const currentRetAge = baseCfg.personal.retirement_age ??
-    Math.floor(
-      (parseInt(baseCfg.personal.retirement_date.split('-')[0]!) * 12 +
-        parseInt(baseCfg.personal.retirement_date.split('-')[1]!) -
-        parseInt(baseCfg.personal.date_of_birth.split('-')[0]!) * 12 -
-        parseInt(baseCfg.personal.date_of_birth.split('-')[1]!)) / 12,
-    );
+  const currentRetAge = deriveRetirementAge(
+    baseCfg.personal.date_of_birth,
+    baseCfg.personal.retirement_date,
+  );
 
   const points: RetirementAgeSweepPoint[] = [];
 
   for (let age = minAge; age <= maxAge; age++) {
     const cfg = clone(baseCfg);
 
-    // Adjust retirement_date based on age offset from current
-    const [dobY, dobM] = baseCfg.personal.date_of_birth.split('-').map(Number) as [number, number];
-    const retMonth = dobM;
-    const retYear = dobY + age;
-    cfg.personal.retirement_date = `${retYear}-${String(retMonth).padStart(2, '0')}`;
-    if (cfg.personal.retirement_age !== undefined) {
-      cfg.personal.retirement_age = age;
-    }
+    cfg.personal.retirement_date = retirementDateForAge(baseCfg.personal.date_of_birth, age);
 
     // When using a historical window, shift windowStart so the same calendar
     // age always maps to the same historical year.  buildSchedules maps

@@ -9,6 +9,7 @@
 import { ChevronUp, ChevronDown } from 'lucide-react';
 import { STRATEGIES, STRATEGY_IDS } from '../../engine/strategies';
 import type { PlannerConfig } from '../../engine/types';
+import { deriveRetirementAge, retirementDateForAge } from '../../engine/dateUtils';
 
 interface Props {
   config: PlannerConfig;
@@ -19,6 +20,10 @@ export default function SandboxControls({ config, onChange }: Props) {
   const strategyId = config.drawdown_strategy ?? 'fixed_target';
   const strategyDef = STRATEGIES[strategyId];
   const strategyParams = config.drawdown_strategy_params ?? {};
+  const retirementAge = deriveRetirementAge(
+    config.personal.date_of_birth,
+    config.personal.retirement_date,
+  );
 
   function patch(updater: (draft: PlannerConfig) => void) {
     const next: PlannerConfig = JSON.parse(JSON.stringify(config));
@@ -30,6 +35,9 @@ export default function SandboxControls({ config, onChange }: Props) {
     patch(c => {
       if (!c.drawdown_strategy_params) c.drawdown_strategy_params = {};
       c.drawdown_strategy_params[key] = val;
+      if (key === 'net_annual' || key === 'initial_target') {
+        c.target_income.net_annual = val;
+      }
     });
   }
 
@@ -60,10 +68,6 @@ export default function SandboxControls({ config, onChange }: Props) {
               } else if (newId === 'vanguard_dynamic' || newId === 'guyton_klinger') {
                 defaults.initial_target = config.target_income.net_annual;
               }
-              // Seed end_age for ARVA
-              if (newId === 'arva' || newId === 'arva_guardrails') {
-                defaults.target_end_age = config.personal.end_age;
-              }
               patch(c => {
                 c.drawdown_strategy = newId;
                 c.drawdown_strategy_params = defaults;
@@ -90,11 +94,16 @@ export default function SandboxControls({ config, onChange }: Props) {
         <Field label="Retire Age">
           <input
             type="number"
-            value={config.personal.retirement_age ?? 68}
+            value={retirementAge}
             step={1}
             min={50}
             max={80}
-            onChange={e => patch(c => { c.personal.retirement_age = Number(e.target.value); })}
+            onChange={e => patch(c => {
+              c.personal.retirement_date = retirementDateForAge(
+                c.personal.date_of_birth,
+                Number(e.target.value),
+              );
+            })}
             className="input-field"
           />
         </Field>

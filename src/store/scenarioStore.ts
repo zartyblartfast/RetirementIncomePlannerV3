@@ -6,6 +6,7 @@
  */
 
 import type { PlannerConfig } from '../engine/types';
+import { stripLegacyRetirementAge } from './configMigration';
 
 const STORAGE_KEY = 'rip_v2_scenarios';
 
@@ -35,7 +36,11 @@ function generateId(): string {
 export function loadScenarios(): Scenario[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as Scenario[];
+    if (raw) {
+      const scenarios = JSON.parse(raw) as Scenario[];
+      for (const scenario of scenarios) stripLegacyRetirementAge(scenario.config);
+      return scenarios;
+    }
   } catch {
     // Corrupted — return empty
   }

@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { Lock, Unlock, Plus, Trash2, Clock, AlertCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { useConfig } from '../store/configStore';
+import { deriveRetirementAge } from '../engine/dateUtils';
 import { useProjection } from '../hooks/useProjection';
 import {
   loadReviewStore,
@@ -79,9 +80,7 @@ export default function Review() {
 
   // ── Retirement age (for chart reference line) ──────────────────
   const retirementAge = useMemo(() => {
-    const [dy, dm] = config.personal.date_of_birth.split('-').map(Number) as [number, number];
-    const [ry, rm] = config.personal.retirement_date.split('-').map(Number) as [number, number];
-    return Math.floor(((ry * 12 + rm) - (dy * 12 + dm)) / 12);
+    return deriveRetirementAge(config.personal.date_of_birth, config.personal.retirement_date);
   }, [config.personal.date_of_birth, config.personal.retirement_date]);
 
   // ── Strategy change detection ──────────────────────────────────

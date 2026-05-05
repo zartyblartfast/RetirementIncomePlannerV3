@@ -11,7 +11,6 @@
 export interface PersonalConfig {
   date_of_birth: string;        // "YYYY-MM"
   retirement_date: string;      // "YYYY-MM"
-  retirement_age?: number;      // informational only — derived from dates
   end_age: number;
   currency: string;
 }
@@ -77,9 +76,15 @@ export interface TaxBandConfig {
 export interface TaxConfig {
   regime: string;
   personal_allowance: number;
+  personal_allowance_taper?: {
+    starts_at: number;
+    rate: number;
+    minimum_allowance?: number;
+  };
   bands: TaxBandConfig[];
   tax_cap_enabled?: boolean;
   tax_cap_amount?: number;
+  rule_pack_id?: string;
 }
 
 export interface PlannerConfig {
