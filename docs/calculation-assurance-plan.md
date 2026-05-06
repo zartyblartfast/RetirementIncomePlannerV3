@@ -104,12 +104,12 @@ Verify:
 
 ## Step 7: Investigate High-Risk Calculation Findings
 
-Current high-risk items:
-- Weighted-average tax-free pension cash in DC gross-up.
-- Generic tax model versus jurisdiction-specific tax rules.
-- Fixed target annual display versus monthly CPI-adjusted target.
-- Guaranteed income annualisation when income starts or stops mid-year.
-- Verification wording that may overstate certainty.
+Current high-risk/open items:
+- Adviser validation of jurisdiction-specific tax rules.
+- Product-specific pension rules, crystallisation status, and provider limits.
+- Residency changes and treaty/split-year rules.
+- Chart/table reconciliation checks.
+- Imported config robustness.
 
 Verify:
 - Each item is classified as fix now, document as assumption, ask adviser, or
@@ -136,6 +136,7 @@ Verify:
 Goal: make independent review practical.
 
 Contents:
+- `docs/adviser-review-pack.md` as the adviser-facing summary.
 - Calculation spec.
 - Assumptions and exclusions.
 - Worked examples.
@@ -167,6 +168,7 @@ Work:
 - Update README summaries where needed.
 - Keep deployment and calculation docs current.
 - Link adviser-facing docs from a clear location.
+- Keep the tax architecture roadmap aligned with tax-rule-pack changes.
 
 Verify:
 - Documentation, tests, and app wording agree.

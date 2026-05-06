@@ -6,6 +6,10 @@ tax modelling.
 The app keeps the existing `Custom` tax model. Rule packs add named,
 versioned jurisdiction defaults that can be selected in configuration.
 
+For the longer-term design direction, including income events, code-driven
+modules, self-documenting rule metadata, and residency timelines, see
+`docs/tax-architecture-roadmap.md`.
+
 ## Current Packs
 
 | Pack | Tax year | Status | Scope |
@@ -63,3 +67,6 @@ Rule packs currently compile down to the existing `TaxConfig` shape plus an
 optional `personal_allowance_taper`. This is enough for the first UK packs, but
 it is not expected to cover every jurisdiction. More complex jurisdictions may
 need code-driven rule functions as well as data tables.
+
+The current implementation should therefore be treated as the first simple
+banded-tax implementation, not the final architecture for all jurisdictions.

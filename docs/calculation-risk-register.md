@@ -17,11 +17,15 @@ Status: Addressed.
 Area:
 - Net-income gross-up for DC withdrawals.
 
-Current behaviour:
-- The engine calculates a weighted-average tax-free portion across all positive
+Previous behaviour:
+- The engine calculated a weighted-average tax-free portion across all positive
   DC balances.
-- It then uses that single gross-per-net ratio while withdrawing from individual
+- It then used that single gross-per-net ratio while withdrawing from individual
   pots in priority order.
+
+Current behaviour:
+- The engine calculates DC gross-up source by source using the tax-free portion
+  of the pot being drawn.
 
 Why this matters:
 - If all DC pots have the same tax-free portion, this is harmless.
@@ -147,8 +151,13 @@ Status: Addressed.
 Area:
 - User-facing confidence language.
 
-Current behaviour:
+Previous behaviour:
 - The panel says internal identities hold and "the numbers can be trusted."
+
+Current behaviour:
+- The panel is labelled "Internal consistency checks".
+- Expanded wording says checks prove only internal arithmetic consistency
+  against the configured model and assumptions.
 
 Why this matters:
 - Internal consistency does not prove real-world correctness.
@@ -160,7 +169,7 @@ Recommended decision:
 - Make clear that figures match the configured model and assumptions.
 
 Verification:
-- UI text now uses "Consistency checks" language.
+- UI text now uses "Internal consistency checks" language.
 - Expanded wording says passing checks mean the projection balances internally
   against the configured model and assumptions.
 - Expanded wording says checks do not prove the model is complete,
