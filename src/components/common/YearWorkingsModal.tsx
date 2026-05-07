@@ -1,9 +1,12 @@
 import { X, CheckCircle2, AlertTriangle } from 'lucide-react';
 import type { YearRow } from '../../engine/types';
+import type { TaxContext } from '../../engine/taxContext';
 import { computeYearWorkings } from '../../engine/workings';
+import TaxContextSummary from './TaxContextSummary';
 
 interface Props {
   yr: YearRow;
+  taxContext?: TaxContext;
   onClose: () => void;
 }
 
@@ -11,8 +14,8 @@ function fmtGBP(n: number): string {
   return '£' + Math.round(n).toLocaleString('en-GB');
 }
 
-export default function YearWorkingsModal({ yr, onClose }: Props) {
-  const report = computeYearWorkings(yr);
+export default function YearWorkingsModal({ yr, taxContext, onClose }: Props) {
+  const report = computeYearWorkings(yr, taxContext);
 
   return (
     <div
@@ -41,6 +44,10 @@ export default function YearWorkingsModal({ yr, onClose }: Props) {
 
         {/* Steps */}
         <div className="overflow-y-auto px-5 py-4 space-y-2 flex-1">
+          {report.taxContext && (
+            <TaxContextSummary context={report.taxContext} />
+          )}
+
           {report.steps.map(step => {
             const hasFail = step.isCrossCheck && step.delta !== undefined && step.delta > 1;
             const hasPass = step.isCrossCheck && step.delta !== undefined && step.delta <= 1;

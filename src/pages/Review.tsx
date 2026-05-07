@@ -15,7 +15,9 @@ import {
 import type { ReviewStore, ReviewSnapshot } from '../store/reviewStore';
 import type { PlannerConfig } from '../engine/types';
 import { getStrategyDisplayName } from '../engine/strategies';
+import { deriveTaxContext } from '../engine/taxContext';
 import ReviewCharts from '../components/review/ReviewCharts';
+import TaxContextSummary from '../components/common/TaxContextSummary';
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -47,6 +49,7 @@ export default function Review() {
   const { config, updateConfig } = useConfig();
   const [store, setStore] = useState<ReviewStore>(() => loadReviewStore());
   const retired = isRetired(config);
+  const currentTaxContext = useMemo(() => deriveTaxContext(config.tax), [config.tax]);
 
   // ── Form state for new review ────────────────────────────────────
   const [showForm, setShowForm] = useState(false);
@@ -179,6 +182,7 @@ export default function Review() {
       guaranteed_monthly: guarMonthly,
       strategy: config.drawdown_strategy ?? 'fixed_target',
       strategy_params: { ...(config.drawdown_strategy_params ?? {}) },
+      tax_context: currentTaxContext,
       notes: formNotes,
     });
     setStore(newStore);
@@ -202,7 +206,7 @@ export default function Review() {
     });
 
     setShowForm(false);
-  }, [formDate, formBalances, formIncome, formGuarMonthly, formNotes, updateConfig]);
+  }, [formDate, formBalances, formIncome, formGuarMonthly, formNotes, currentTaxContext, updateConfig]);
 
   const handleDeleteReview = useCallback((id: string) => {
     if (window.confirm('Delete this review?')) {
@@ -218,6 +222,7 @@ export default function Review() {
           <h1 className="text-2xl font-bold text-gray-900">Review</h1>
           <p className="text-sm text-gray-500 mt-0.5">Track actual outcomes against your plan</p>
         </div>
+        <TaxContextSummary context={currentTaxContext} />
         <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
           <Clock className="w-10 h-10 text-gray-300 mx-auto mb-3" />
           <p className="text-gray-500">
@@ -239,6 +244,8 @@ export default function Review() {
         <h1 className="text-2xl font-bold text-gray-900">Review</h1>
         <p className="text-sm text-gray-500 mt-0.5">Track actual outcomes against your plan</p>
       </div>
+
+      <TaxContextSummary context={currentTaxContext} />
 
       {/* Review reminder */}
       {monthsElapsed !== null && monthsElapsed >= 3 && (
@@ -583,6 +590,9 @@ function ReviewRow({ review, onDelete }: { review: ReviewSnapshot; onDelete: (id
                 ))}
               </div>
             </div>
+          )}
+          {review.tax_context && (
+            <TaxContextSummary context={review.tax_context} compact />
           )}
         </div>
       )}

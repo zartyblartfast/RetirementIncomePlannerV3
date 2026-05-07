@@ -6,6 +6,7 @@
  */
 
 import type { YearRow } from './types';
+import type { TaxContext } from './taxContext';
 
 export interface WorkingsStep {
   /** Machine-readable identifier */
@@ -26,6 +27,7 @@ export interface WorkingsReport {
   age: number;
   taxYear: string;
   steps: WorkingsStep[];
+  taxContext?: TaxContext;
 }
 
 function round2(n: number): number {
@@ -36,7 +38,7 @@ function fmtGBP(n: number): string {
   return '£' + Math.round(n).toLocaleString('en-GB');
 }
 
-export function computeYearWorkings(yr: YearRow): WorkingsReport {
+export function computeYearWorkings(yr: YearRow, taxContext?: TaxContext): WorkingsReport {
   const steps: WorkingsStep[] = [];
 
   // ── Guaranteed income ───────────────────────────────────────────────
@@ -166,5 +168,5 @@ export function computeYearWorkings(yr: YearRow): WorkingsReport {
     });
   }
 
-  return { age: yr.age, taxYear: yr.tax_year, steps };
+  return { age: yr.age, taxYear: yr.tax_year, steps, taxContext };
 }
