@@ -36,7 +36,7 @@ software as a financial product.
 | `docs/calculation-worked-examples.md` | Generic hand-checkable calculation examples. |
 | `docs/isle-of-man-worked-examples.md` | Isle of Man 2026-27 tax worked examples. |
 | `docs/tax-rule-packs.md` | Tax-rule-pack scope, source policy, and current exclusions. |
-| `docs/test-coverage-review.md` | High-level map of automated test coverage and gaps. |
+| `docs/test-coverage-review.md` | Adviser-facing calculation-assurance and automated test coverage map. |
 
 ## 3. Decision Labels
 
@@ -120,7 +120,24 @@ model mechanics, or note additional cases that should be added.
 | CPI target example |  |  |
 | Drawdown-order / source-order examples |  |  |
 
-## 8. User-Facing Caveats To Confirm
+## 8. Calculation Assurance Checklist
+
+Please confirm whether the test coverage summary gives enough engineering
+assurance for adviser review, and note any additional examples or checks that
+would make the model easier to validate.
+
+| Area | Decision | Additional assurance requested |
+| --- | --- | --- |
+| Written-model to worked-example to automated-test trail |  |  |
+| Monthly-to-annual reconciliation checks |  |  |
+| Chart/table/engine reconciliation checks |  |  |
+| Tax-band and tax-context checks |  |  |
+| Isle of Man worked-example test coverage |  |  |
+| Drawdown-order and optimiser reconciliation checks |  |  |
+| Config robustness checks for imported/stale data |  |  |
+| Wording that tests are engineering assurance, not advice approval |  |  |
+
+## 9. User-Facing Caveats To Confirm
 
 Please mark whether these caveats are adequate or need stronger wording.
 
@@ -133,7 +150,7 @@ Please mark whether these caveats are adequate or need stronger wording.
 | Investment volatility is not modelled in the normal projection. |  |  |
 | Tax, pension, and residency rules can change. |  |  |
 
-## 9. Final Adviser Notes
+## 10. Final Adviser Notes
 
 Please provide:
 
@@ -143,7 +160,7 @@ Please provide:
 - any high-impact omitted rules;
 - any wording that would make the review pack clearer for non-specialists.
 
-## 10. Review Sign-Off Record
+## 11. Review Sign-Off Record
 
 | Field | Response |
 | --- | --- |

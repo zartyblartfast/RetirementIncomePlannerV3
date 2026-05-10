@@ -12,7 +12,8 @@ adviser to review the planning model described here, highlight missing rules,
 and confirm which assumptions are acceptable or should be changed.
 
 For a shorter export-friendly response template, use
-`docs/adviser-review-checklist.md` alongside this pack.
+`docs/adviser-review-checklist.md` alongside this pack. For the engineering
+assurance summary, use `docs/test-coverage-review.md`.
 
 ## 1. Purpose Of Review
 
@@ -302,20 +303,60 @@ Adviser review questions:
 - Are the Isle of Man examples correct for resident retirement-income planning
   within their stated scope?
 
-## 15. Internal Consistency Checks
+## 15. Calculation Assurance And Test Coverage
 
-The app includes internal consistency checks. These re-derive selected figures
-from constituent parts, such as:
+The app includes automated calculation-assurance tests. These are intended to
+show that the implementation consistently applies the documented model, not to
+replace adviser judgement about whether the model is complete or suitable for a
+specific person.
 
-- income identity;
-- tax band totals;
-- pot profit/loss identity;
-- non-negative balances;
-- shortfall summary consistency.
+The current recorded Dev01 baseline is:
 
-These checks verify arithmetic consistency inside the configured model. They do
-not prove that the financial model is complete, jurisdiction-correct, or
-suitable as advice.
+- 244 Vitest tests passing;
+- TypeScript passing with `npx tsc -b`;
+- production build passing with `npm run build`, with the existing chunk-size
+  warning only.
+
+The assurance trail is:
+
+```text
+written model -> worked example -> automated test -> current pass status ->
+known limitation / adviser review question
+```
+
+The test suite includes checks for:
+
+- monthly simulation rows reconciling back to annual `YearRow` outputs;
+- annual rows, table fields, and dashboard income-chart data reconciling to the
+  same underlying engine values;
+- income identity, tax-band totals, pot profit/loss identity, non-negative
+  balances, depletion events, and shortfall summaries;
+- guaranteed-income start/stop dates being applied only to active months;
+- residual pot cleardown and source depletion;
+- generic worked examples that can be checked by hand or spreadsheet;
+- Isle of Man 2026-27 worked tax examples;
+- drawdown-order optimiser results reconciling with direct projection results;
+- config robustness for stale, missing, duplicate, or imported withdrawal-priority
+  orders;
+- tax rule-pack context, source metadata, and known exclusions being exposed in
+  review/workings views.
+
+These checks give confidence that figures shown in annual tables, charts,
+workings, and summaries are internally consistent with the configured model.
+They do not prove that the tax model is legally complete, that omitted pension
+features are immaterial, or that the projection is suitable as personalised
+financial advice.
+
+See `docs/test-coverage-review.md` for the full adviser-facing test coverage
+map.
+
+Adviser review questions:
+
+- Does the assurance trail make the model sufficiently reviewable?
+- Which additional worked examples would increase confidence?
+- Are any current test gaps high-impact for planning use?
+- Is the wording clear that automated tests provide engineering assurance, not
+  regulated advice approval?
 
 ## 16. Adviser Decision Checklist
 

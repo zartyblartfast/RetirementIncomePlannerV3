@@ -141,7 +141,7 @@ Contents:
 - Calculation spec.
 - Assumptions and exclusions.
 - Worked examples.
-- Test coverage summary.
+- Test coverage and calculation-assurance summary.
 - Known limitations and open questions.
 - Example projection output.
 
