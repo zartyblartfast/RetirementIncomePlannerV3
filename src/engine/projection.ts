@@ -799,18 +799,6 @@ export function runProjection(
       }
     }
 
-    // ---- Early exit for extended chart projection ---- //
-    if (includeMonthly && yearAge > configEndAge) {
-      const totalCapital = Object.values(dcBalances).reduce((s, v) => s + Math.max(0, v), 0)
-        + Object.values(tfBalances).reduce((s, v) => s + Math.max(0, v), 0);
-      if (totalCapital < 0.01) {
-        chartDeplCtr++;
-        if (chartDeplCtr >= 24) break;
-      } else {
-        chartDeplCtr = 0;
-      }
-    }
-
     // ---- Step 5: Track actual target used this month, then apply CPI ---- //
     currentAgg!.monthly_target_sum += monthlyTarget;
     if (strategyId === 'fixed_target') {
@@ -844,6 +832,20 @@ export function runProjection(
           .filter(e => e.age === yearAge && e.month === monthInYear)
           .map(e => e.pot),
       });
+    }
+
+    // ---- Early exit for extended chart projection ---- //
+    // Keep this after annual and monthly aggregation so the final partial year
+    // reconciles with the emitted MonthlyRow data.
+    if (includeMonthly && yearAge > configEndAge) {
+      const totalCapital = Object.values(dcBalances).reduce((s, v) => s + Math.max(0, v), 0)
+        + Object.values(tfBalances).reduce((s, v) => s + Math.max(0, v), 0);
+      if (totalCapital < 0.01) {
+        chartDeplCtr++;
+        if (chartDeplCtr >= 24) break;
+      } else {
+        chartDeplCtr = 0;
+      }
     }
   }
 
