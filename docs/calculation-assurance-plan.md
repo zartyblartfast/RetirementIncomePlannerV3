@@ -137,6 +137,7 @@ Goal: make independent review practical.
 
 Contents:
 - `docs/adviser-review-pack.md` as the adviser-facing summary.
+- `docs/adviser-review-checklist.md` as the short response template.
 - Calculation spec.
 - Assumptions and exclusions.
 - Worked examples.

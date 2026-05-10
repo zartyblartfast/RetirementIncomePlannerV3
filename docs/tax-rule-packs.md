@@ -50,6 +50,11 @@ Each pack should include:
 - Known exclusions.
 - Worked examples or adviser-approved test cases.
 
+Current worked-example documents:
+
+- `docs/calculation-worked-examples.md` for generic projection mechanics.
+- `docs/isle-of-man-worked-examples.md` for the Isle of Man 2026-27 rule pack.
+
 Reference guides from PwC, EY, Deloitte, KPMG, IBFD, and OECD can help research
 and cross-check rules, but app calculations should use official government
 sources where possible.

@@ -317,7 +317,7 @@ Each should show:
 
 - Keep current rule packs.
 - Maintain adviser review pack.
-- Add Isle of Man worked examples.
+- Maintain Isle of Man worked examples in `docs/isle-of-man-worked-examples.md`.
 - Improve tax source/version display in Review and year workings.
 - Add stale-pack warnings.
 - Keep current app calculations as baseline comparison data.
@@ -357,4 +357,3 @@ Each should show:
 - How much tax explanation should be visible to normal users versus advisers?
 - Should a projection lock the tax pack version used when the config is saved?
 - How should future tax years be handled when official rates are not yet known?
-

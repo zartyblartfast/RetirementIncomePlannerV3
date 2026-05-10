@@ -11,6 +11,9 @@ This document does not ask the adviser to review the software code. It asks the
 adviser to review the planning model described here, highlight missing rules,
 and confirm which assumptions are acceptable or should be changed.
 
+For a shorter export-friendly response template, use
+`docs/adviser-review-checklist.md` alongside this pack.
+
 ## 1. Purpose Of Review
 
 The app projects retirement income from:
@@ -283,15 +286,21 @@ The supporting worked examples cover:
 - ISA-only withdrawal;
 - guaranteed income starting mid-year;
 - CPI disabled versus enabled;
-- pot depletion mid-year and residual cleardown.
+- pot depletion mid-year and residual cleardown;
+- Isle of Man 2026-27 below-allowance, standard-rate-band, higher-rate-band,
+  allowance-taper, and optional tax-cap cases.
 
-See `docs/calculation-worked-examples.md`.
+See:
+
+- `docs/calculation-worked-examples.md`;
+- `docs/isle-of-man-worked-examples.md`.
 
 Adviser review questions:
 
 - Are these examples sufficient for an initial review?
 - Which real-world examples should be added before wider use?
-- Should there be separate Isle of Man-specific examples?
+- Are the Isle of Man examples correct for resident retirement-income planning
+  within their stated scope?
 
 ## 15. Internal Consistency Checks
 
@@ -334,6 +343,8 @@ Checklist:
 - User caveats and non-advice wording.
 - Missing high-impact tax, pension, or planning rules.
 
+For a structured response table, see `docs/adviser-review-checklist.md`.
+
 ## 17. Open Items Before Public Reliance
 
 The app is suitable for structured adviser review, but not yet for public
@@ -343,8 +354,7 @@ Open items:
 
 - adviser validation of calculation assumptions;
 - adviser validation of Isle of Man and UK tax treatment;
-- more jurisdiction-specific worked examples;
-- clearer source/version display in app review outputs;
-- chart/table reconciliation checks;
-- imported config robustness;
+- adviser validation of the worked-example coverage;
+- clearer source/version display in app review outputs where further adviser
+  feedback requests it;
 - final user-facing disclaimer and documentation review.
