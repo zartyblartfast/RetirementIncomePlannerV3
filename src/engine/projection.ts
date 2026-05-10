@@ -23,6 +23,7 @@ import type {
 import { calculateTax, grossUp } from './tax';
 import { normalizeConfig, computeAnnualTarget } from './strategies';
 import { validateConfig, validateStrategyOutput } from './validation';
+import { normalizeWithdrawalPriority } from './withdrawalPriority';
 
 // ------------------------------------------------------------------ //
 //  Helpers
@@ -390,7 +391,7 @@ export function runProjection(
     };
   }
 
-  const priority = cfg.withdrawal_priority ?? [];
+  const priority = normalizeWithdrawalPriority(cfg);
 
   // Pre-compute monthly rates
   const dcMonthly: Record<string, { growth: number; fees: number }> = {};

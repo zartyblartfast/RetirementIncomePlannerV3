@@ -102,6 +102,48 @@ describe('ConfigProvider first-run flow', () => {
     expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!).target_income.net_annual).toBe(36_000);
   });
 
+  it('normalizes imported config withdrawal_priority through setConfig', () => {
+    mounted = renderProvider();
+    const importedConfig = {
+      ...DEFAULT_CONFIG,
+      dc_pots: [
+        { ...DEFAULT_CONFIG.dc_pots[0]!, name: 'Renamed DC' },
+      ],
+      tax_free_accounts: [
+        { ...DEFAULT_CONFIG.tax_free_accounts[0]!, name: 'ISA' },
+      ],
+      withdrawal_priority: ['Old DC', 'ISA', 'ISA'],
+    } as PlannerConfig;
+
+    act(() => {
+      mounted!.value.setConfig(importedConfig);
+    });
+
+    expect(mounted.value.config.withdrawal_priority).toEqual(['ISA', 'Renamed DC']);
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!).withdrawal_priority).toEqual([
+      'ISA',
+      'Renamed DC',
+    ]);
+  });
+
+  it('normalizes withdrawal_priority after updateConfig changes drawable sources', () => {
+    mounted = renderProvider();
+
+    act(() => {
+      mounted!.value.updateConfig(prev => ({
+        ...prev,
+        dc_pots: [
+          { ...prev.dc_pots[0]!, name: 'Main DC' },
+          { ...prev.dc_pots[0]!, name: 'Second DC' },
+        ],
+        tax_free_accounts: [],
+        withdrawal_priority: ['Missing', 'Main DC', 'Main DC'],
+      }));
+    });
+
+    expect(mounted.value.config.withdrawal_priority).toEqual(['Main DC', 'Second DC']);
+  });
+
   it('reset removes stored config and returns to first-visit mode', () => {
     mounted = renderProvider();
 

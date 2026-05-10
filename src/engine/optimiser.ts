@@ -12,6 +12,7 @@ import { runProjectionForWindow, getKeyWindowStarts } from './backtest';
 import type { KeyWindowStarts } from './backtest';
 import { normalizeConfig } from './strategies';
 import { deriveRetirementAge, retirementDateForAge } from './dateUtils';
+import { getDrawableSourceNames, normalizeWithdrawalPriority } from './withdrawalPriority';
 
 // ------------------------------------------------------------------ //
 //  Types
@@ -101,10 +102,7 @@ function permutations<T>(arr: T[]): T[][] {
 
 /** Get all drawable source names from config. */
 function getDrawableSources(cfg: PlannerConfig): string[] {
-  const sources: string[] = [];
-  for (const pot of cfg.dc_pots) sources.push(pot.name);
-  for (const acc of cfg.tax_free_accounts) sources.push(acc.name);
-  return sources;
+  return getDrawableSourceNames(cfg);
 }
 
 /** Extract metrics from a projection result. */
@@ -167,9 +165,7 @@ export function analyseDrawdownOrders(
   windowStart?: number,
 ): DrawdownOrderResult {
   const sources = getDrawableSources(baseCfg);
-  const currentOrder = baseCfg.withdrawal_priority.length > 0
-    ? baseCfg.withdrawal_priority
-    : sources;
+  const currentOrder = normalizeWithdrawalPriority(baseCfg);
 
   const perms = permutations(sources);
   const results: OrderMetrics[] = [];

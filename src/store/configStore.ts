@@ -8,6 +8,7 @@
 import { createContext, useContext } from 'react';
 import type { PlannerConfig } from '../engine/types';
 import { normalizeLoadedConfig } from './configMigration';
+import { normalizeConfigWithdrawalPriority } from '../engine/withdrawalPriority';
 
 const STORAGE_KEY = 'rip_v2_config';
 
@@ -89,7 +90,8 @@ export function hasStoredConfig(): boolean {
 }
 
 export function saveConfig(cfg: PlannerConfig): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
+  const normalized = normalizeConfigWithdrawalPriority(JSON.parse(JSON.stringify(cfg)) as PlannerConfig);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
 }
 
 export function resetConfig(): PlannerConfig {

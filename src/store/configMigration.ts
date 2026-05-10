@@ -1,4 +1,5 @@
 import type { PlannerConfig } from '../engine/types';
+import { normalizeConfigWithdrawalPriority } from '../engine/withdrawalPriority';
 
 type LegacyPlannerConfig = PlannerConfig & {
   personal?: PlannerConfig['personal'] & { retirement_age?: number };
@@ -7,7 +8,7 @@ type LegacyPlannerConfig = PlannerConfig & {
 export function normalizeLoadedConfig(raw: unknown): PlannerConfig {
   const cfg = raw as LegacyPlannerConfig;
   stripLegacyRetirementAge(cfg);
-  return cfg as PlannerConfig;
+  return normalizeConfigWithdrawalPriority(cfg as PlannerConfig);
 }
 
 export function stripLegacyRetirementAge(cfg: LegacyPlannerConfig | null | undefined): void {

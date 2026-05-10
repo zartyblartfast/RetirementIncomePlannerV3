@@ -5,19 +5,21 @@
 import { useState, useCallback, type ReactNode } from 'react';
 import { ConfigContext, loadConfig, saveConfig, resetConfig, hasStoredConfig } from './configStore';
 import type { PlannerConfig } from '../engine/types';
+import { normalizeConfigWithdrawalPriority } from '../engine/withdrawalPriority';
 
 export default function ConfigProvider({ children }: { children: ReactNode }) {
   const [isFirstVisit, setIsFirstVisit] = useState<boolean>(() => !hasStoredConfig());
   const [config, setConfigState] = useState<PlannerConfig>(() => loadConfig());
 
   const setConfig = useCallback((cfg: PlannerConfig) => {
-    setConfigState(cfg);
-    saveConfig(cfg);
+    const next = normalizeConfigWithdrawalPriority(JSON.parse(JSON.stringify(cfg)) as PlannerConfig);
+    setConfigState(next);
+    saveConfig(next);
   }, []);
 
   const updateConfig = useCallback((updater: (prev: PlannerConfig) => PlannerConfig) => {
     setConfigState(prev => {
-      const next = updater(prev);
+      const next = normalizeConfigWithdrawalPriority(updater(prev));
       saveConfig(next);
       return next;
     });
