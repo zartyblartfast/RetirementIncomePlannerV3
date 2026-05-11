@@ -14,11 +14,23 @@ import { loadScenarios, saveScenarios, type Scenario } from './scenarioStore';
 
 export const CASE_FILE_VERSION = 1;
 
+const CASE_METADATA_STORAGE_KEY = 'rip_v2_case_metadata';
+
+export interface CaseMetadata {
+  case_name: string;
+  case_reference: string;
+  owner_label: string;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface CaseFile {
   schema: 'rip.full_case';
   version: 1;
   exported_at: string;
   app: 'RetirementIncomePlannerV3';
+  case_metadata: CaseMetadata;
   config: PlannerConfig;
   review_store: ReviewStore;
   scenarios: Scenario[];
@@ -32,12 +44,68 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
+function blankCaseMetadata(): CaseMetadata {
+  const now = new Date().toISOString();
+  return {
+    case_name: '',
+    case_reference: '',
+    owner_label: '',
+    notes: '',
+    created_at: now,
+    updated_at: now,
+  };
+}
+
+function normalizeCaseMetadata(raw: unknown): CaseMetadata {
+  const fallback = blankCaseMetadata();
+  if (!isRecord(raw)) return fallback;
+  return {
+    case_name: typeof raw.case_name === 'string' ? raw.case_name : '',
+    case_reference: typeof raw.case_reference === 'string' ? raw.case_reference : '',
+    owner_label: typeof raw.owner_label === 'string' ? raw.owner_label : '',
+    notes: typeof raw.notes === 'string' ? raw.notes : '',
+    created_at: typeof raw.created_at === 'string' ? raw.created_at : fallback.created_at,
+    updated_at: typeof raw.updated_at === 'string' ? raw.updated_at : fallback.updated_at,
+  };
+}
+
+export function loadCaseMetadata(): CaseMetadata {
+  try {
+    const raw = localStorage.getItem(CASE_METADATA_STORAGE_KEY);
+    if (raw) return normalizeCaseMetadata(JSON.parse(raw));
+  } catch {
+    // Corrupted metadata — fall through to blank metadata.
+  }
+  return blankCaseMetadata();
+}
+
+export function saveCaseMetadata(metadata: CaseMetadata): CaseMetadata {
+  const existing = loadCaseMetadata();
+  const next = normalizeCaseMetadata({
+    ...metadata,
+    created_at: metadata.created_at || existing.created_at,
+    updated_at: new Date().toISOString(),
+  });
+  localStorage.setItem(CASE_METADATA_STORAGE_KEY, JSON.stringify(next));
+  return next;
+}
+
+function filenameSafe(value: string): string {
+  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+}
+
+export function caseFileDownloadName(caseFile: CaseFile, exportedAt = new Date()): string {
+  const caseSlug = filenameSafe(caseFile.case_metadata.case_name || caseFile.case_metadata.case_reference);
+  return `rip_full_case${caseSlug ? `_${caseSlug}` : ''}_${exportedAt.toISOString().slice(0, 10)}.json`;
+}
+
 export function buildCaseFile(config: PlannerConfig): CaseFile {
   return {
     schema: 'rip.full_case',
     version: CASE_FILE_VERSION,
     exported_at: new Date().toISOString(),
     app: 'RetirementIncomePlannerV3',
+    case_metadata: loadCaseMetadata(),
     config: normalizeLoadedConfig(deepClone(config)),
     review_store: deepClone(loadReviewStore()),
     scenarios: deepClone(loadScenarios()),
@@ -51,7 +119,7 @@ export function exportCaseToFile(config: PlannerConfig): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `rip_full_case_${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = caseFileDownloadName(caseFile);
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -71,6 +139,7 @@ export function parseCaseFile(raw: string): CaseFile {
   }
 
   const reviewStore = parsed.review_store as unknown as ReviewStore;
+  const caseMetadata = normalizeCaseMetadata(parsed.case_metadata);
   const scenarios = (parsed.scenarios as unknown[]).map((scenario) => {
     if (!isRecord(scenario) || typeof scenario.name !== 'string' || !isRecord(scenario.config)) {
       throw new Error('Invalid case file: malformed scenario');
@@ -86,6 +155,7 @@ export function parseCaseFile(raw: string): CaseFile {
     version: CASE_FILE_VERSION,
     exported_at: typeof parsed.exported_at === 'string' ? parsed.exported_at : new Date().toISOString(),
     app: 'RetirementIncomePlannerV3',
+    case_metadata: caseMetadata,
     config,
     review_store: deepClone(reviewStore),
     scenarios,
@@ -95,6 +165,7 @@ export function parseCaseFile(raw: string): CaseFile {
 export function importCaseFile(caseFile: CaseFile): CaseFile {
   const normalized = parseCaseFile(JSON.stringify(caseFile));
   saveConfig(normalized.config);
+  saveCaseMetadata(normalized.case_metadata);
   saveReviewStore(normalized.review_store);
   saveScenarios(normalized.scenarios);
   return normalized;

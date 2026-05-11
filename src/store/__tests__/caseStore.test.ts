@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { DEFAULT_CONFIG } from '../configStore';
-import { buildCaseFile, importCaseFile, parseCaseFile } from '../caseStore';
+import { buildCaseFile, caseFileDownloadName, importCaseFile, loadCaseMetadata, parseCaseFile, saveCaseMetadata } from '../caseStore';
 import { addReview, lockBaseline, loadReviewStore } from '../reviewStore';
 import { loadScenarios, saveScenario } from '../scenarioStore';
 
@@ -22,11 +22,21 @@ describe('caseStore', () => {
       notes: 'first review',
     });
     saveScenario('Downside', DEFAULT_CONFIG);
+    saveCaseMetadata({
+      case_name: 'Main plan',
+      case_reference: 'CASE-001',
+      owner_label: 'Household',
+      notes: 'Export test',
+      created_at: '2026-05-01T00:00:00.000Z',
+      updated_at: '2026-05-01T00:00:00.000Z',
+    });
 
     const caseFile = buildCaseFile(DEFAULT_CONFIG);
 
     expect(caseFile.schema).toBe('rip.full_case');
     expect(caseFile.version).toBe(1);
+    expect(caseFile.case_metadata.case_name).toBe('Main plan');
+    expect(caseFile.case_metadata.case_reference).toBe('CASE-001');
     expect(caseFile.config.personal.date_of_birth).toBe(DEFAULT_CONFIG.personal.date_of_birth);
     expect(caseFile.review_store.baseline_config).not.toBeNull();
     expect(caseFile.review_store.reviews).toHaveLength(1);
@@ -46,6 +56,14 @@ describe('caseStore', () => {
       notes: 'restore target',
     });
     saveScenario('Restore scenario', DEFAULT_CONFIG);
+    saveCaseMetadata({
+      case_name: 'Restore plan',
+      case_reference: 'RESTORE-001',
+      owner_label: 'Client A',
+      notes: 'Restore metadata',
+      created_at: '2026-05-01T00:00:00.000Z',
+      updated_at: '2026-05-01T00:00:00.000Z',
+    });
     const caseFile = buildCaseFile({
       ...DEFAULT_CONFIG,
       personal: { ...DEFAULT_CONFIG.personal, end_age: 95 },
@@ -56,11 +74,45 @@ describe('caseStore', () => {
 
     expect(loadReviewStore().reviews[0]?.date).toBe('2032-02');
     expect(loadScenarios()[0]?.name).toBe('Restore scenario');
+    expect(loadCaseMetadata().case_name).toBe('Restore plan');
+    expect(loadCaseMetadata().owner_label).toBe('Client A');
     const restoredConfig = JSON.parse(localStorage.getItem('rip_v2_config') ?? '{}');
     expect(restoredConfig.personal.end_age).toBe(95);
   });
 
   it('rejects config-only JSON as a full case file', () => {
     expect(() => parseCaseFile(JSON.stringify(DEFAULT_CONFIG))).toThrow(/not a RIP full case export/);
+  });
+
+  it('parses older full-case files without metadata using blank metadata', () => {
+    const caseFile = buildCaseFile(DEFAULT_CONFIG);
+    const legacy = { ...caseFile } as Record<string, unknown>;
+    delete legacy.case_metadata;
+
+    const parsed = parseCaseFile(JSON.stringify(legacy));
+
+    expect(parsed.case_metadata.case_name).toBe('');
+    expect(parsed.case_metadata.case_reference).toBe('');
+  });
+
+  it('builds case export filenames from case name or reference', () => {
+    const exportedAt = new Date('2026-05-11T12:00:00.000Z');
+    const namedCase = buildCaseFile(DEFAULT_CONFIG);
+    namedCase.case_metadata = {
+      ...namedCase.case_metadata,
+      case_name: 'Main Retirement Plan / Client A',
+      case_reference: 'CASE-001',
+    };
+
+    expect(caseFileDownloadName(namedCase, exportedAt)).toBe('rip_full_case_main-retirement-plan-client-a_2026-05-11.json');
+
+    const referenceOnlyCase = buildCaseFile(DEFAULT_CONFIG);
+    referenceOnlyCase.case_metadata = {
+      ...referenceOnlyCase.case_metadata,
+      case_name: '',
+      case_reference: 'CASE-001',
+    };
+
+    expect(caseFileDownloadName(referenceOnlyCase, exportedAt)).toBe('rip_full_case_case-001_2026-05-11.json');
   });
 });

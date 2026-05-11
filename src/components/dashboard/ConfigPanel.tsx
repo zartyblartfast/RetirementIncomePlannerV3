@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Settings, ChevronDown, ChevronUp, Plus, Trash2, Download, Upload } from 'lucide-react';
 import { useConfig, exportConfigToFile, importConfigFromFile } from '../../store/configStore';
-import { exportCaseToFile, importCaseFromFile } from '../../store/caseStore';
+import { exportCaseToFile, importCaseFromFile, loadCaseMetadata, saveCaseMetadata, type CaseMetadata } from '../../store/caseStore';
 import { STRATEGIES, STRATEGY_IDS } from '../../engine/strategies';
 import { TAX_RULE_PACKS, taxConfigFromRulePack } from '../../engine/taxRulePacks';
 import type { PlannerConfig, GuaranteedIncomeConfig, DCPotConfig, TaxFreeAccountConfig } from '../../engine/types';
@@ -45,6 +45,7 @@ export default function ConfigPanel() {
   const { config, setConfig, updateConfig } = useConfig();
   const [open, setOpen] = useState(true);
   const [importError, setImportError] = useState<string | null>(null);
+  const [caseMetadata, setCaseMetadata] = useState<CaseMetadata>(() => loadCaseMetadata());
 
   function handleExport() {
     exportConfigToFile(config);
@@ -56,13 +57,20 @@ export default function ConfigPanel() {
 
   function handleImportCase() {
     const confirmed = window.confirm(
-      'This will replace your current config, Review baseline/history, and What If scenarios with the case file you select. Continue?'
+      'This will replace your current config, case details, Review baseline/history, and What If scenarios with the case file you select. Continue?'
     );
     if (!confirmed) return;
     setImportError(null);
     importCaseFromFile()
-      .then(caseFile => { setConfig(caseFile.config); })
+      .then(caseFile => {
+        setConfig(caseFile.config);
+        setCaseMetadata(caseFile.case_metadata);
+      })
       .catch(err => { setImportError((err as Error).message); });
+  }
+
+  function updateCaseMetadata(field: keyof CaseMetadata, value: string) {
+    setCaseMetadata(prev => saveCaseMetadata({ ...prev, [field]: value }));
   }
 
   function handleImport() {
@@ -223,36 +231,101 @@ export default function ConfigPanel() {
 
       {open && (
         <div className="px-4 pb-4 space-y-5 border-t border-gray-100 pt-3">
-          {/* Export / Import */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              onClick={handleExportCase}
-              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md border border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors"
-            >
-              <Download className="w-3.5 h-3.5" />
-              Export Full Case
-            </button>
-            <button
-              onClick={handleImportCase}
-              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md border border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors"
-            >
-              <Upload className="w-3.5 h-3.5" />
-              Import Full Case
-            </button>
-            <button
-              onClick={handleExport}
-              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              <Download className="w-3.5 h-3.5" />
-              Export Config Only
-            </button>
-            <button
-              onClick={handleImport}
-              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              <Upload className="w-3.5 h-3.5" />
-              Import Config Only
-            </button>
+          {/* Case details */}
+          <div>
+            <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Case Details</h4>
+            <p className="text-xs text-gray-400 mb-2">
+              Local-only labels to help identify exported case files. These are saved in this browser and included in full-case exports.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <Field label="Case name">
+                <input
+                  type="text"
+                  value={caseMetadata.case_name}
+                  onChange={e => updateCaseMetadata('case_name', e.target.value)}
+                  placeholder="e.g. Main retirement plan"
+                  className="input-field"
+                />
+              </Field>
+              <Field label="Reference">
+                <input
+                  type="text"
+                  value={caseMetadata.case_reference}
+                  onChange={e => updateCaseMetadata('case_reference', e.target.value)}
+                  placeholder="e.g. Client or household ref"
+                  className="input-field"
+                />
+              </Field>
+              <Field label="Owner / client label">
+                <input
+                  type="text"
+                  value={caseMetadata.owner_label}
+                  onChange={e => updateCaseMetadata('owner_label', e.target.value)}
+                  placeholder="Optional"
+                  className="input-field"
+                />
+              </Field>
+            </div>
+            <label className="block mt-3">
+              <span className="text-xs font-medium text-gray-600">Case notes</span>
+              <input
+                type="text"
+                value={caseMetadata.notes}
+                onChange={e => updateCaseMetadata('notes', e.target.value)}
+                placeholder="Optional local notes included in full-case export"
+                className="input-field"
+              />
+            </label>
+          </div>
+
+          {/* Save / Restore */}
+          <div className="space-y-3">
+            <div className="rounded-lg border border-blue-100 bg-blue-50/60 p-3">
+              <h4 className="text-xs font-medium text-blue-900 uppercase tracking-wider mb-1">Case File</h4>
+              <p className="text-xs text-blue-800 mb-2">
+                Recommended. Saves your current plan, case details, Review history, and What If scenarios.
+              </p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={handleExportCase}
+                  className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md border border-blue-300 text-blue-700 bg-white hover:bg-blue-100 transition-colors"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Save Case
+                </button>
+                <button
+                  onClick={handleImportCase}
+                  className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md border border-blue-300 text-blue-700 bg-white hover:bg-blue-100 transition-colors"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  Restore Case
+                </button>
+              </div>
+            </div>
+
+            <details className="rounded-lg border border-gray-200 bg-gray-50/60 p-3">
+              <summary className="cursor-pointer text-xs font-medium text-gray-600 uppercase tracking-wider">Advanced config-only files</summary>
+              <p className="text-xs text-gray-500 mt-2 mb-2">
+                Advanced. Saves only the current plan settings. Does not include case details, Review history, or What If scenarios.
+              </p>
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  onClick={handleExport}
+                  className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-100 transition-colors"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  Export Config Only
+                </button>
+                <button
+                  onClick={handleImport}
+                  className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-100 transition-colors"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  Import Config Only
+                </button>
+              </div>
+            </details>
+
             {importError && (
               <span className="text-xs text-red-600">{importError}</span>
             )}
