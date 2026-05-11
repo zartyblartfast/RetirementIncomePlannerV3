@@ -51,6 +51,13 @@ function persist(scenarios: Scenario[]): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(scenarios));
 }
 
+export function saveScenarios(scenarios: Scenario[]): Scenario[] {
+  const next: Scenario[] = JSON.parse(JSON.stringify(scenarios));
+  for (const scenario of next) stripLegacyRetirementAge(scenario.config);
+  persist(next);
+  return next;
+}
+
 // ------------------------------------------------------------------ //
 //  CRUD operations
 // ------------------------------------------------------------------ //

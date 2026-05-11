@@ -24,6 +24,7 @@ export interface ReviewSnapshot {
   pot_balances: Record<string, number>;           // pot name → closing balance
   income_since_last: Record<string, number>;      // source name → income drawn since previous review
   guaranteed_monthly: Record<string, number>;     // source → current monthly guaranteed income amount
+  guaranteed_income_update_mode?: 'record_only' | 'update_current_assumption';
   strategy: string;                                // active drawdown strategy at review time
   strategy_params: Record<string, number>;         // strategy params at review time
   tax_context?: TaxContext;                         // tax assumptions recorded at review time
@@ -72,6 +73,13 @@ export function loadReviewStore(): ReviewStore {
 
 function persist(store: ReviewStore): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+}
+
+export function saveReviewStore(store: ReviewStore): ReviewStore {
+  const next: ReviewStore = JSON.parse(JSON.stringify(store));
+  stripLegacyRetirementAge(next.baseline_config);
+  persist(next);
+  return next;
 }
 
 // ------------------------------------------------------------------ //
@@ -131,6 +139,35 @@ export function deleteReview(id: string): ReviewStore {
 
 export function getLatestReview(store: ReviewStore): ReviewSnapshot | null {
   return store.reviews.length > 0 ? store.reviews[store.reviews.length - 1]! : null;
+}
+
+export function applyReviewToConfig(config: PlannerConfig, review: ReviewSnapshot): PlannerConfig {
+  const next: PlannerConfig = JSON.parse(JSON.stringify(config));
+
+  for (const pot of next.dc_pots) {
+    if (review.pot_balances[pot.name] !== undefined) {
+      pot.starting_balance = review.pot_balances[pot.name]!;
+      pot.values_as_of = review.date;
+    }
+  }
+
+  for (const acc of next.tax_free_accounts) {
+    if (review.pot_balances[acc.name] !== undefined) {
+      acc.starting_balance = review.pot_balances[acc.name]!;
+      acc.values_as_of = review.date;
+    }
+  }
+
+  if (review.guaranteed_income_update_mode === 'update_current_assumption') {
+    for (const income of next.guaranteed_income) {
+      if (review.guaranteed_monthly[income.name] !== undefined) {
+        income.gross_annual = Math.round(review.guaranteed_monthly[income.name]! * 12 * 100) / 100;
+        income.values_as_of = review.date;
+      }
+    }
+  }
+
+  return next;
 }
 
 /**

@@ -11,6 +11,7 @@ import {
   deleteReview,
   getLatestReview,
   monthsSinceLastReview,
+  applyReviewToConfig,
 } from '../store/reviewStore';
 import type { ReviewStore, ReviewSnapshot } from '../store/reviewStore';
 import type { PlannerConfig } from '../engine/types';
@@ -57,6 +58,7 @@ export default function Review() {
   const [formBalances, setFormBalances] = useState<Record<string, string>>({});
   const [formIncome, setFormIncome] = useState<Record<string, string>>({});
   const [formGuarMonthly, setFormGuarMonthly] = useState<Record<string, string>>({});
+  const [applyGuaranteedIncomeUpdate, setApplyGuaranteedIncomeUpdate] = useState(true);
   const [formNotes, setFormNotes] = useState('');
 
   // All pot/account/guaranteed names from config
@@ -161,6 +163,7 @@ export default function Review() {
     setFormGuarMonthly(guar);
 
     setFormDate(currentYM());
+    setApplyGuaranteedIncomeUpdate(true);
     setFormNotes('');
     setShowForm(true);
   }, [config, dcNames, tfNames]);
@@ -175,38 +178,26 @@ export default function Review() {
     const guarMonthly: Record<string, number> = {};
     for (const [k, v] of Object.entries(formGuarMonthly)) guarMonthly[k] = Number(v) || 0;
 
-    const newStore = addReview({
+    const snapshot: Omit<ReviewSnapshot, 'id'> = {
       date: formDate,
       pot_balances: potBals,
       income_since_last: incDrawn,
       guaranteed_monthly: guarMonthly,
+      guaranteed_income_update_mode: applyGuaranteedIncomeUpdate ? 'update_current_assumption' : 'record_only',
       strategy: config.drawdown_strategy ?? 'fixed_target',
       strategy_params: { ...(config.drawdown_strategy_params ?? {}) },
       tax_context: currentTaxContext,
       notes: formNotes,
-    });
+    };
+
+    const newStore = addReview(snapshot);
     setStore(newStore);
 
-    // Sync config store with latest review balances
-    updateConfig(prev => {
-      const next: PlannerConfig = JSON.parse(JSON.stringify(prev));
-      for (const pot of next.dc_pots) {
-        if (potBals[pot.name] !== undefined) {
-          pot.starting_balance = potBals[pot.name]!;
-          pot.values_as_of = formDate;
-        }
-      }
-      for (const acc of next.tax_free_accounts) {
-        if (potBals[acc.name] !== undefined) {
-          acc.starting_balance = potBals[acc.name]!;
-          acc.values_as_of = formDate;
-        }
-      }
-      return next;
-    });
+    // Sync config store with latest review balances, and optionally guaranteed income assumptions.
+    updateConfig(prev => applyReviewToConfig(prev, { ...snapshot, id: 'pending' }));
 
     setShowForm(false);
-  }, [formDate, formBalances, formIncome, formGuarMonthly, formNotes, currentTaxContext, updateConfig]);
+  }, [formDate, formBalances, formIncome, formGuarMonthly, applyGuaranteedIncomeUpdate, formNotes, config.drawdown_strategy, config.drawdown_strategy_params, currentTaxContext, updateConfig]);
 
   const handleDeleteReview = useCallback((id: string) => {
     if (window.confirm('Delete this review?')) {
@@ -441,6 +432,9 @@ export default function Review() {
           {/* Guaranteed income — current monthly amounts */}
           <div>
             <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Current Monthly Guaranteed Income</h4>
+            <p className="text-xs text-gray-400 mb-2">
+              Record the current monthly amount for each guaranteed income source. Choose below whether these figures also become the live projection assumption.
+            </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
               {guaranteedNames.map(name => (
                 <label key={name} className="block">
@@ -455,6 +449,17 @@ export default function Review() {
                 </label>
               ))}
             </div>
+            <label className="mt-3 flex items-start gap-2 rounded-md border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-800">
+              <input
+                type="checkbox"
+                checked={applyGuaranteedIncomeUpdate}
+                onChange={e => setApplyGuaranteedIncomeUpdate(e.target.checked)}
+                className="mt-0.5"
+              />
+              <span>
+                Update current guaranteed-income assumptions for future projections. Untick to record these amounts in review history only.
+              </span>
+            </label>
           </div>
 
           {/* Notes */}
@@ -589,6 +594,11 @@ function ReviewRow({ review, onDelete }: { review: ReviewSnapshot; onDelete: (id
                   </div>
                 ))}
               </div>
+              <p className="text-xs text-gray-400 mt-1">
+                {review.guaranteed_income_update_mode === 'update_current_assumption'
+                  ? 'Applied to current guaranteed-income assumptions for future projections.'
+                  : 'Recorded in review history only; current guaranteed-income assumptions were not changed.'}
+              </p>
             </div>
           )}
           {review.tax_context && (

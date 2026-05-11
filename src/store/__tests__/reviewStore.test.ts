@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { addReview, loadReviewStore } from '../reviewStore';
+import { addReview, applyReviewToConfig, loadReviewStore } from '../reviewStore';
 import { deriveTaxContext } from '../../engine/taxContext';
 import { DEFAULT_CONFIG } from '../configStore';
 
@@ -16,6 +16,7 @@ describe('reviewStore', () => {
       pot_balances: { 'DC Pension': 200_000 },
       income_since_last: {},
       guaranteed_monthly: { 'State Pension': 998 },
+      guaranteed_income_update_mode: 'record_only',
       strategy: 'fixed_target',
       strategy_params: {},
       tax_context: taxContext,
@@ -24,5 +25,44 @@ describe('reviewStore', () => {
 
     const stored = loadReviewStore();
     expect(stored.reviews[0]?.tax_context).toEqual(taxContext);
+  });
+
+  it('updates live pot balances and guaranteed-income assumptions when requested', () => {
+    const next = applyReviewToConfig(DEFAULT_CONFIG, {
+      id: 'review-1',
+      date: '2032-03',
+      pot_balances: { 'DC Pension': 175_000, ISA: 20_000 },
+      income_since_last: {},
+      guaranteed_monthly: { 'State Pension': 1_050 },
+      guaranteed_income_update_mode: 'update_current_assumption',
+      strategy: 'fixed_target',
+      strategy_params: {},
+      notes: '',
+    });
+
+    expect(next.dc_pots[0]?.starting_balance).toBe(175_000);
+    expect(next.dc_pots[0]?.values_as_of).toBe('2032-03');
+    expect(next.tax_free_accounts[0]?.starting_balance).toBe(20_000);
+    expect(next.tax_free_accounts[0]?.values_as_of).toBe('2032-03');
+    expect(next.guaranteed_income[0]?.gross_annual).toBe(12_600);
+    expect(next.guaranteed_income[0]?.values_as_of).toBe('2032-03');
+  });
+
+  it('records guaranteed income without changing live assumptions when requested', () => {
+    const next = applyReviewToConfig(DEFAULT_CONFIG, {
+      id: 'review-2',
+      date: '2032-04',
+      pot_balances: { 'DC Pension': 160_000 },
+      income_since_last: {},
+      guaranteed_monthly: { 'State Pension': 1_100 },
+      guaranteed_income_update_mode: 'record_only',
+      strategy: 'fixed_target',
+      strategy_params: {},
+      notes: '',
+    });
+
+    expect(next.dc_pots[0]?.starting_balance).toBe(160_000);
+    expect(next.guaranteed_income[0]?.gross_annual).toBe(DEFAULT_CONFIG.guaranteed_income[0]?.gross_annual);
+    expect(next.guaranteed_income[0]?.values_as_of).toBe(DEFAULT_CONFIG.guaranteed_income[0]?.values_as_of);
   });
 });

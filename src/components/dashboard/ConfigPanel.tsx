@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Settings, ChevronDown, ChevronUp, Plus, Trash2, Download, Upload } from 'lucide-react';
 import { useConfig, exportConfigToFile, importConfigFromFile } from '../../store/configStore';
+import { exportCaseToFile, importCaseFromFile } from '../../store/caseStore';
 import { STRATEGIES, STRATEGY_IDS } from '../../engine/strategies';
 import { TAX_RULE_PACKS, taxConfigFromRulePack } from '../../engine/taxRulePacks';
 import type { PlannerConfig, GuaranteedIncomeConfig, DCPotConfig, TaxFreeAccountConfig } from '../../engine/types';
@@ -47,6 +48,21 @@ export default function ConfigPanel() {
 
   function handleExport() {
     exportConfigToFile(config);
+  }
+
+  function handleExportCase() {
+    exportCaseToFile(config);
+  }
+
+  function handleImportCase() {
+    const confirmed = window.confirm(
+      'This will replace your current config, Review baseline/history, and What If scenarios with the case file you select. Continue?'
+    );
+    if (!confirmed) return;
+    setImportError(null);
+    importCaseFromFile()
+      .then(caseFile => { setConfig(caseFile.config); })
+      .catch(err => { setImportError((err as Error).message); });
   }
 
   function handleImport() {
@@ -210,18 +226,32 @@ export default function ConfigPanel() {
           {/* Export / Import */}
           <div className="flex items-center gap-2 flex-wrap">
             <button
+              onClick={handleExportCase}
+              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md border border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Export Full Case
+            </button>
+            <button
+              onClick={handleImportCase}
+              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md border border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100 transition-colors"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              Import Full Case
+            </button>
+            <button
               onClick={handleExport}
               className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
             >
               <Download className="w-3.5 h-3.5" />
-              Export Config
+              Export Config Only
             </button>
             <button
               onClick={handleImport}
               className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
             >
               <Upload className="w-3.5 h-3.5" />
-              Import Config
+              Import Config Only
             </button>
             {importError && (
               <span className="text-xs text-red-600">{importError}</span>
