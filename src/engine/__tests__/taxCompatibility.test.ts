@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { runProjection } from '../projection';
-import { calculateTax } from '../tax';
+import { calculateTax, calculateTaxFromEventsWithModule } from '../tax';
 import { taxConfigFromRulePack } from '../taxRulePacks';
+import { totalTaxableFromEvents, yearRowToTaxEvents } from '../taxEvents';
 import { SIMPLE_CONFIG } from './fixtures';
 import type { PlannerConfig, TaxConfig, TaxResult } from '../types';
 
@@ -65,6 +66,28 @@ function mixedSourceProjectionConfig(): PlannerConfig {
     withdrawal_priority: ['ISA', 'Main DC'],
     tax: taxConfigFromRulePack('IM-2026-27'),
   };
+}
+
+function expectProjectionTaxMatchesTaxableIncomeCalculation(
+  taxConfig: TaxConfig,
+  year: { total_taxable_income: number; tax_due: number; tax_breakdown: TaxResult },
+): void {
+  const expectedTax = calculateTax(year.total_taxable_income, taxConfig);
+
+  expect(year.tax_due).toBeCloseTo(expectedTax.total, 2);
+  expect(year.tax_breakdown).toEqual(expectedTax);
+}
+
+function expectProjectionTaxMatchesEventCalculation(
+  taxConfig: TaxConfig,
+  year: Parameters<typeof yearRowToTaxEvents>[0],
+): void {
+  const events = yearRowToTaxEvents(year);
+  const expectedTax = calculateTaxFromEventsWithModule(events, taxConfig);
+
+  expect(totalTaxableFromEvents(events)).toBeCloseTo(year.total_taxable_income, 2);
+  expect(year.tax_due).toBeCloseTo(expectedTax.total, 2);
+  expect(year.tax_breakdown).toEqual(expectedTax);
 }
 
 describe('Tax compatibility baselines', () => {
@@ -190,7 +213,8 @@ describe('Tax compatibility baselines', () => {
   });
 
   it('freezes current projection tax fields for mixed guaranteed income, ISA, and DC drawdown', () => {
-    const result = runProjection(mixedSourceProjectionConfig(), { includeMonthly: true });
+    const cfg = mixedSourceProjectionConfig();
+    const result = runProjection(cfg, { includeMonthly: true });
     const isaYear = result.years[0]!;
     const dcYear = result.years[2]!;
 
@@ -200,6 +224,10 @@ describe('Tax compatibility baselines', () => {
       { pot: 'ISA', age: 69, month: 12 },
       { pot: 'Main DC', age: 81, month: 7 },
     ]);
+    for (const year of result.years) {
+      expectProjectionTaxMatchesTaxableIncomeCalculation(cfg.tax, year);
+      expectProjectionTaxMatchesEventCalculation(cfg.tax, year);
+    }
 
     expect(isaYear.age).toBe(68);
     expect(isaYear.guaranteed_total).toBe(12_000);
