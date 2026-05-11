@@ -21,7 +21,7 @@ import type {
   StrategyState,
 } from './types';
 
-import { calculateTax, grossUp } from './tax';
+import { calculateTax, calculateTaxFromEventsWithModule, grossUp } from './tax';
 import { annualTaxEventsFromAmounts } from './taxEvents';
 import { normalizeConfig, computeAnnualTarget } from './strategies';
 import { validateConfig, validateStrategyOutput } from './validation';
@@ -138,14 +138,8 @@ function taxEventsForAnnualAgg(agg: AnnualAgg) {
 }
 
 function calculateAnnualTaxFromEvents(agg: AnnualAgg, taxCfg: TaxConfig): TaxResult {
-  // Construct neutral tax events before tax calculation as the bridge toward
-  // event-native projection internals. For this compatibility step, keep the
-  // actual taxable-income value on the existing aggregate formula so projection
-  // outputs remain byte-for-byte aligned with the legacy path.
   const events = taxEventsForAnnualAgg(agg);
-  void events;
-  const taxableIncome = agg.guaranteed_taxable + (agg.dc_gross - agg.dc_tf);
-  return calculateTax(taxableIncome, taxCfg);
+  return calculateTaxFromEventsWithModule(events, taxCfg);
 }
 
 // ------------------------------------------------------------------ //

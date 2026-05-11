@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { runProjection } from '../projection';
-import { calculateTax } from '../tax';
+import { calculateTax, calculateTaxFromEventsWithModule } from '../tax';
 import { taxConfigFromRulePack } from '../taxRulePacks';
+import { totalTaxableFromEvents, yearRowToTaxEvents } from '../taxEvents';
 import { SIMPLE_CONFIG } from './fixtures';
 import type { PlannerConfig, TaxConfig, TaxResult } from '../types';
 
@@ -73,6 +74,18 @@ function expectProjectionTaxMatchesTaxableIncomeCalculation(
 ): void {
   const expectedTax = calculateTax(year.total_taxable_income, taxConfig);
 
+  expect(year.tax_due).toBeCloseTo(expectedTax.total, 2);
+  expect(year.tax_breakdown).toEqual(expectedTax);
+}
+
+function expectProjectionTaxMatchesEventCalculation(
+  taxConfig: TaxConfig,
+  year: Parameters<typeof yearRowToTaxEvents>[0],
+): void {
+  const events = yearRowToTaxEvents(year);
+  const expectedTax = calculateTaxFromEventsWithModule(events, taxConfig);
+
+  expect(totalTaxableFromEvents(events)).toBeCloseTo(year.total_taxable_income, 2);
   expect(year.tax_due).toBeCloseTo(expectedTax.total, 2);
   expect(year.tax_breakdown).toEqual(expectedTax);
 }
@@ -213,6 +226,7 @@ describe('Tax compatibility baselines', () => {
     ]);
     for (const year of result.years) {
       expectProjectionTaxMatchesTaxableIncomeCalculation(cfg.tax, year);
+      expectProjectionTaxMatchesEventCalculation(cfg.tax, year);
     }
 
     expect(isaYear.age).toBe(68);
