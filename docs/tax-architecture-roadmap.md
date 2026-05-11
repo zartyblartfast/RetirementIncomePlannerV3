@@ -9,17 +9,38 @@ different tax regimes.
 
 ## 1. Design Goal
 
+The app should support adding and updating tax jurisdictions/tax years without
+requiring changes to core projection logic.
+
+The strategic objective is:
+
+```text
+Add or update supported tax jurisdictions through versioned tax rule packs,
+metadata, worked examples, and tests — not by scattering jurisdiction-specific
+branches through the projection engine.
+```
+
 The app should support tax jurisdictions that differ structurally, not just by
-rates and bands.
+rates and bands, but the projection engine should remain jurisdiction-neutral
+wherever practical.
 
 The design should:
 
 - keep the projection engine as jurisdiction-neutral as practical;
 - support simple data-driven tax packs where possible;
-- allow code-driven jurisdiction modules where necessary;
+- allow explicitly supported first-party tax modules where simple data is not
+  expressive enough;
 - version rules by jurisdiction and tax year;
 - make applied tax rules explainable to advisers and informed users;
+- make it obvious to future developers whether they should add a tax pack,
+  extend the tax module, or change projection logic;
 - preserve current projection behaviour unless a change is intentional.
+
+Tax packs are **not** intended to be arbitrary plugins. A plugin system would
+imply loading free-form executable logic, which is harder to test, review, and
+trust in a financial planning tool. Tax packs should instead be structured,
+reviewable rule definitions using calculation patterns explicitly supported by
+the app.
 
 ## 2. Core Principle
 
@@ -145,7 +166,16 @@ interface TaxRuleMetadata {
 
 ## 6. Tax Pack Types
 
-The app should support more than one implementation style.
+The preferred path is to express a jurisdiction/tax-year as a structured,
+versioned tax pack: rule data, metadata, source links, known exclusions, worked
+examples, and tests.
+
+When a jurisdiction cannot be represented by existing pack fields, the next step
+is to add an explicit first-party tax-module capability to the app. It is not to
+put jurisdiction-specific branches in the projection engine, and it is not to
+load arbitrary plugin code.
+
+The app should support more than one tax-module implementation style over time.
 
 ### Simple Banded Pack
 
@@ -159,9 +189,12 @@ Useful for jurisdictions or simplified models that can be represented by:
 
 This is close to the current implementation.
 
-### Code-Driven Jurisdiction Module
+### Code-Driven First-Party Tax Module
 
-Needed where rules cannot be represented cleanly as a small table.
+Needed where rules cannot be represented cleanly as a small table. This should
+still be a reviewed module inside the app's tax layer, with a standard interface,
+metadata, worked examples, and tests. It should not be an arbitrary external
+plugin and should not leak jurisdiction-specific logic into `projection.ts`.
 
 Examples:
 
@@ -327,6 +360,7 @@ Each should show:
 - Introduce a formal `TaxRuleModule` interface.
 - Wrap current banded tax logic as a simple module implementation.
 - Convert current UK and Isle of Man packs to first-class modules.
+- Add a developer-facing tax-pack creation/update workflow before broadening jurisdictions.
 - Add compatibility tests comparing old and new tax outputs.
 - Start passing income events into tax calculation.
 - Add tax explanation output for adviser review.

@@ -3,6 +3,17 @@
 This document describes the tax-rule-pack direction for jurisdiction-specific
 tax modelling.
 
+The core strategy is to make tax handling tax-pack-led rather than
+projection-engine-led. New supported jurisdictions and future tax years should be
+added as versioned, self-documenting tax packs wherever possible, with source
+links, assumptions, worked examples, and tests. Developers should not add
+jurisdiction-specific branches to `projection.ts` unless a separate architecture
+decision explicitly changes that boundary.
+
+Tax packs are not general plugins. They should not execute arbitrary custom
+code. They are structured rule definitions using calculation patterns supported
+by the app's tax layer.
+
 The app keeps the existing `Custom` tax model. Rule packs add named,
 versioned jurisdiction defaults that can be selected in configuration.
 
@@ -63,6 +74,30 @@ The Isle of Man pack uses the Isle of Man Government tax practice notes as the
 official source trail, with PwC Worldwide Tax Summaries as a cross-check for the
 resident allowance, standard-rate band, higher rate, allowance taper, and tax
 cap.
+
+## Developer Workflow For Tax-Pack Updates
+
+For a new tax year in an already-supported jurisdiction:
+
+1. Add a new pack id, for example `IM-2027-28`; do not silently mutate the old
+   pack.
+2. Update allowances, bands, caps, dates, and rule summaries from official
+   sources.
+3. Update `lastChecked`, source references, known exclusions, and adviser review
+   status.
+4. Add or update worked examples.
+5. Add or update automated tests.
+6. Run focused tax tests, full Vitest, TypeScript, and build.
+7. Update adviser-facing documents if assumptions or exclusions changed.
+
+For a structurally new jurisdiction:
+
+1. Decide whether the existing supported calculation patterns can represent it.
+2. If yes, add a structured pack plus worked examples and tests.
+3. If no, design an explicit first-party tax-module capability before adding the
+   jurisdiction.
+4. Preserve current outputs with compatibility tests before any refactor.
+5. Keep projection logic jurisdiction-neutral.
 
 ## Implementation Notes
 
