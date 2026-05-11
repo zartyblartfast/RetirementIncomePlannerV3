@@ -93,23 +93,70 @@ function calculateBandedTax(
 }
 
 // ------------------------------------------------------------------ //
+//  Tax module interface
+// ------------------------------------------------------------------ //
+
+export interface TaxCalculationInput {
+  taxableIncome: number;
+  taxConfig: TaxConfig;
+}
+
+export interface TaxRuleModule {
+  id: string;
+  label: string;
+  supports(taxCfg: TaxConfig): boolean;
+  calculate(input: TaxCalculationInput): TaxResult;
+}
+
+export const simpleBandedTaxModule: TaxRuleModule = {
+  id: 'simple-banded',
+  label: 'Simple banded income tax',
+  supports: taxCfg => Array.isArray(taxCfg.bands),
+  calculate: ({ taxableIncome, taxConfig }) => {
+    const bands: BandInput[] = taxConfig.bands.map(b => ({
+      name: `${Math.round(b.rate * 100)}%`,
+      width: b.width,
+      rate: b.rate,
+    }));
+
+    return calculateBandedTax(
+      taxableIncome,
+      resolvePersonalAllowance(taxableIncome, taxConfig),
+      bands,
+      taxConfig.tax_cap_enabled ?? false,
+      taxConfig.tax_cap_amount ?? 200000,
+    );
+  },
+};
+
+const FIRST_PARTY_TAX_MODULES: TaxRuleModule[] = [simpleBandedTaxModule];
+
+export function getTaxRuleModule(taxCfg: TaxConfig): TaxRuleModule {
+  const module = FIRST_PARTY_TAX_MODULES.find(candidate => candidate.supports(taxCfg));
+  if (!module) {
+    throw new Error(`No tax rule module supports regime: ${taxCfg.regime}`);
+  }
+  return module;
+}
+
+export function calculateTaxWithModule(
+  taxableIncome: number,
+  taxCfg: TaxConfig,
+  taxModule: TaxRuleModule = getTaxRuleModule(taxCfg),
+): TaxResult {
+  if (!taxModule.supports(taxCfg)) {
+    throw new Error(`Tax module ${taxModule.id} does not support regime: ${taxCfg.regime}`);
+  }
+
+  return taxModule.calculate({ taxableIncome, taxConfig: taxCfg });
+}
+
+// ------------------------------------------------------------------ //
 //  Tax calculation (user-configured regime)
 // ------------------------------------------------------------------ //
 
 export function calculateTax(taxableIncome: number, taxCfg: TaxConfig): TaxResult {
-  const bands: BandInput[] = taxCfg.bands.map(b => ({
-    name: `${Math.round(b.rate * 100)}%`,
-    width: b.width,
-    rate: b.rate,
-  }));
-
-  return calculateBandedTax(
-    taxableIncome,
-    resolvePersonalAllowance(taxableIncome, taxCfg),
-    bands,
-    taxCfg.tax_cap_enabled ?? false,
-    taxCfg.tax_cap_amount ?? 200000,
-  );
+  return calculateTaxWithModule(taxableIncome, taxCfg);
 }
 
 // ------------------------------------------------------------------ //
