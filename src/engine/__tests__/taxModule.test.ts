@@ -15,8 +15,32 @@ function expectSameTaxResult(actual: TaxResult, expected: TaxResult): void {
 describe('Tax rule modules', () => {
   it('selects the simple banded first-party module for current tax configs', () => {
     for (const pack of TAX_RULE_PACKS) {
+      expect(pack.tax_module_id).toBe('simple-banded');
+      expect(pack.tax_config.tax_module_id).toBe('simple-banded');
       expect(getTaxRuleModule(pack.tax_config)).toBe(simpleBandedTaxModule);
     }
+  });
+
+  it('keeps legacy configs without a module id on the simple banded fallback path', () => {
+    const tax: TaxConfig = {
+      regime: 'Legacy Custom',
+      personal_allowance: 12_570,
+      bands: [{ name: 'Basic', width: null, rate: 0.2 }],
+    };
+
+    expect(getTaxRuleModule(tax)).toBe(simpleBandedTaxModule);
+    expect(calculateTax(30_000, tax).total).toBe(3_486);
+  });
+
+  it('rejects unknown explicit tax module ids instead of silently falling back', () => {
+    const tax: TaxConfig = {
+      regime: 'Future unsupported module',
+      tax_module_id: 'future-module',
+      personal_allowance: 12_570,
+      bands: [{ name: 'Basic', width: null, rate: 0.2 }],
+    };
+
+    expect(() => getTaxRuleModule(tax)).toThrow('Unknown tax module: future-module');
   });
 
   it('keeps calculateTax behaviour identical when routed through the selected module', () => {

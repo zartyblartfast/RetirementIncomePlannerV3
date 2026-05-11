@@ -11,6 +11,7 @@ export interface TaxRulePack {
   label: string;
   jurisdiction: string;
   tax_year: string;
+  tax_module_id: string;
   currency: string;
   sources: TaxRulePackSource[];
   tax_config: TaxConfig;
@@ -24,6 +25,7 @@ export const TAX_RULE_PACKS: TaxRulePack[] = [
     label: 'UK England/Wales/NI 2026-27',
     jurisdiction: 'GB-EWNI',
     tax_year: '2026-27',
+    tax_module_id: 'simple-banded',
     currency: 'GBP',
     sources: [
       {
@@ -39,6 +41,7 @@ export const TAX_RULE_PACKS: TaxRulePack[] = [
     ],
     tax_config: {
       regime: 'UK England/Wales/NI 2026-27',
+      tax_module_id: 'simple-banded',
       rule_pack_id: 'GB-EWNI-2026-27',
       personal_allowance: 12_570,
       personal_allowance_taper: {
@@ -71,6 +74,7 @@ export const TAX_RULE_PACKS: TaxRulePack[] = [
     label: 'UK Scotland 2026-27',
     jurisdiction: 'GB-SCT',
     tax_year: '2026-27',
+    tax_module_id: 'simple-banded',
     currency: 'GBP',
     sources: [
       {
@@ -86,6 +90,7 @@ export const TAX_RULE_PACKS: TaxRulePack[] = [
     ],
     tax_config: {
       regime: 'UK Scotland 2026-27',
+      tax_module_id: 'simple-banded',
       rule_pack_id: 'GB-SCT-2026-27',
       personal_allowance: 12_570,
       personal_allowance_taper: {
@@ -121,6 +126,7 @@ export const TAX_RULE_PACKS: TaxRulePack[] = [
     label: 'Isle of Man 2026-27',
     jurisdiction: 'IM',
     tax_year: '2026-27',
+    tax_module_id: 'simple-banded',
     currency: 'IMP',
     sources: [
       {
@@ -136,6 +142,7 @@ export const TAX_RULE_PACKS: TaxRulePack[] = [
     ],
     tax_config: {
       regime: 'Isle of Man 2026-27',
+      tax_module_id: 'simple-banded',
       rule_pack_id: 'IM-2026-27',
       personal_allowance: 17_000,
       personal_allowance_taper: {

@@ -75,6 +75,7 @@ export interface TaxBandConfig {
 
 export interface TaxConfig {
   regime: string;
+  tax_module_id?: string;
   personal_allowance: number;
   personal_allowance_taper?: {
     starts_at: number;

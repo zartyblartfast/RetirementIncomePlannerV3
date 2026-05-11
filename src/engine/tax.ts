@@ -132,7 +132,14 @@ export const simpleBandedTaxModule: TaxRuleModule = {
 const FIRST_PARTY_TAX_MODULES: TaxRuleModule[] = [simpleBandedTaxModule];
 
 export function getTaxRuleModule(taxCfg: TaxConfig): TaxRuleModule {
-  const module = FIRST_PARTY_TAX_MODULES.find(candidate => candidate.supports(taxCfg));
+  const explicitModule = taxCfg.tax_module_id
+    ? FIRST_PARTY_TAX_MODULES.find(candidate => candidate.id === taxCfg.tax_module_id)
+    : undefined;
+  if (taxCfg.tax_module_id && !explicitModule) {
+    throw new Error(`Unknown tax module: ${taxCfg.tax_module_id}`);
+  }
+
+  const module = explicitModule ?? FIRST_PARTY_TAX_MODULES.find(candidate => candidate.supports(taxCfg));
   if (!module) {
     throw new Error(`No tax rule module supports regime: ${taxCfg.regime}`);
   }
