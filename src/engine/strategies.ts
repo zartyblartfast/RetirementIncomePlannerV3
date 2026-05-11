@@ -14,6 +14,7 @@ import type {
   StrategyState,
   PlannerConfig,
 } from './types';
+import { normalizeConfigWithdrawalPriority } from './withdrawalPriority';
 
 // ------------------------------------------------------------------ //
 //  Strategy registry
@@ -297,6 +298,8 @@ export function computeAnnualTarget(
 // ------------------------------------------------------------------ //
 
 export function normalizeConfig(cfg: PlannerConfig): PlannerConfig {
+  normalizeConfigWithdrawalPriority(cfg);
+
   if (!cfg.drawdown_strategy) {
     cfg.drawdown_strategy = 'fixed_target';
   }

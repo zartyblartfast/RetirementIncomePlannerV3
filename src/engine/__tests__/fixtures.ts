@@ -7,7 +7,6 @@ export const DEFAULT_CONFIG: PlannerConfig = {
   personal: {
     date_of_birth: '1958-07',
     retirement_date: '2027-04',
-    retirement_age: 68,
     end_age: 90,
     currency: 'GBP',
   },

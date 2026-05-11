@@ -1,17 +1,19 @@
 import { useState, Fragment } from 'react';
 import { ChevronDown, ChevronRight, Calculator } from 'lucide-react';
 import type { YearRow } from '../../engine/types';
+import type { TaxContext } from '../../engine/taxContext';
 import YearWorkingsModal from '../common/YearWorkingsModal';
 
 interface Props {
   years: YearRow[];
+  taxContext?: TaxContext;
 }
 
 function fmt(n: number): string {
   return '£' + Math.round(n).toLocaleString('en-GB');
 }
 
-export default function YearTable({ years }: Props) {
+export default function YearTable({ years, taxContext }: Props) {
   const [expandedAge, setExpandedAge] = useState<number | null>(null);
   const [workingsYear, setWorkingsYear] = useState<YearRow | null>(null);
 
@@ -78,7 +80,11 @@ export default function YearTable({ years }: Props) {
       </div>
 
       {workingsYear && (
-        <YearWorkingsModal yr={workingsYear} onClose={() => setWorkingsYear(null)} />
+        <YearWorkingsModal
+          yr={workingsYear}
+          taxContext={taxContext}
+          onClose={() => setWorkingsYear(null)}
+        />
       )}
     </>
   );

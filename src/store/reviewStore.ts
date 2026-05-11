@@ -9,6 +9,8 @@
  */
 
 import type { PlannerConfig } from '../engine/types';
+import type { TaxContext } from '../engine/taxContext';
+import { stripLegacyRetirementAge } from './configMigration';
 
 const STORAGE_KEY = 'rip_v2_reviews';
 
@@ -24,6 +26,7 @@ export interface ReviewSnapshot {
   guaranteed_monthly: Record<string, number>;     // source → current monthly guaranteed income amount
   strategy: string;                                // active drawdown strategy at review time
   strategy_params: Record<string, number>;         // strategy params at review time
+  tax_context?: TaxContext;                         // tax assumptions recorded at review time
   notes: string;
 }
 
@@ -56,7 +59,11 @@ function emptyStore(): ReviewStore {
 export function loadReviewStore(): ReviewStore {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as ReviewStore;
+    if (raw) {
+      const store = JSON.parse(raw) as ReviewStore;
+      stripLegacyRetirementAge(store.baseline_config);
+      return store;
+    }
   } catch {
     // Corrupted — return empty
   }

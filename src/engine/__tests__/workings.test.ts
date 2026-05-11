@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { computeYearWorkings } from '../workings';
 import { runProjection } from '../projection';
 import { DEFAULT_CONFIG } from './fixtures';
+import { deriveTaxContext } from '../taxContext';
 
 describe('computeYearWorkings', () => {
   const result = runProjection(DEFAULT_CONFIG);
@@ -47,5 +48,12 @@ describe('computeYearWorkings', () => {
     const w = computeYearWorkings(yr1);
     expect(w.age).toBe(yr1.age);
     expect(w.taxYear).toBe(yr1.tax_year);
+  });
+
+  it('includes supplied tax context for audit display', () => {
+    const taxContext = deriveTaxContext(DEFAULT_CONFIG.tax);
+    const w = computeYearWorkings(yr1, taxContext);
+
+    expect(w.taxContext).toEqual(taxContext);
   });
 });

@@ -23,6 +23,7 @@ import type {
 import { calculateTax, grossUp } from './tax';
 import { normalizeConfig, computeAnnualTarget } from './strategies';
 import { validateConfig, validateStrategyOutput } from './validation';
+import { normalizeWithdrawalPriority } from './withdrawalPriority';
 
 // ------------------------------------------------------------------ //
 //  Helpers
@@ -390,7 +391,7 @@ export function runProjection(
     };
   }
 
-  const priority = cfg.withdrawal_priority ?? [];
+  const priority = normalizeWithdrawalPriority(cfg);
 
   // Pre-compute monthly rates
   const dcMonthly: Record<string, { growth: number; fees: number }> = {};
@@ -460,6 +461,29 @@ export function runProjection(
     };
   }
 
+  function estimateGuaranteedForProjectionYear(startAbs: number): { gross: number; taxable: number } {
+    let gross = 0;
+    let taxable = 0;
+
+    for (const gi of guaranteed) {
+      let monthly = gi.monthly;
+
+      for (let offset = 0; offset < 12; offset++) {
+        const monthAbs = startAbs + offset;
+        const active = monthAbs >= gi.start_abs && (gi.end_abs === null || monthAbs <= gi.end_abs);
+
+        if (active) {
+          gross += monthly;
+          if (gi.taxable) taxable += monthly;
+        }
+
+        monthly *= (1 + gi.monthly_idx);
+      }
+    }
+
+    return { gross, taxable };
+  }
+
   // ---- MAIN MONTHLY LOOP ---- //
   for (let absM = anchorAbs; absM <= endAbs; absM++) {
     const [calY, calM] = absToYm(absM);
@@ -518,16 +542,9 @@ export function runProjection(
       const cy = isPostRetirement ? calY : retY + yearOffset;
       const taxYearLabel = `${cy}/${String(cy + 1).slice(-2)}`;
 
-      // Estimate guaranteed income for this year
-      let estGuarGross = 0;
-      let estGuarTaxable = 0;
-      for (const gi of guaranteed) {
-        const active = absM >= gi.start_abs && (gi.end_abs === null || absM <= gi.end_abs);
-        if (active) {
-          estGuarGross += gi.monthly * 12;
-          if (gi.taxable) estGuarTaxable += gi.monthly * 12;
-        }
-      }
+      // Estimate guaranteed income for the actual projection months in this year.
+      const { gross: estGuarGross, taxable: estGuarTaxable } =
+        estimateGuaranteedForProjectionYear(absM);
 
       // Strategy dispatch
       const portfolioValue = sumValues(dcBalances) + sumValues(tfBalances);
@@ -645,22 +662,18 @@ export function runProjection(
 
     // Annualised DC gross-up ratio (PAYE-like)
     const estGuarTaxableM = guarTaxableMo * 12;
-    const estGuarGrossM = guarGrossMo * 12;
     const annualTaxOnGuar = calculateTax(estGuarTaxableM, taxCfg).total;
-    const netFromGuarM = estGuarGrossM - annualTaxOnGuar;
-    const annualShortfallM = Math.max(0, monthlyTarget * 12 - netFromGuarM);
-    const totalDcBal = Object.values(dcBalances).reduce((s, v) => s + Math.max(0, v), 0);
-
-    let dcGrossPerNet = 1;
-    if (annualShortfallM > 0.01 && totalDcBal > 0.01) {
-      const wavgTfp = Object.entries(dcBalances)
-        .filter(([_, b]) => b > 0.01)
-        .reduce((s, [n, b]) => s + dcMeta[n]!.tax_free_portion * Math.max(0, b), 0) / totalDcBal;
-      const dcGrossAnnual = grossUp(annualShortfallM, estGuarTaxableM, wavgTfp, taxCfg);
-      dcGrossPerNet = dcGrossAnnual / annualShortfallM;
-    }
+    let monthlyTaxableBaseAnnual = estGuarTaxableM;
 
     const useGrossMode = strategyId !== 'fixed_target' && strategyMode === 'gross';
+
+    function netFromDcWithdrawal(gross: number, taxFreePortion: number): number {
+      const taxableAnnual = gross * 12 * (1 - taxFreePortion);
+      const taxBefore = calculateTax(monthlyTaxableBaseAnnual, taxCfg).total;
+      const taxAfter = calculateTax(monthlyTaxableBaseAnnual + taxableAnnual, taxCfg).total;
+      monthlyTaxableBaseAnnual += taxableAnnual;
+      return gross - ((taxAfter - taxBefore) / 12);
+    }
 
     if (useGrossMode) {
       // GROSS mode: fixed monthly pot withdrawal target
@@ -676,7 +689,7 @@ export function runProjection(
           const tfp = dcMeta[sourceName]!.tax_free_portion;
           currentAgg!.dc_gross += actual;
           currentAgg!.dc_tf += actual * tfp;
-          const netFromDc = actual / dcGrossPerNet;
+          const netFromDc = netFromDcWithdrawal(actual, tfp);
           currentAgg!.withdrawal_detail[sourceName] = (currentAgg!.withdrawal_detail[sourceName] ?? 0) + netFromDc;
           currentAgg!.pnl[sourceName]!.withdrawal += actual;
           monthlyWithdrawalDetail[sourceName] = (monthlyWithdrawalDetail[sourceName] ?? 0) + netFromDc;
@@ -703,16 +716,16 @@ export function runProjection(
       for (const sourceName of priority) {
         if (remainingNet <= 0.01) break;
         if (sourceName in dcBalances && dcBalances[sourceName]! > 0.01) {
-          let grossNeeded = remainingNet * dcGrossPerNet;
+          const tfp = dcMeta[sourceName]!.tax_free_portion;
+          let grossNeeded = grossUp(remainingNet * 12, monthlyTaxableBaseAnnual, tfp, taxCfg) / 12;
           grossNeeded = Math.min(grossNeeded, dcBalances[sourceName]!);
           if (grossNeeded > 0.01) {
             dcBalances[sourceName] = dcBalances[sourceName]! - grossNeeded;
             if (dcBalances[sourceName]! < 0.01) dcBalances[sourceName] = 0;
-            const tfp = dcMeta[sourceName]!.tax_free_portion;
             const tfpAmt = grossNeeded * tfp;
             currentAgg!.dc_gross += grossNeeded;
             currentAgg!.dc_tf += tfpAmt;
-            const netFromThis = grossNeeded / dcGrossPerNet;
+            const netFromThis = netFromDcWithdrawal(grossNeeded, tfp);
             currentAgg!.withdrawal_detail[sourceName] = (currentAgg!.withdrawal_detail[sourceName] ?? 0) + netFromThis;
             currentAgg!.pnl[sourceName]!.withdrawal += grossNeeded;
             monthlyWithdrawalDetail[sourceName] = (monthlyWithdrawalDetail[sourceName] ?? 0) + netFromThis;
@@ -746,7 +759,7 @@ export function runProjection(
         const tfp = dcMeta[pname]!.tax_free_portion;
         currentAgg!.dc_gross += bal;
         currentAgg!.dc_tf += bal * tfp;
-        const netFromRes = bal / dcGrossPerNet;
+        const netFromRes = netFromDcWithdrawal(bal, tfp);
         currentAgg!.withdrawal_detail[pname] = (currentAgg!.withdrawal_detail[pname] ?? 0) + netFromRes;
         currentAgg!.pnl[pname]!.withdrawal += bal;
         monthlyWithdrawalDetail[pname] = (monthlyWithdrawalDetail[pname] ?? 0) + netFromRes;
@@ -786,20 +799,11 @@ export function runProjection(
       }
     }
 
-    // ---- Early exit for extended chart projection ---- //
-    if (includeMonthly && yearAge > configEndAge) {
-      const totalCapital = Object.values(dcBalances).reduce((s, v) => s + Math.max(0, v), 0)
-        + Object.values(tfBalances).reduce((s, v) => s + Math.max(0, v), 0);
-      if (totalCapital < 0.01) {
-        chartDeplCtr++;
-        if (chartDeplCtr >= 24) break;
-      } else {
-        chartDeplCtr = 0;
-      }
-    }
-
     // ---- Step 5: Track actual target used this month, then apply CPI ---- //
     currentAgg!.monthly_target_sum += monthlyTarget;
+    if (strategyId === 'fixed_target') {
+      currentAgg!.target_annual = currentAgg!.monthly_target_sum;
+    }
     currentAgg!.months_counted++;
     if (useMonthlyFromCpi) {
       monthlyTarget *= (1 + monthlyCpi);
@@ -828,6 +832,20 @@ export function runProjection(
           .filter(e => e.age === yearAge && e.month === monthInYear)
           .map(e => e.pot),
       });
+    }
+
+    // ---- Early exit for extended chart projection ---- //
+    // Keep this after annual and monthly aggregation so the final partial year
+    // reconciles with the emitted MonthlyRow data.
+    if (includeMonthly && yearAge > configEndAge) {
+      const totalCapital = Object.values(dcBalances).reduce((s, v) => s + Math.max(0, v), 0)
+        + Object.values(tfBalances).reduce((s, v) => s + Math.max(0, v), 0);
+      if (totalCapital < 0.01) {
+        chartDeplCtr++;
+        if (chartDeplCtr >= 24) break;
+      } else {
+        chartDeplCtr = 0;
+      }
     }
   }
 

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { calculateTax, grossUp } from '../tax';
+import { taxConfigFromRulePack } from '../taxRulePacks';
 import type { TaxConfig } from '../types';
 
 const TAX_CFG: TaxConfig = {
@@ -91,6 +92,62 @@ describe('UK-style Tax Config', () => {
     expect(r.income_after_pa).toBe(47430);
     expect(r.total).toBe(11432);
     expect(r.marginal_rate).toBe(0.4);
+  });
+});
+
+describe('Tax rule packs', () => {
+  it('UK England/Wales/NI 2026-27 applies personal allowance taper', () => {
+    const tax = taxConfigFromRulePack('GB-EWNI-2026-27');
+
+    const r = calculateTax(110_000, tax);
+
+    expect(r.personal_allowance).toBe(7_570);
+    expect(r.income_after_pa).toBe(102_430);
+    expect(r.total).toBe(33_432);
+    expect(r.marginal_rate).toBe(0.4);
+  });
+
+  it('UK England/Wales/NI 2026-27 applies additional rate above 125140', () => {
+    const tax = taxConfigFromRulePack('GB-EWNI-2026-27');
+
+    const r = calculateTax(130_000, tax);
+
+    expect(r.personal_allowance).toBe(0);
+    expect(r.total).toBe(44_703);
+    expect(r.marginal_rate).toBe(0.45);
+  });
+
+  it('UK Scotland 2026-27 applies Scottish earned/pension income bands', () => {
+    const tax = taxConfigFromRulePack('GB-SCT-2026-27');
+
+    const r = calculateTax(60_000, tax);
+
+    expect(r.personal_allowance).toBe(12_570);
+    expect(r.income_after_pa).toBe(47_430);
+    expect(r.total).toBe(13_182.05);
+    expect(r.marginal_rate).toBe(0.42);
+  });
+
+  it('Isle of Man 2026-27 applies the resident allowance and rates', () => {
+    const tax = taxConfigFromRulePack('IM-2026-27');
+
+    const r = calculateTax(50_000, tax);
+
+    expect(r.personal_allowance).toBe(17_000);
+    expect(r.income_after_pa).toBe(33_000);
+    expect(r.total).toBe(6_215);
+    expect(r.marginal_rate).toBe(0.21);
+  });
+
+  it('Isle of Man 2026-27 tapers the personal allowance above 100000', () => {
+    const tax = taxConfigFromRulePack('IM-2026-27');
+
+    const r = calculateTax(110_000, tax);
+
+    expect(r.personal_allowance).toBe(12_000);
+    expect(r.income_after_pa).toBe(98_000);
+    expect(r.total).toBe(19_865);
+    expect(r.marginal_rate).toBe(0.21);
   });
 });
 

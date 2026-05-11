@@ -38,6 +38,14 @@ interface StrategyRow {
 
 export default function ShootoutPanel({ config }: Props) {
   const [sortGoal, setSortGoal] = useState<SortGoal>('none');
+  const currentStrategyId = config.drawdown_strategy ?? 'fixed_target';
+  const currentParams = config.drawdown_strategy_params ?? {};
+  const currentIncomeTarget =
+    currentStrategyId === 'fixed_target'
+      ? currentParams.net_annual ?? config.target_income.net_annual
+      : currentStrategyId === 'vanguard_dynamic' || currentStrategyId === 'guyton_klinger'
+        ? currentParams.initial_target ?? config.target_income.net_annual
+        : config.target_income.net_annual;
 
   const rows = useMemo<StrategyRow[]>(() => {
     const results: StrategyRow[] = [];
@@ -50,12 +58,9 @@ export default function ShootoutPanel({ config }: Props) {
 
       // Seed income-related defaults from current config
       if (sid === 'fixed_target') {
-        params.net_annual = config.target_income.net_annual;
+        params.net_annual = currentIncomeTarget;
       } else if (sid === 'vanguard_dynamic' || sid === 'guyton_klinger') {
-        params.initial_target = config.target_income.net_annual;
-      }
-      if (sid === 'arva' || sid === 'arva_guardrails') {
-        params.target_end_age = config.personal.end_age;
+        params.initial_target = currentIncomeTarget;
       }
 
       const cfgCopy: PlannerConfig = JSON.parse(JSON.stringify(config));
@@ -208,7 +213,7 @@ export default function ShootoutPanel({ config }: Props) {
       {/* Info note */}
       <p className="text-xs text-gray-500">
         All strategies tested with your current pots, drawdown order, and end age.
-        Income-based strategies use your current target income ({fmt(config.target_income.net_annual)}/yr).
+        Income-based strategies use your current target income ({fmt(currentIncomeTarget)}/yr).
         Each strategy uses its default parameters.
       </p>
     </div>

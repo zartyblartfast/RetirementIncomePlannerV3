@@ -4,6 +4,7 @@
  * Supports any tax regime defined by personal allowance + bands.
  */
 
+import type { TaxEvent } from './taxEvents';
 import type { TaxConfig, TaxResult, TaxBandDetail } from './types';
 
 // ------------------------------------------------------------------ //
@@ -14,6 +15,17 @@ interface BandInput {
   name: string;
   width: number | null;
   rate: number;
+}
+
+function resolvePersonalAllowance(taxableIncome: number, taxCfg: TaxConfig): number {
+  const taper = taxCfg.personal_allowance_taper;
+  if (!taper || taxableIncome <= taper.starts_at) {
+    return taxCfg.personal_allowance;
+  }
+
+  const minimum = taper.minimum_allowance ?? 0;
+  const reduction = (taxableIncome - taper.starts_at) * taper.rate;
+  return Math.max(minimum, taxCfg.personal_allowance - reduction);
 }
 
 function calculateBandedTax(
@@ -82,23 +94,99 @@ function calculateBandedTax(
 }
 
 // ------------------------------------------------------------------ //
+//  Tax module interface
+// ------------------------------------------------------------------ //
+
+export interface TaxCalculationInput {
+  taxableIncome: number;
+  taxConfig: TaxConfig;
+}
+
+export interface TaxEventCalculationInput {
+  events: TaxEvent[];
+  taxConfig: TaxConfig;
+}
+
+export interface TaxRuleModule {
+  id: string;
+  label: string;
+  supports(taxCfg: TaxConfig): boolean;
+  calculate(input: TaxCalculationInput): TaxResult;
+  calculateFromEvents(input: TaxEventCalculationInput): TaxResult;
+}
+
+export const simpleBandedTaxModule: TaxRuleModule = {
+  id: 'simple-banded',
+  label: 'Simple banded income tax',
+  supports: taxCfg => Array.isArray(taxCfg.bands),
+  calculate: ({ taxableIncome, taxConfig }) => {
+    const bands: BandInput[] = taxConfig.bands.map(b => ({
+      name: `${Math.round(b.rate * 100)}%`,
+      width: b.width,
+      rate: b.rate,
+    }));
+
+    return calculateBandedTax(
+      taxableIncome,
+      resolvePersonalAllowance(taxableIncome, taxConfig),
+      bands,
+      taxConfig.tax_cap_enabled ?? false,
+      taxConfig.tax_cap_amount ?? 200000,
+    );
+  },
+  calculateFromEvents: ({ events, taxConfig }) => simpleBandedTaxModule.calculate({
+    taxableIncome: taxableIncomeFromEvents(events),
+    taxConfig,
+  }),
+};
+
+const FIRST_PARTY_TAX_MODULES: TaxRuleModule[] = [simpleBandedTaxModule];
+
+export function getTaxRuleModule(taxCfg: TaxConfig): TaxRuleModule {
+  const explicitModule = taxCfg.tax_module_id
+    ? FIRST_PARTY_TAX_MODULES.find(candidate => candidate.id === taxCfg.tax_module_id)
+    : undefined;
+  if (taxCfg.tax_module_id && !explicitModule) {
+    throw new Error(`Unknown tax module: ${taxCfg.tax_module_id}`);
+  }
+
+  const module = explicitModule ?? FIRST_PARTY_TAX_MODULES.find(candidate => candidate.supports(taxCfg));
+  if (!module) {
+    throw new Error(`No tax rule module supports regime: ${taxCfg.regime}`);
+  }
+  return module;
+}
+
+export function calculateTaxWithModule(
+  taxableIncome: number,
+  taxCfg: TaxConfig,
+  taxModule: TaxRuleModule = getTaxRuleModule(taxCfg),
+): TaxResult {
+  if (!taxModule.supports(taxCfg)) {
+    throw new Error(`Tax module ${taxModule.id} does not support regime: ${taxCfg.regime}`);
+  }
+
+  return taxModule.calculate({ taxableIncome, taxConfig: taxCfg });
+}
+
+export function calculateTaxFromEventsWithModule(
+  events: TaxEvent[],
+  taxCfg: TaxConfig,
+  taxModule: TaxRuleModule = getTaxRuleModule(taxCfg),
+): TaxResult {
+  if (!taxModule.supports(taxCfg)) {
+    throw new Error(`Tax module ${taxModule.id} does not support regime: ${taxCfg.regime}`);
+  }
+
+  return taxModule.calculateFromEvents({ events, taxConfig: taxCfg });
+}
+
+// ------------------------------------------------------------------ //
 //  Tax calculation (user-configured regime)
 // ------------------------------------------------------------------ //
 
 export function calculateTax(taxableIncome: number, taxCfg: TaxConfig): TaxResult {
-  const bands: BandInput[] = taxCfg.bands.map(b => ({
-    name: `${Math.round(b.rate * 100)}%`,
-    width: b.width,
-    rate: b.rate,
-  }));
-
-  return calculateBandedTax(
-    taxableIncome,
-    taxCfg.personal_allowance,
-    bands,
-    taxCfg.tax_cap_enabled ?? false,
-    taxCfg.tax_cap_amount ?? 200000,
-  );
+  return calculateTaxWithModule(taxableIncome, taxCfg);
 }
 
 // ------------------------------------------------------------------ //
@@ -178,4 +266,8 @@ export function monthlyGrossUp(
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
+}
+
+function taxableIncomeFromEvents(events: TaxEvent[]): number {
+  return round2(events.reduce((sum, event) => sum + event.taxable_amount, 0));
 }

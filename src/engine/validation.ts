@@ -5,7 +5,9 @@
  */
 
 import { STRATEGY_IDS } from './strategies';
+import { getTaxRulePack } from './taxRulePacks';
 import type { PlannerConfig, StrategyTarget } from './types';
+import { deriveRetirementAge } from './dateUtils';
 
 const VALID_MODES = new Set(['net', 'pot_net', 'gross']);
 
@@ -27,12 +29,18 @@ export function validateConfig(cfg: PlannerConfig): string[] {
     errors.push('Missing drawdown_strategy_params');
   }
 
+  if (cfg.tax?.rule_pack_id && !getTaxRulePack(cfg.tax.rule_pack_id)) {
+    errors.push(`Unknown tax rule pack: '${cfg.tax.rule_pack_id}'`);
+  }
+
   const endAge = cfg.personal?.end_age;
-  const retAge = cfg.personal?.retirement_age;
+  const retAge = cfg.personal?.date_of_birth && cfg.personal?.retirement_date
+    ? deriveRetirementAge(cfg.personal.date_of_birth, cfg.personal.retirement_date)
+    : undefined;
 
   // Plan end must be > retirement age
   if (endAge != null && retAge != null && endAge <= retAge) {
-    errors.push(`end_age (${endAge}) must be > retirement_age (${retAge})`);
+    errors.push(`end_age (${endAge}) must be > derived retirement age (${retAge})`);
   }
 
   // Projection must cover plan

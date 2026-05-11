@@ -90,7 +90,8 @@ npm run build
 
 Current expected baseline:
 
-- Vitest: about 194 tests passing
+- Dev01 after the Dashboard Income Breakdown chart reconciliation fix: about 214 Vitest tests passing
+- Older/main snapshots may show about 194 tests passing
 - TypeScript: 0 errors
 
 If this baseline changes legitimately, update this file in the same diff.
@@ -112,6 +113,14 @@ npm run dev
 ```
 
 This repo has historically used non-interactive checks instead of starting long-running development servers during agent work.
+
+If visual QA needs a local server, use a direct Vite preview command instead of the avoided dev-server script, for example:
+
+```bash
+npx vite preview --host 127.0.0.1 --port 4173
+```
+
+Then verify the page returns HTTP 200 before browser inspection.
 
 ## Monthly simulation engine rules
 
@@ -150,6 +159,7 @@ When modifying calculations, tables, charts, or dashboard outputs:
 4. Verify that explanation/workings components still make sense.
 5. Update or add tests for any new calculation behaviour.
 6. Do not remove sanity checks, workings modals, verification panels, or explanatory fields unless explicitly requested.
+7. For chart changes, reconcile the displayed series back to the underlying `YearRow` fields and add chart-data tests where possible.
 
 Relevant transparency areas include:
 
@@ -173,6 +183,9 @@ Rules:
 3. Keep default values and fixture values separate.
 4. Test fixtures may intentionally use fictional values. Do not "correct" fixtures to real-world tax values unless the test itself is being redesigned.
 5. Clearly label known limitations rather than silently modelling unsupported tax behaviour.
+6. Tax architecture direction: move toward versioned, self-documenting tax modules where the projection engine emits income events and the tax module decides how those events are taxed.
+7. Preserve current tax output as baseline compatibility tests during any future tax architecture refactor.
+8. Review and Year Workings should expose tax/source visibility where practical: selected tax pack, tax year, last checked date, source URLs, known exclusions, and rule-pack status.
 
 Official source examples:
 
@@ -253,15 +266,77 @@ When adding or changing features:
 3. Do not create large speculative plans unless asked.
 4. If creating a plan, put it under `docs/plans/` and make clear that it is docs-only.
 
+## Current Dev01 handoff and roadmap
+
+This section records the latest cross-agent direction. Treat it as guidance for Hermes, Codex, Claude Code, and other coding agents; verify live git state before acting.
+
+Current known handoff from the Dev01 working branch:
+
+- Keep work on `Dev01`; do not merge to `main` unless Clive explicitly asks.
+- Netlify branch deploy for `Dev01` is working.
+- Latest pushed Dev01 commit before the local chart fix was `3beb7b7 docs: add adviser review and tax architecture roadmap`.
+- The Dashboard Income Breakdown chart fix was reported as locally verified but not yet committed/pushed at handoff time.
+- Do not commit generated `tsconfig.*.tsbuildinfo` changes.
+
+Dashboard Income Breakdown chart fix intent:
+
+- Drawdown bars should use gross withdrawals from `yr.pot_pnl[source].withdrawal`.
+- Tax should remain shown as a negative bar.
+- Net income line should reconcile with guaranteed income + gross drawdown - tax.
+- Chart-data reconciliation tests should cover this behaviour.
+
+Recommended immediate next step when on the correct Dev01 workspace:
+
+1. Review the Dashboard Income Breakdown visually in the local app.
+2. If satisfied, show the diff and ask Clive before committing.
+3. Suggested commit message, if approved: `fix: reconcile dashboard income breakdown chart`.
+4. Push to `Dev01` only if explicitly asked.
+
+Confidence roadmap, in priority order:
+
+1. Add optimiser regression tests:
+   - prove all drawdown-order permutations are generated
+   - prove optimiser metrics match direct projection results
+   - include mixed tax-free DC pot cases
+2. Add tax/source visibility in Review and Year Workings:
+   - selected tax pack
+   - tax year
+   - last checked date
+   - source URLs
+   - known exclusions
+   - rule-pack status
+3. Improve config robustness:
+   - validate imported/stored `withdrawal_priority`
+   - repair stale/incomplete drawdown orders after pot/account rename/import
+   - preserve compatibility with Clive's uploaded config
+4. Add more internal consistency checks:
+   - monthly-to-annual reconciliation
+   - guaranteed-income start/stop checks
+   - depletion/residual checks
+   - chart/table reconciliation checks
+5. Add Isle of Man worked examples:
+   - below allowance
+   - standard-rate band
+   - higher-rate band
+   - allowance taper
+   - optional tax cap behaviour if enabled
+6. Adviser Review Pack follow-up:
+   - current docs: `docs/adviser-review-pack.md`, `docs/tax-architecture-roadmap.md`
+   - possible next doc improvement: short "How to review this pack" checklist or export-friendly version
+
 ## Agent handoff notes
 
 Agents should start by inspecting:
 
 ```bash
 git status --short
+git branch --show-current
+git rev-parse --abbrev-ref --symbolic-full-name @{u}
 npm test
 npx tsc -b
 ```
+
+If the branch is not the expected task branch, stop and report that before changing files.
 
 For UI changes, inspect the relevant component and build before reporting completion.
 

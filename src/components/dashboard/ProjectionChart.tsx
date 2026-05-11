@@ -4,6 +4,7 @@ import {
   ResponsiveContainer, ReferenceLine, Line, ComposedChart,
 } from 'recharts';
 import type { YearRow, ProjectionSummary } from '../../engine/types';
+import { buildIncomeBreakdownData, getIncomeBreakdownNames } from './chartData';
 
 interface Props {
   years: YearRow[];
@@ -43,14 +44,10 @@ export default function ProjectionChart({ years, summary, strategyName }: Props)
     return { potNames: [...pots], tfNames: [...tfs], guarNames: [...guars] };
   }, [years]);
 
-  // Withdrawal detail names (DC pots + TF accounts that appear in withdrawal_detail)
-  const drawdownNames = useMemo(() => {
-    const names = new Set<string>();
-    for (const yr of years) {
-      for (const k of Object.keys(yr.withdrawal_detail)) names.add(k);
-    }
-    return [...names];
-  }, [years]);
+  const { guarNames: incomeGuarNames, drawdownNames } = useMemo(
+    () => getIncomeBreakdownNames(years),
+    [years],
+  );
 
   // ── Capital Trajectory data ────────────────────────────────────────
   const capitalData = useMemo(() =>
@@ -64,25 +61,9 @@ export default function ProjectionChart({ years, summary, strategyName }: Props)
   );
 
   // ── Income Breakdown data ──────────────────────────────────────────
-  const incomeData = useMemo(() =>
-    years.map(yr => {
-      const row: Record<string, number | null> = {
-        age: yr.age,
-        target_net: Math.round(yr.target_net),
-        net_achieved: Math.round(yr.net_income_achieved),
-        tax: yr.tax_due > 0 ? -Math.round(yr.tax_due) : null,
-      };
-      for (const n of guarNames) {
-        const v = yr.guaranteed_income[n] ?? 0;
-        row[`guar_${n}`] = v > 0 ? Math.round(v) : null;
-      }
-      for (const n of drawdownNames) {
-        const v = yr.withdrawal_detail[n] ?? 0;
-        row[`draw_${n}`] = v > 0 ? Math.round(v) : null;
-      }
-      return row;
-    }),
-    [years, guarNames, drawdownNames],
+  const incomeData = useMemo(
+    () => buildIncomeBreakdownData(years, { guarNames: incomeGuarNames, drawdownNames }),
+    [years, incomeGuarNames, drawdownNames],
   );
 
   const planEndAge = summary.end_age;
@@ -158,7 +139,7 @@ export default function ProjectionChart({ years, summary, strategyName }: Props)
               formatter={(v: string) =>
                 v.replace(/^guar_/, '').replace(/^draw_/, (m) => {
                   void m; return '';
-                }) + (v.startsWith('draw_') ? ' (drawdown)' : '')
+                }) + (v.startsWith('draw_') ? ' (gross drawdown)' : '')
               }
             />
             <ReferenceLine y={0} stroke="#9ca3af" />
@@ -174,7 +155,7 @@ export default function ProjectionChart({ years, summary, strategyName }: Props)
               />
             ))}
 
-            {/* Drawdown bars (stacked positive) */}
+            {/* Gross drawdown bars (stacked positive, before tax deduction) */}
             {drawdownNames.map((name, i) => (
               <Bar
                 key={`draw_${name}`}

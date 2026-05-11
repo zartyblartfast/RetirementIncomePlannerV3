@@ -40,10 +40,10 @@ export default function VerificationPanel({ result }: Props) {
 
   const headerText =
     report.failCount > 0
-      ? 'Verification — issues found'
+      ? 'Internal consistency checks - issues found'
       : report.warnCount > 0
-        ? 'Verification — warnings'
-        : 'Verification — all checks passed';
+        ? 'Internal consistency checks - warnings'
+        : 'Internal consistency checks passed';
 
   return (
     <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
@@ -88,9 +88,9 @@ export default function VerificationPanel({ result }: Props) {
           </div>
           <div className="px-4 py-3 bg-gray-50 border-t border-gray-100">
             <p className="text-xs text-gray-400">
-              These checks re-derive key figures from their constituent parts to verify the engine is self-consistent.
-              All green means every internal identity holds and the numbers can be trusted.
-              This panel can be shared with a financial advisor for independent review.
+              These internal consistency checks re-derive key figures from their constituent parts to verify the engine is self-consistent.
+              Passing checks mean the projection balances internally against the configured model and assumptions.
+              They do not prove the model is complete, jurisdiction-correct, or suitable as financial advice.
             </p>
           </div>
         </div>

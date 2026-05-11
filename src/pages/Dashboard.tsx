@@ -6,6 +6,7 @@ import ProjectionChart from '../components/dashboard/ProjectionChart';
 import YearTable from '../components/dashboard/YearTable';
 import VerificationPanel from '../components/dashboard/VerificationPanel';
 import { getStrategyDisplayName } from '../engine/strategies';
+import { deriveTaxContext } from '../engine/taxContext';
 import ConfigPanel from '../components/dashboard/ConfigPanel';
 
 function deepClone<T>(obj: T): T {
@@ -18,6 +19,7 @@ export default function Dashboard() {
   const { config } = useConfig();
   const result = useProjection(config);
   const strategyId = config.drawdown_strategy ?? 'fixed_target';
+  const taxContext = useMemo(() => deriveTaxContext(config.tax), [config.tax]);
 
   // Extended projection for charts — shows a few years past plan end
   const extendedConfig = useMemo(() => {
@@ -70,7 +72,7 @@ export default function Dashboard() {
       {/* Year-by-year table */}
       <div>
         <h2 className="text-lg font-semibold text-gray-800 mb-3">Year-by-Year Breakdown</h2>
-        <YearTable years={result.years} />
+        <YearTable years={result.years} taxContext={taxContext} />
       </div>
 
       {/* Verification panel */}
