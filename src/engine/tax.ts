@@ -4,6 +4,7 @@
  * Supports any tax regime defined by personal allowance + bands.
  */
 
+import type { TaxEvent } from './taxEvents';
 import type { TaxConfig, TaxResult, TaxBandDetail } from './types';
 
 // ------------------------------------------------------------------ //
@@ -101,11 +102,17 @@ export interface TaxCalculationInput {
   taxConfig: TaxConfig;
 }
 
+export interface TaxEventCalculationInput {
+  events: TaxEvent[];
+  taxConfig: TaxConfig;
+}
+
 export interface TaxRuleModule {
   id: string;
   label: string;
   supports(taxCfg: TaxConfig): boolean;
   calculate(input: TaxCalculationInput): TaxResult;
+  calculateFromEvents(input: TaxEventCalculationInput): TaxResult;
 }
 
 export const simpleBandedTaxModule: TaxRuleModule = {
@@ -127,6 +134,10 @@ export const simpleBandedTaxModule: TaxRuleModule = {
       taxConfig.tax_cap_amount ?? 200000,
     );
   },
+  calculateFromEvents: ({ events, taxConfig }) => simpleBandedTaxModule.calculate({
+    taxableIncome: taxableIncomeFromEvents(events),
+    taxConfig,
+  }),
 };
 
 const FIRST_PARTY_TAX_MODULES: TaxRuleModule[] = [simpleBandedTaxModule];
@@ -156,6 +167,18 @@ export function calculateTaxWithModule(
   }
 
   return taxModule.calculate({ taxableIncome, taxConfig: taxCfg });
+}
+
+export function calculateTaxFromEventsWithModule(
+  events: TaxEvent[],
+  taxCfg: TaxConfig,
+  taxModule: TaxRuleModule = getTaxRuleModule(taxCfg),
+): TaxResult {
+  if (!taxModule.supports(taxCfg)) {
+    throw new Error(`Tax module ${taxModule.id} does not support regime: ${taxCfg.regime}`);
+  }
+
+  return taxModule.calculateFromEvents({ events, taxConfig: taxCfg });
 }
 
 // ------------------------------------------------------------------ //
@@ -243,4 +266,8 @@ export function monthlyGrossUp(
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
+}
+
+function taxableIncomeFromEvents(events: TaxEvent[]): number {
+  return round2(events.reduce((sum, event) => sum + event.taxable_amount, 0));
 }

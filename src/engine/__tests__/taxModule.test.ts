@@ -1,15 +1,57 @@
 import { describe, expect, it } from 'vitest';
+import { runProjection } from '../projection';
 import {
   calculateTax,
+  calculateTaxFromEventsWithModule,
   calculateTaxWithModule,
   getTaxRuleModule,
   simpleBandedTaxModule,
 } from '../tax';
 import { TAX_RULE_PACKS, taxConfigFromRulePack } from '../taxRulePacks';
-import type { TaxConfig, TaxResult } from '../types';
+import { yearRowToTaxEvents } from '../taxEvents';
+import { SIMPLE_CONFIG } from './fixtures';
+import type { PlannerConfig, TaxConfig, TaxResult } from '../types';
 
 function expectSameTaxResult(actual: TaxResult, expected: TaxResult): void {
   expect(actual).toEqual(expected);
+}
+
+function mixedSourceProjectionConfig(): PlannerConfig {
+  return {
+    ...JSON.parse(JSON.stringify(SIMPLE_CONFIG)),
+    target_income: { net_annual: 32_000, cpi_rate: 0 },
+    guaranteed_income: [
+      {
+        name: 'State Pension',
+        gross_annual: 12_000,
+        indexation_rate: 0,
+        start_date: '2028-01',
+        end_age: null,
+        taxable: true,
+        values_as_of: '2028-01',
+      },
+    ],
+    dc_pots: [
+      {
+        name: 'Main DC',
+        starting_balance: 250_000,
+        growth_rate: 0,
+        annual_fees: 0,
+        tax_free_portion: 0.25,
+        values_as_of: '2028-01',
+      },
+    ],
+    tax_free_accounts: [
+      {
+        name: 'ISA',
+        starting_balance: 40_000,
+        growth_rate: 0,
+        values_as_of: '2028-01',
+      },
+    ],
+    withdrawal_priority: ['ISA', 'Main DC'],
+    tax: taxConfigFromRulePack('IM-2026-27'),
+  };
 }
 
 describe('Tax rule modules', () => {
@@ -71,6 +113,26 @@ describe('Tax rule modules', () => {
     );
   });
 
+  it('calculates event-based tax equal to taxable-income-based tax for mixed income projection rows', () => {
+    const cfg = mixedSourceProjectionConfig();
+    const result = runProjection(cfg);
+    const module = getTaxRuleModule(cfg.tax);
+    const selectedYears = [result.years[0]!, result.years[1]!, result.years[2]!];
+
+    expect(selectedYears.some(year => year.tf_withdrawal > 0)).toBe(true);
+    expect(selectedYears.some(year => year.dc_withdrawal_gross > 0)).toBe(true);
+
+    for (const year of selectedYears) {
+      const events = yearRowToTaxEvents(year);
+      const eventBasedTax = calculateTaxFromEventsWithModule(events, cfg.tax, module);
+      const taxableIncomeBasedTax = calculateTax(year.total_taxable_income, cfg.tax);
+
+      expect(events.some(event => event.category === 'guaranteed_income')).toBe(true);
+      expectSameTaxResult(eventBasedTax, taxableIncomeBasedTax);
+      expectSameTaxResult(eventBasedTax, year.tax_breakdown);
+    }
+  });
+
   it('rejects explicitly supplied modules that do not support a config', () => {
     const tax: TaxConfig = {
       regime: 'Custom',
@@ -83,6 +145,7 @@ describe('Tax rule modules', () => {
       label: 'Unsupported test module',
       supports: () => false,
       calculate: () => calculateTax(30_000, tax),
+      calculateFromEvents: () => calculateTax(30_000, tax),
     })).toThrow('Tax module unsupported-test-module does not support regime: Custom');
   });
 });
