@@ -9,6 +9,7 @@
 
 import type {
   PlannerConfig,
+  TaxConfig,
   TaxResult,
   YearRow,
   PotPnl,
@@ -21,6 +22,7 @@ import type {
 } from './types';
 
 import { calculateTax, grossUp } from './tax';
+import { annualTaxEventsFromAmounts } from './taxEvents';
 import { normalizeConfig, computeAnnualTarget } from './strategies';
 import { validateConfig, validateStrategyOutput } from './validation';
 import { normalizeWithdrawalPriority } from './withdrawalPriority';
@@ -121,6 +123,29 @@ interface GuaranteedItem {
   start_abs: number;
   end_abs: number | null;
   taxable: boolean;
+}
+
+function taxEventsForAnnualAgg(agg: AnnualAgg) {
+  return annualTaxEventsFromAmounts({
+    tax_year: agg.tax_year,
+    age: agg.age,
+    guaranteed_gross: agg.guaranteed_gross,
+    guaranteed_taxable: agg.guaranteed_taxable,
+    dc_gross: agg.dc_gross,
+    dc_tax_free: agg.dc_tf,
+    tf_withdrawal: agg.tf_total,
+  });
+}
+
+function calculateAnnualTaxFromEvents(agg: AnnualAgg, taxCfg: TaxConfig): TaxResult {
+  // Construct neutral tax events before tax calculation as the bridge toward
+  // event-native projection internals. For this compatibility step, keep the
+  // actual taxable-income value on the existing aggregate formula so projection
+  // outputs remain byte-for-byte aligned with the legacy path.
+  const events = taxEventsForAnnualAgg(agg);
+  void events;
+  const taxableIncome = agg.guaranteed_taxable + (agg.dc_gross - agg.dc_tf);
+  return calculateTax(taxableIncome, taxCfg);
 }
 
 // ------------------------------------------------------------------ //
@@ -493,9 +518,7 @@ export function runProjection(
     if (yearAge !== currentYearAge) {
       if (currentAgg !== null) {
         // Finalise previous year
-        const totalTaxableYr = currentAgg.guaranteed_taxable
-          + (currentAgg.dc_gross - currentAgg.dc_tf);
-        const yearTax = calculateTax(totalTaxableYr, taxCfg);
+        const yearTax = calculateAnnualTaxFromEvents(currentAgg, taxCfg);
         const yrRow = buildYearRow(currentAgg, dcBalances, tfBalances, dcMeta, tfMeta, yearTax);
         years.push(yrRow);
         totalTax += yearTax.total;
@@ -851,9 +874,7 @@ export function runProjection(
 
   // ---- Finalise last year ---- //
   if (currentAgg !== null && currentAgg.months_counted > 0) {
-    const totalTaxableFinal = currentAgg.guaranteed_taxable
-      + (currentAgg.dc_gross - currentAgg.dc_tf);
-    const finalTax = calculateTax(totalTaxableFinal, taxCfg);
+    const finalTax = calculateAnnualTaxFromEvents(currentAgg, taxCfg);
     const yrRow = buildYearRow(currentAgg, dcBalances, tfBalances, dcMeta, tfMeta, finalTax);
     years.push(yrRow);
     totalTax += finalTax.total;

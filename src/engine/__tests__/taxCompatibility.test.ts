@@ -67,6 +67,16 @@ function mixedSourceProjectionConfig(): PlannerConfig {
   };
 }
 
+function expectProjectionTaxMatchesTaxableIncomeCalculation(
+  taxConfig: TaxConfig,
+  year: { total_taxable_income: number; tax_due: number; tax_breakdown: TaxResult },
+): void {
+  const expectedTax = calculateTax(year.total_taxable_income, taxConfig);
+
+  expect(year.tax_due).toBeCloseTo(expectedTax.total, 2);
+  expect(year.tax_breakdown).toEqual(expectedTax);
+}
+
 describe('Tax compatibility baselines', () => {
   it('freezes the current custom simple-banded tax behaviour', () => {
     const tax: TaxConfig = {
@@ -190,7 +200,8 @@ describe('Tax compatibility baselines', () => {
   });
 
   it('freezes current projection tax fields for mixed guaranteed income, ISA, and DC drawdown', () => {
-    const result = runProjection(mixedSourceProjectionConfig(), { includeMonthly: true });
+    const cfg = mixedSourceProjectionConfig();
+    const result = runProjection(cfg, { includeMonthly: true });
     const isaYear = result.years[0]!;
     const dcYear = result.years[2]!;
 
@@ -200,6 +211,9 @@ describe('Tax compatibility baselines', () => {
       { pot: 'ISA', age: 69, month: 12 },
       { pot: 'Main DC', age: 81, month: 7 },
     ]);
+    for (const year of result.years) {
+      expectProjectionTaxMatchesTaxableIncomeCalculation(cfg.tax, year);
+    }
 
     expect(isaYear.age).toBe(68);
     expect(isaYear.guaranteed_total).toBe(12_000);

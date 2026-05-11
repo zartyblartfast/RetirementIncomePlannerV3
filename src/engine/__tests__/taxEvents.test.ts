@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { runProjection } from '../projection';
 import { taxConfigFromRulePack } from '../taxRulePacks';
-import { totalGrossFromEvents, totalTaxableFromEvents, yearRowToTaxEvents } from '../taxEvents';
+import { annualTaxEventsFromAmounts, totalGrossFromEvents, totalTaxableFromEvents, yearRowToTaxEvents } from '../taxEvents';
 import { SIMPLE_CONFIG } from './fixtures';
 import type { PlannerConfig } from '../types';
 
@@ -44,6 +44,46 @@ function mixedSourceProjectionConfig(): PlannerConfig {
 }
 
 describe('Tax events', () => {
+  it('builds annual events from projection amounts before a YearRow exists', () => {
+    const events = annualTaxEventsFromAmounts({
+      tax_year: '2030/31',
+      age: 70,
+      guaranteed_gross: 12_000,
+      guaranteed_taxable: 12_000.004,
+      dc_gross: 21_644.286,
+      dc_tax_free: 5_411.071,
+      tf_withdrawal: 0,
+    });
+
+    expect(events).toEqual([
+      {
+        tax_year: '2030/31',
+        age: 70,
+        category: 'guaranteed_income',
+        source: 'Guaranteed income',
+        gross_amount: 12_000,
+        taxable_amount: 12_000,
+      },
+      {
+        tax_year: '2030/31',
+        age: 70,
+        category: 'dc_pension_taxable',
+        source: 'DC pension drawdown',
+        gross_amount: 16_233.22,
+        taxable_amount: 16_233.22,
+      },
+      {
+        tax_year: '2030/31',
+        age: 70,
+        category: 'dc_pension_tax_free',
+        source: 'DC pension tax-free portion',
+        gross_amount: 5_411.07,
+        taxable_amount: 0,
+      },
+    ]);
+    expect(totalTaxableFromEvents(events)).toBe(28_233.22);
+  });
+
   it('adapts a YearRow with guaranteed income and ISA withdrawal into neutral tax events', () => {
     const result = runProjection(mixedSourceProjectionConfig());
     const year = result.years[0]!;
