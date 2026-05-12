@@ -12,24 +12,26 @@ software as a financial product.
 
 ## 1. Suggested Review Order
 
-1. Read `docs/adviser-review-pack.md` for the model overview.
-2. Skim `docs/calculation-spec.md` for the detailed calculation rules.
-3. Review `docs/calculation-assumptions.md` for explicit simplifications and
+1. Read `docs/adviser-demo-guide.md` for the suggested live walkthrough.
+2. Read `docs/adviser-review-pack.md` for the model overview.
+3. Skim `docs/calculation-spec.md` for the detailed calculation rules.
+4. Review `docs/calculation-assumptions.md` for explicit simplifications and
    assumptions.
-4. Review `docs/calculation-worked-examples.md` for generic calculation
+5. Review `docs/calculation-worked-examples.md` for generic calculation
    examples.
-5. Review `docs/isle-of-man-worked-examples.md` for Isle of Man 2026-27 tax
+6. Review `docs/isle-of-man-worked-examples.md` for Isle of Man 2026-27 tax
    examples.
-6. Review `docs/tax-rule-packs.md` for implemented tax-rule-pack scope and
+7. Review `docs/tax-rule-packs.md` for implemented tax-rule-pack scope and
    exclusions.
-7. Review `docs/test-coverage-review.md` if you want a high-level map of the
+8. Review `docs/test-coverage-review.md` if you want a high-level map of the
    current automated test coverage.
-8. Record decisions and caveats in the checklist below.
+9. Record decisions and caveats in the checklist below.
 
 ## 2. Related Documents
 
 | Document | Purpose |
 | --- | --- |
+| `docs/adviser-demo-guide.md` | Short live-demo path and wording guardrails for showing the app to an adviser. |
 | `docs/adviser-review-pack.md` | Adviser-facing summary of model scope, mechanics, review questions, and open items. |
 | `docs/calculation-spec.md` | Detailed plain-English calculation rules. |
 | `docs/calculation-assumptions.md` | Explicit assumptions, simplifications, and exclusions. |

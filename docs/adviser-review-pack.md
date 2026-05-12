@@ -12,8 +12,9 @@ adviser to review the planning model described here, highlight missing rules,
 and confirm which assumptions are acceptable or should be changed.
 
 For a shorter export-friendly response template, use
-`docs/adviser-review-checklist.md` alongside this pack. For the engineering
-assurance summary, use `docs/test-coverage-review.md`.
+`docs/adviser-review-checklist.md` alongside this pack. For a practical demo
+walkthrough, use `docs/adviser-demo-guide.md`. For the engineering assurance
+summary, use `docs/test-coverage-review.md`.
 
 ## 1. Purpose Of Review
 
