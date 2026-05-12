@@ -25,9 +25,11 @@ software as a financial product.
    examples.
 8. Review `docs/tax-rule-packs.md` for implemented tax-rule-pack scope and
    exclusions.
-9. Review `docs/test-coverage-review.md` if you want a high-level map of the
+9. Review `docs/investment-assumptions-and-asset-mapping.md` for investment
+   allocation mapping assumptions and historical proxy caveats.
+10. Review `docs/test-coverage-review.md` if you want a high-level map of the
    current automated test coverage.
-10. Record decisions and caveats in the checklist below.
+11. Record decisions and caveats in the checklist below.
 
 ## 2. Related Documents
 
@@ -41,6 +43,7 @@ software as a financial product.
 | `docs/calculation-worked-examples.md` | Generic hand-checkable calculation examples. |
 | `docs/isle-of-man-worked-examples.md` | Isle of Man 2026-27 tax worked examples. |
 | `docs/tax-rule-packs.md` | Tax-rule-pack scope, source policy, and current exclusions. |
+| `docs/investment-assumptions-and-asset-mapping.md` | Asset allocation mapping assumptions, historical proxy caveats, and adviser review questions. |
 | `docs/test-coverage-review.md` | Adviser-facing calculation-assurance and automated test coverage map. |
 
 ## 3. Decision Labels
@@ -62,6 +65,7 @@ to users, and whether the issue is high, medium, or low priority.
 | Projection timeline and monthly aggregation |  |  |  |
 | Values-as-of anchoring and pre-retirement growth |  |  |  |
 | Annual growth assumptions and monthly compounding |  |  |  |
+| Asset allocation mappings for growth suggestions / historical proxies |  |  |  |
 | Annual fee assumptions and monthly application |  |  |  |
 | Guaranteed income start/stop dates |  |  |  |
 | Guaranteed income taxability and indexation |  |  |  |
@@ -153,6 +157,8 @@ Please mark whether these caveats are adequate or need stronger wording.
 | The app models configured assumptions, not all tax and pension rules. |  |  |
 | Rule packs are scoped to listed income categories and exclusions. |  |  |
 | Investment volatility is not modelled in the normal projection. |  |  |
+| Asset allocation mappings are user/adviser-selected approximations, not fund-specific recommendations. |  |  |
+| Historical return outputs use broad proxy series, not provider fund backtests. |  |  |
 | Tax, pension, and residency rules can change. |  |  |
 
 ## 10. Final Adviser Notes

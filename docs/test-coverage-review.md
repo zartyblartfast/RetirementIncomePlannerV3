@@ -55,7 +55,7 @@ The tests do not prove that:
 
 | Layer | Evidence | What it gives confidence in | What still needs review |
 | --- | --- | --- | --- |
-| Written model | `docs/calculation-spec.md`, `docs/calculation-assumptions.md`, `docs/tax-rule-packs.md` | The model is explicit rather than hidden in code. | Whether the stated rules and exclusions are acceptable. |
+| Written model | `docs/calculation-spec.md`, `docs/calculation-assumptions.md`, `docs/tax-rule-packs.md`, `docs/investment-assumptions-and-asset-mapping.md` | The model is explicit rather than hidden in code. | Whether the stated rules and exclusions are acceptable. |
 | Worked examples | `docs/calculation-worked-examples.md`, `docs/isle-of-man-worked-examples.md` | Small scenarios can be checked by hand or spreadsheet. | Whether more real-world examples are needed. |
 | Automated tests | `src/**/__tests__/*` | The implementation continues to match the documented model and examples. | Whether the model itself is domain-complete. |
 | UI transparency | Year workings, review page, verification panel, chart reconciliation | Users can trace outputs back to assumptions and source fields. | Whether the presentation is clear enough for non-specialists. |
@@ -82,6 +82,7 @@ The tests do not prove that:
 | `src/engine/__tests__/strategies.test.ts` | Strategy unit tests | Strategy dispatch and target calculations work for representative cases. | Does not prove full real-world validity of strategy methodology. |
 | `src/engine/__tests__/backtest.test.ts` | Backtest smoke tests | Historical window machinery produces plausible outputs and percentile ordering. | Does not independently validate historical assumptions or future-return suitability. |
 | `src/engine/__tests__/growthSuggestions.test.ts` | Growth suggestion unit/range tests | Growth suggestion outputs are monotonic, in expected ranges, and mock data behaves predictably. | Does not prove future returns or suitability of suggested rates. |
+| `src/engine/__tests__/assetAllocation.test.ts` | Asset allocation config robustness | Default Diversified Growth allocation, template/custom choices, and missing-allocation migration helpers behave consistently for DC pots and tax-free accounts. | Does not validate that a selected mapping is suitable for a real provider fund. |
 | `src/store/__tests__/configStore.test.ts` | Store smoke tests | Basic localStorage presence/reset behaviour works. | Does not cover the full provider first-run state machine. |
 | `src/store/__tests__/ConfigProvider.test.tsx` | Store/import workflow | Empty storage starts first-run mode; stored legacy configs are migrated; import-style save plus mark-configured exits first-run mode; reset returns to first-run mode. | File picker/browser import UI still needs manual browser smoke testing. |
 | `src/store/__tests__/reviewStore.test.ts` | Review snapshot persistence | Review snapshots and tax context survive expected store operations. | Does not validate adviser interpretation of the snapshot. |
@@ -98,6 +99,8 @@ The tests do not prove that:
   orders.
 - Tax context tests check that review/workings views expose rule-pack metadata,
   source links, and known exclusions.
+- Asset allocation tests guard the default Diversified Growth mapping and the
+  template/custom selector helpers used by DC pots and tax-free accounts.
 - Golden and cross-version tests reduce the risk of accidental behavioural
   changes during refactors.
 
@@ -112,6 +115,9 @@ The tests do not prove that:
   individual client constraints are not modelled unless manually represented in
   inputs.
 - Investment volatility is not modelled in the normal deterministic projection.
+- Asset allocation mappings and historical proxy series remain adviser/user
+  judgement areas; tests only prove the selector/default plumbing, not mapping
+  suitability for a real fund.
 
 ### Test Quality Gaps
 

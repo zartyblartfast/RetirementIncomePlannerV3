@@ -1,4 +1,5 @@
 import type { PlannerConfig } from '../engine/types';
+import { normalizeConfigAssetAllocations } from '../engine/assetAllocation';
 import { normalizeConfigWithdrawalPriority } from '../engine/withdrawalPriority';
 
 type LegacyPlannerConfig = PlannerConfig & {
@@ -8,7 +9,7 @@ type LegacyPlannerConfig = PlannerConfig & {
 export function normalizeLoadedConfig(raw: unknown): PlannerConfig {
   const cfg = raw as LegacyPlannerConfig;
   stripLegacyRetirementAge(cfg);
-  return normalizeConfigWithdrawalPriority(cfg as PlannerConfig);
+  return normalizeConfigWithdrawalPriority(normalizeConfigAssetAllocations(cfg as PlannerConfig));
 }
 
 export function stripLegacyRetirementAge(cfg: LegacyPlannerConfig | null | undefined): void {

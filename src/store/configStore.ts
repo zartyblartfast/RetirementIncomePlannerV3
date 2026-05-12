@@ -7,6 +7,7 @@
 
 import { createContext, useContext } from 'react';
 import type { PlannerConfig } from '../engine/types';
+import { makeDefaultAllocation, normalizeConfigAssetAllocations, defaultGrowthRateFromAllocation } from '../engine/assetAllocation';
 import { normalizeLoadedConfig } from './configMigration';
 import { normalizeConfigWithdrawalPriority } from '../engine/withdrawalPriority';
 
@@ -42,9 +43,10 @@ export const DEFAULT_CONFIG: PlannerConfig = {
     {
       name: 'DC Pension',
       starting_balance: 200000,
-      growth_rate: 0.04,
+      growth_rate: defaultGrowthRateFromAllocation(makeDefaultAllocation()),
       annual_fees: 0.005,
       tax_free_portion: 0.25,
+      allocation: makeDefaultAllocation(),
       values_as_of: '2026-04',
     },
   ],
@@ -52,7 +54,8 @@ export const DEFAULT_CONFIG: PlannerConfig = {
     {
       name: 'ISA',
       starting_balance: 30000,
-      growth_rate: 0.035,
+      growth_rate: defaultGrowthRateFromAllocation(makeDefaultAllocation()),
+      allocation: makeDefaultAllocation(),
       values_as_of: '2026-04',
     },
   ],
@@ -90,7 +93,8 @@ export function hasStoredConfig(): boolean {
 }
 
 export function saveConfig(cfg: PlannerConfig): void {
-  const normalized = normalizeConfigWithdrawalPriority(JSON.parse(JSON.stringify(cfg)) as PlannerConfig);
+  const normalizedAllocations = normalizeConfigAssetAllocations(JSON.parse(JSON.stringify(cfg)) as PlannerConfig);
+  const normalized = normalizeConfigWithdrawalPriority(normalizedAllocations);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
 }
 

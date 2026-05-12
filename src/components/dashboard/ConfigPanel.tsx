@@ -4,27 +4,41 @@ import { useConfig, exportConfigToFile, importConfigFromFile } from '../../store
 import { exportCaseToFile, importCaseFromFile, loadCaseMetadata, saveCaseMetadata, type CaseMetadata } from '../../store/caseStore';
 import { STRATEGIES, STRATEGY_IDS } from '../../engine/strategies';
 import { TAX_RULE_PACKS, taxConfigFromRulePack } from '../../engine/taxRulePacks';
-import type { PlannerConfig, GuaranteedIncomeConfig, DCPotConfig, TaxFreeAccountConfig } from '../../engine/types';
-import GrowthSuggestionPopover from '../common/GrowthSuggestionPopover';
+import type { PlannerConfig, GuaranteedIncomeConfig, DCPotConfig, TaxFreeAccountConfig, AllocationConfig } from '../../engine/types';
+import {
+  allocationFromTemplate,
+  allocationTemplateLabel,
+  customAllocationFromExisting,
+  customWeightTotal,
+  getAssetClassOptions,
+  getPortfolioTemplateOptions,
+  makeDefaultAllocation,
+  normalizeAllocation,
+  defaultGrowthRateFromAllocation,
+} from '../../engine/assetAllocation';
 
 const NOW_MONTH = new Date().toISOString().slice(0, 7);
 
 function newDcPot(name: string): DCPotConfig {
+  const allocation = makeDefaultAllocation();
   return {
     name,
     starting_balance: 0,
-    growth_rate: 0.05,
+    growth_rate: defaultGrowthRateFromAllocation(allocation),
     annual_fees: 0.004,
     tax_free_portion: 0.25,
+    allocation,
     values_as_of: NOW_MONTH,
   };
 }
 
 function newTfAccount(name: string): TaxFreeAccountConfig {
+  const allocation = makeDefaultAllocation();
   return {
     name,
     starting_balance: 0,
-    growth_rate: 0.035,
+    growth_rate: defaultGrowthRateFromAllocation(allocation),
+    allocation,
     values_as_of: NOW_MONTH,
   };
 }
@@ -87,6 +101,8 @@ export default function ConfigPanel() {
   const strategyId = config.drawdown_strategy ?? 'fixed_target';
   const strategyDef = STRATEGIES[strategyId];
   const strategyParams = config.drawdown_strategy_params ?? {};
+  const portfolioTemplates = getPortfolioTemplateOptions();
+  const assetClasses = getAssetClassOptions();
 
   function setNested(path: string, val: number | string) {
     updateConfig(prev => {
@@ -145,7 +161,7 @@ export default function ConfigPanel() {
   }
 
   // ---- DC pot CRUD ---- //
-  function updateDcPot(index: number, field: keyof DCPotConfig, val: string | number) {
+  function updateDcPot(index: number, field: keyof DCPotConfig, val: string | number | AllocationConfig) {
     updateConfig(prev => {
       const next = JSON.parse(JSON.stringify(prev)) as PlannerConfig;
       const pot = next.dc_pots[index]!;
@@ -181,7 +197,7 @@ export default function ConfigPanel() {
   }
 
   // ---- Tax-free account CRUD ---- //
-  function updateTfAccount(index: number, field: keyof TaxFreeAccountConfig, val: string | number) {
+  function updateTfAccount(index: number, field: keyof TaxFreeAccountConfig, val: string | number | AllocationConfig) {
     updateConfig(prev => {
       const next = JSON.parse(JSON.stringify(prev)) as PlannerConfig;
       const acc = next.tax_free_accounts[index]!;
@@ -212,6 +228,45 @@ export default function ConfigPanel() {
       const next = JSON.parse(JSON.stringify(prev)) as PlannerConfig;
       const removed = next.tax_free_accounts.splice(index, 1)[0]!;
       next.withdrawal_priority = next.withdrawal_priority.filter(n => n !== removed.name);
+      return next;
+    });
+  }
+
+  function updateAllocation(
+    sourceType: 'dc' | 'tf',
+    index: number,
+    allocation: AllocationConfig,
+  ) {
+    updateConfig(prev => {
+      const next = JSON.parse(JSON.stringify(prev)) as PlannerConfig;
+      const account = sourceType === 'dc' ? next.dc_pots[index] : next.tax_free_accounts[index];
+      if (!account) return next;
+      account.allocation = allocation;
+      account.growth_rate = defaultGrowthRateFromAllocation(allocation);
+      return next;
+    });
+  }
+
+  function updateCustomAllocationWeight(
+    sourceType: 'dc' | 'tf',
+    index: number,
+    assetClassId: string,
+    percentage: number,
+  ) {
+    updateConfig(prev => {
+      const next = JSON.parse(JSON.stringify(prev)) as PlannerConfig;
+      const account = sourceType === 'dc' ? next.dc_pots[index] : next.tax_free_accounts[index];
+      if (!account) return next;
+      const current = normalizeAllocation(account.allocation);
+      const customWeights = current.mode === 'custom' ? { ...(current.custom_weights ?? {}) } : {};
+      customWeights[assetClassId] = Math.max(0, percentage / 100);
+      const allocation: AllocationConfig = {
+        mode: 'custom',
+        custom_weights: customWeights,
+        manual_override: true,
+      };
+      account.allocation = allocation;
+      account.growth_rate = defaultGrowthRateFromAllocation(allocation);
       return next;
     });
   }
@@ -545,7 +600,7 @@ export default function ConfigPanel() {
             )}
             <div className="space-y-3">
               {config.dc_pots.map((pot, i) => (
-                <div key={i} className="grid grid-cols-2 sm:grid-cols-[2fr_1fr_0.8fr_0.8fr_0.8fr_1fr_auto] gap-2 items-end">
+                <div key={i} className="grid grid-cols-2 sm:grid-cols-[2fr_1fr_0.8fr_0.8fr_0.8fr_1.3fr_1fr_auto] gap-2 items-start">
                   <Field label="Name">
                     <input
                       type="text"
@@ -564,18 +619,17 @@ export default function ConfigPanel() {
                     />
                   </Field>
                   <Field label="Growth (%)">
-                    <div className="mt-1 flex items-center gap-2">
+                    <div className="mt-1 space-y-1">
                       <input
                         type="number"
                         value={(pot.growth_rate * 100).toFixed(1)}
                         step={0.1}
                         onChange={e => updateDcPot(i, 'growth_rate', Number(e.target.value) / 100)}
-                        className="input-field mt-0 min-w-0"
+                        className="input-field mt-0"
                       />
-                      <GrowthSuggestionPopover
-                        allocation={pot.allocation}
-                        onSelect={(rate) => updateDcPot(i, 'growth_rate', rate)}
-                      />
+                      <p className="text-[11px] leading-snug text-gray-400">
+                        Auto-filled from asset allocation; edit here to override.
+                      </p>
                     </div>
                   </Field>
                   <Field label="Fees (%)">
@@ -596,6 +650,13 @@ export default function ConfigPanel() {
                       className="input-field"
                     />
                   </Field>
+                  <AllocationSelector
+                    allocation={pot.allocation}
+                    portfolioTemplates={portfolioTemplates}
+                    assetClasses={assetClasses}
+                    onChange={(allocation) => updateAllocation('dc', i, allocation)}
+                    onCustomWeightChange={(assetClassId, percentage) => updateCustomAllocationWeight('dc', i, assetClassId, percentage)}
+                  />
                   <Field label="Value as of">
                     <input
                       type="month"
@@ -674,7 +735,7 @@ export default function ConfigPanel() {
             )}
             <div className="space-y-3">
               {config.tax_free_accounts.map((acc, i) => (
-                <div key={i} className="grid grid-cols-2 sm:grid-cols-[2fr_1fr_0.8fr_1fr_auto] gap-2 items-end">
+                <div key={i} className="grid grid-cols-2 sm:grid-cols-[2fr_1fr_0.8fr_1.3fr_1fr_auto] gap-2 items-start">
                   <Field label="Name">
                     <input
                       type="text"
@@ -693,20 +754,26 @@ export default function ConfigPanel() {
                     />
                   </Field>
                   <Field label="Growth (%)">
-                    <div className="mt-1 flex items-center gap-2">
+                    <div className="mt-1 space-y-1">
                       <input
                         type="number"
                         value={(acc.growth_rate * 100).toFixed(1)}
                         step={0.1}
                         onChange={e => updateTfAccount(i, 'growth_rate', Number(e.target.value) / 100)}
-                        className="input-field mt-0 min-w-0"
+                        className="input-field mt-0"
                       />
-                      <GrowthSuggestionPopover
-                        allocation={acc.allocation}
-                        onSelect={(rate) => updateTfAccount(i, 'growth_rate', rate)}
-                      />
+                      <p className="text-[11px] leading-snug text-gray-400">
+                        Auto-filled from asset allocation; edit here to override.
+                      </p>
                     </div>
                   </Field>
+                  <AllocationSelector
+                    allocation={acc.allocation}
+                    portfolioTemplates={portfolioTemplates}
+                    assetClasses={assetClasses}
+                    onChange={(allocation) => updateAllocation('tf', i, allocation)}
+                    onCustomWeightChange={(assetClassId, percentage) => updateCustomAllocationWeight('tf', i, assetClassId, percentage)}
+                  />
                   <Field label="Value as of">
                     <input
                       type="month"
@@ -727,6 +794,83 @@ export default function ConfigPanel() {
             </div>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+function AllocationSelector({
+  label = 'Asset allocation',
+  allocation,
+  portfolioTemplates,
+  assetClasses,
+  onChange,
+  onCustomWeightChange,
+}: {
+  label?: string;
+  allocation: AllocationConfig | undefined;
+  portfolioTemplates: ReturnType<typeof getPortfolioTemplateOptions>;
+  assetClasses: ReturnType<typeof getAssetClassOptions>;
+  onChange: (allocation: AllocationConfig) => void;
+  onCustomWeightChange: (assetClassId: string, percentage: number) => void;
+}) {
+  const normalized = normalizeAllocation(allocation);
+  const selectedValue = normalized.mode === 'custom'
+    ? 'custom'
+    : normalized.template_id ?? 'default_like_diversified_growth';
+  const total = customWeightTotal(normalized);
+
+  return (
+    <div className="space-y-2">
+      <Field label={label} tooltip="User/adviser-selected broad mapping from the real fund or portfolio to the app's planning asset classes.">
+        <select
+          value={selectedValue}
+          onChange={e => {
+            const value = e.target.value;
+            if (value === 'custom') {
+              onChange(customAllocationFromExisting({ allocation: normalized }));
+            } else {
+              onChange(allocationFromTemplate(value));
+            }
+          }}
+          className="input-field"
+        >
+          {portfolioTemplates.map(template => (
+            <option key={template.id} value={template.id}>
+              {template.label}{template.id === 'default_like_diversified_growth' ? ' (default)' : ''}
+            </option>
+          ))}
+          <option value="custom">Custom mix</option>
+        </select>
+      </Field>
+      <p className="text-[11px] leading-snug text-gray-400">
+        Approximate mapping only. Check the provider factsheet or adviser judgement; mappings can be updated later.
+      </p>
+      {normalized.mode === 'custom' && (
+        <div className="rounded-md border border-gray-200 bg-gray-50 p-2 space-y-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {assetClasses.map(assetClass => (
+              <label key={assetClass.id} className="block">
+                <span className="text-[11px] font-medium text-gray-500">{assetClass.label}</span>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={5}
+                  value={(((normalized.custom_weights ?? {})[assetClass.id] ?? 0) * 100).toFixed(0)}
+                  onChange={e => onCustomWeightChange(assetClass.id, Number(e.target.value))}
+                  className="input-field"
+                />
+              </label>
+            ))}
+          </div>
+          <p className={`text-[11px] ${Math.abs(total - 1) < 0.0001 ? 'text-gray-500' : 'text-amber-700'}`}>
+            Custom weights total {(total * 100).toFixed(0)}%. The growth suggestion normalises weights, but a 100% total is clearer for adviser review.
+          </p>
+        </div>
+      )}
+      {normalized.mode === 'template' && (
+        <p className="text-[11px] text-gray-400">Selected: {allocationTemplateLabel(normalized.template_id)}</p>
       )}
     </div>
   );

@@ -38,6 +38,7 @@ The app currently models:
 
 - monthly projection from retirement/anchor date to plan end age;
 - deterministic annual growth rates converted to monthly rates;
+- user/adviser-selected asset allocation mappings for DC pots and tax-free accounts, used by growth suggestions and historical proxy analysis;
 - DC pension annual fees converted to monthly rates;
 - guaranteed income with start/end dates and optional monthly indexation;
 - DC pension withdrawals with configurable tax-free portions;
@@ -51,6 +52,8 @@ The app currently models:
 The app does not currently model:
 
 - investment volatility in the normal projection;
+- provider fund-specific backtesting; historical outputs use broad planning asset classes and proxy series;
+- automatic detection of a user's actual DC/ISA fund allocation from provider data;
 - sequence-of-returns risk except through separate historical/backtest views;
 - provider-specific pension rules, charges, crystallisation rules, or drawdown
   limits;
@@ -75,14 +78,18 @@ Core inputs include:
 - projection end age;
 - target net annual income and CPI assumption;
 - guaranteed income amounts, dates, taxability, and indexation;
-- DC pot balances, growth rates, fees, and tax-free portions;
-- tax-free account balances and growth rates;
+- DC pot balances, growth rates, fees, tax-free portions, and asset allocation mappings;
+- tax-free account balances, growth rates, and asset allocation mappings;
 - selected tax rule pack or custom tax settings;
 - drawdown strategy;
 - drawdown order.
 
 Retirement date is the source of truth for retirement timing. Retirement age is
 derived from date of birth and retirement date.
+
+Asset allocation mappings default to Diversified Growth / Multi-Asset but can be edited per DC pot and ISA/tax-free account. They are user/adviser-selected approximations used for growth suggestions and historical proxy analysis; they are not fund-specific recommendations.
+
+See `docs/investment-assumptions-and-asset-mapping.md` for the mapping caveats and adviser review questions.
 
 ## 5. Projection Timeline
 
