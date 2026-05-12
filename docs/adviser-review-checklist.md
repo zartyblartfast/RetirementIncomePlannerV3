@@ -13,25 +13,28 @@ software as a financial product.
 ## 1. Suggested Review Order
 
 1. Read `docs/adviser-demo-guide.md` for the suggested live walkthrough.
-2. Read `docs/adviser-review-pack.md` for the model overview.
-3. Skim `docs/calculation-spec.md` for the detailed calculation rules.
-4. Review `docs/calculation-assumptions.md` for explicit simplifications and
+2. Restore one of the fictional full-case files in `examples/demo-cases/` if a
+   prepared demo case is useful.
+3. Read `docs/adviser-review-pack.md` for the model overview.
+4. Skim `docs/calculation-spec.md` for the detailed calculation rules.
+5. Review `docs/calculation-assumptions.md` for explicit simplifications and
    assumptions.
-5. Review `docs/calculation-worked-examples.md` for generic calculation
+6. Review `docs/calculation-worked-examples.md` for generic calculation
    examples.
-6. Review `docs/isle-of-man-worked-examples.md` for Isle of Man 2026-27 tax
+7. Review `docs/isle-of-man-worked-examples.md` for Isle of Man 2026-27 tax
    examples.
-7. Review `docs/tax-rule-packs.md` for implemented tax-rule-pack scope and
+8. Review `docs/tax-rule-packs.md` for implemented tax-rule-pack scope and
    exclusions.
-8. Review `docs/test-coverage-review.md` if you want a high-level map of the
+9. Review `docs/test-coverage-review.md` if you want a high-level map of the
    current automated test coverage.
-9. Record decisions and caveats in the checklist below.
+10. Record decisions and caveats in the checklist below.
 
 ## 2. Related Documents
 
 | Document | Purpose |
 | --- | --- |
 | `docs/adviser-demo-guide.md` | Short live-demo path and wording guardrails for showing the app to an adviser. |
+| `examples/demo-cases/README.md` | Fictional full-case files for restoring prepared adviser walkthrough cases. |
 | `docs/adviser-review-pack.md` | Adviser-facing summary of model scope, mechanics, review questions, and open items. |
 | `docs/calculation-spec.md` | Detailed plain-English calculation rules. |
 | `docs/calculation-assumptions.md` | Explicit assumptions, simplifications, and exclusions. |

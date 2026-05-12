@@ -10,7 +10,8 @@ is needed.
 
 ## 1. Suggested Demo Path
 
-1. Open or create a case.
+1. Open or create a case. For a prepared walkthrough, restore one of the
+   fictional full-case files in `examples/demo-cases/`.
 2. Confirm the Case Details fields are filled in enough to identify the example:
    case name, reference, owner label, and notes.
 3. Review the Dashboard assumptions:
@@ -71,6 +72,8 @@ Use careful assurance wording:
 - `docs/test-coverage-review.md` - assurance trail and current test coverage.
 - `docs/case-persistence-and-review-semantics.md` - Save Case / Restore Case
   semantics.
+- `examples/demo-cases/README.md` - fictional full-case files for live adviser
+  walkthroughs.
 
 ## 5. Known Demo Caveats
 

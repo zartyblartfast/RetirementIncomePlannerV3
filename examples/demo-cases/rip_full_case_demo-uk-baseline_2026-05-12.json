@@ -1,0 +1,337 @@
+{
+  "schema": "rip.full_case",
+  "version": 1,
+  "exported_at": "2026-05-12T10:55:00.000Z",
+  "app": "RetirementIncomePlannerV3",
+  "case_metadata": {
+    "case_name": "Demo UK Baseline",
+    "case_reference": "DEMO-UK-001",
+    "owner_label": "Example individual",
+    "notes": "Pre-retirement UK example for demonstrating full-case save/restore, dashboard assumptions, and What If scenarios. Fictional figures for adviser walkthrough only.",
+    "created_at": "2026-05-12T10:00:00.000Z",
+    "updated_at": "2026-05-12T10:55:00.000Z"
+  },
+  "config": {
+    "personal": {
+      "date_of_birth": "1966-06",
+      "retirement_date": "2031-06",
+      "end_age": 92,
+      "currency": "GBP"
+    },
+    "target_income": {
+      "net_annual": 32000,
+      "cpi_rate": 0.025
+    },
+    "guaranteed_income": [
+      {
+        "name": "State Pension",
+        "gross_annual": 11973,
+        "indexation_rate": 0.025,
+        "start_date": "2033-06",
+        "end_date": null,
+        "taxable": true,
+        "values_as_of": "2026-04"
+      },
+      {
+        "name": "Small DB Pension",
+        "gross_annual": 4200,
+        "indexation_rate": 0.025,
+        "start_date": "2031-06",
+        "end_date": null,
+        "taxable": true,
+        "values_as_of": "2026-04"
+      }
+    ],
+    "dc_pots": [
+      {
+        "name": "Workplace DC Pension",
+        "starting_balance": 285000,
+        "growth_rate": 0.045,
+        "annual_fees": 0.006,
+        "tax_free_portion": 0.25,
+        "values_as_of": "2026-04"
+      },
+      {
+        "name": "Personal SIPP",
+        "starting_balance": 115000,
+        "growth_rate": 0.04,
+        "annual_fees": 0.0045,
+        "tax_free_portion": 0.25,
+        "values_as_of": "2026-04"
+      }
+    ],
+    "tax_free_accounts": [
+      {
+        "name": "Stocks and Shares ISA",
+        "starting_balance": 82000,
+        "growth_rate": 0.035,
+        "values_as_of": "2026-04"
+      },
+      {
+        "name": "Cash Reserve",
+        "starting_balance": 18000,
+        "growth_rate": 0.02,
+        "values_as_of": "2026-04"
+      }
+    ],
+    "withdrawal_priority": [
+      "Cash Reserve",
+      "Stocks and Shares ISA",
+      "Workplace DC Pension",
+      "Personal SIPP"
+    ],
+    "tax": {
+      "regime": "UK England/Wales/NI 2026-27",
+      "tax_module_id": "simple-banded",
+      "rule_pack_id": "GB-EWNI-2026-27",
+      "personal_allowance": 12570,
+      "personal_allowance_taper": {
+        "starts_at": 100000,
+        "rate": 0.5,
+        "minimum_allowance": 0
+      },
+      "bands": [
+        {
+          "name": "Basic rate",
+          "width": 37700,
+          "rate": 0.2
+        },
+        {
+          "name": "Higher rate",
+          "width": 87440,
+          "rate": 0.4
+        },
+        {
+          "name": "Additional rate",
+          "width": null,
+          "rate": 0.45
+        }
+      ],
+      "tax_cap_enabled": false,
+      "tax_cap_amount": 200000
+    },
+    "drawdown_strategy": "fixed_target",
+    "drawdown_strategy_params": {}
+  },
+  "review_store": {
+    "baseline_config": null,
+    "baseline_locked_date": null,
+    "reviews": []
+  },
+  "scenarios": [
+    {
+      "id": "demo-uk-downside",
+      "name": "Lower-growth / lower-income stress",
+      "config": {
+        "personal": {
+          "date_of_birth": "1966-06",
+          "retirement_date": "2031-06",
+          "end_age": 92,
+          "currency": "GBP"
+        },
+        "target_income": {
+          "net_annual": 28000,
+          "cpi_rate": 0.025
+        },
+        "guaranteed_income": [
+          {
+            "name": "State Pension",
+            "gross_annual": 11973,
+            "indexation_rate": 0.025,
+            "start_date": "2033-06",
+            "end_date": null,
+            "taxable": true,
+            "values_as_of": "2026-04"
+          },
+          {
+            "name": "Small DB Pension",
+            "gross_annual": 4200,
+            "indexation_rate": 0.025,
+            "start_date": "2031-06",
+            "end_date": null,
+            "taxable": true,
+            "values_as_of": "2026-04"
+          }
+        ],
+        "dc_pots": [
+          {
+            "name": "Workplace DC Pension",
+            "starting_balance": 285000,
+            "growth_rate": 0.03,
+            "annual_fees": 0.006,
+            "tax_free_portion": 0.25,
+            "values_as_of": "2026-04"
+          },
+          {
+            "name": "Personal SIPP",
+            "starting_balance": 115000,
+            "growth_rate": 0.025,
+            "annual_fees": 0.0045,
+            "tax_free_portion": 0.25,
+            "values_as_of": "2026-04"
+          }
+        ],
+        "tax_free_accounts": [
+          {
+            "name": "Stocks and Shares ISA",
+            "starting_balance": 82000,
+            "growth_rate": 0.025,
+            "values_as_of": "2026-04"
+          },
+          {
+            "name": "Cash Reserve",
+            "starting_balance": 18000,
+            "growth_rate": 0.015,
+            "values_as_of": "2026-04"
+          }
+        ],
+        "withdrawal_priority": [
+          "Cash Reserve",
+          "Stocks and Shares ISA",
+          "Workplace DC Pension",
+          "Personal SIPP"
+        ],
+        "tax": {
+          "regime": "UK England/Wales/NI 2026-27",
+          "tax_module_id": "simple-banded",
+          "rule_pack_id": "GB-EWNI-2026-27",
+          "personal_allowance": 12570,
+          "personal_allowance_taper": {
+            "starts_at": 100000,
+            "rate": 0.5,
+            "minimum_allowance": 0
+          },
+          "bands": [
+            {
+              "name": "Basic rate",
+              "width": 37700,
+              "rate": 0.2
+            },
+            {
+              "name": "Higher rate",
+              "width": 87440,
+              "rate": 0.4
+            },
+            {
+              "name": "Additional rate",
+              "width": null,
+              "rate": 0.45
+            }
+          ],
+          "tax_cap_enabled": false,
+          "tax_cap_amount": 200000
+        },
+        "drawdown_strategy": "fixed_target",
+        "drawdown_strategy_params": {}
+      },
+      "createdAt": "2026-05-12T10:30:00.000Z"
+    },
+    {
+      "id": "demo-uk-later-retirement",
+      "name": "Retire two years later",
+      "config": {
+        "personal": {
+          "date_of_birth": "1966-06",
+          "retirement_date": "2033-06",
+          "end_age": 92,
+          "currency": "GBP"
+        },
+        "target_income": {
+          "net_annual": 34000,
+          "cpi_rate": 0.025
+        },
+        "guaranteed_income": [
+          {
+            "name": "State Pension",
+            "gross_annual": 11973,
+            "indexation_rate": 0.025,
+            "start_date": "2033-06",
+            "end_date": null,
+            "taxable": true,
+            "values_as_of": "2026-04"
+          },
+          {
+            "name": "Small DB Pension",
+            "gross_annual": 4200,
+            "indexation_rate": 0.025,
+            "start_date": "2031-06",
+            "end_date": null,
+            "taxable": true,
+            "values_as_of": "2026-04"
+          }
+        ],
+        "dc_pots": [
+          {
+            "name": "Workplace DC Pension",
+            "starting_balance": 285000,
+            "growth_rate": 0.045,
+            "annual_fees": 0.006,
+            "tax_free_portion": 0.25,
+            "values_as_of": "2026-04"
+          },
+          {
+            "name": "Personal SIPP",
+            "starting_balance": 115000,
+            "growth_rate": 0.04,
+            "annual_fees": 0.0045,
+            "tax_free_portion": 0.25,
+            "values_as_of": "2026-04"
+          }
+        ],
+        "tax_free_accounts": [
+          {
+            "name": "Stocks and Shares ISA",
+            "starting_balance": 82000,
+            "growth_rate": 0.035,
+            "values_as_of": "2026-04"
+          },
+          {
+            "name": "Cash Reserve",
+            "starting_balance": 18000,
+            "growth_rate": 0.02,
+            "values_as_of": "2026-04"
+          }
+        ],
+        "withdrawal_priority": [
+          "Cash Reserve",
+          "Stocks and Shares ISA",
+          "Workplace DC Pension",
+          "Personal SIPP"
+        ],
+        "tax": {
+          "regime": "UK England/Wales/NI 2026-27",
+          "tax_module_id": "simple-banded",
+          "rule_pack_id": "GB-EWNI-2026-27",
+          "personal_allowance": 12570,
+          "personal_allowance_taper": {
+            "starts_at": 100000,
+            "rate": 0.5,
+            "minimum_allowance": 0
+          },
+          "bands": [
+            {
+              "name": "Basic rate",
+              "width": 37700,
+              "rate": 0.2
+            },
+            {
+              "name": "Higher rate",
+              "width": 87440,
+              "rate": 0.4
+            },
+            {
+              "name": "Additional rate",
+              "width": null,
+              "rate": 0.45
+            }
+          ],
+          "tax_cap_enabled": false,
+          "tax_cap_amount": 200000
+        },
+        "drawdown_strategy": "fixed_target",
+        "drawdown_strategy_params": {}
+      },
+      "createdAt": "2026-05-12T10:30:00.000Z"
+    }
+  ]
+}

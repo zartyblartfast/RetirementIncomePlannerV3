@@ -1,0 +1,188 @@
+{
+  "schema": "rip.full_case",
+  "version": 1,
+  "exported_at": "2026-05-12T10:55:00.000Z",
+  "app": "RetirementIncomePlannerV3",
+  "case_metadata": {
+    "case_name": "Demo Isle of Man Resident",
+    "case_reference": "DEMO-IM-001",
+    "owner_label": "Example Isle of Man resident",
+    "notes": "Fictional Isle of Man resident case using the IM-2026-27 tax rule pack. Intended to prompt adviser review of resident retirement-income treatment and exclusions.",
+    "created_at": "2026-05-12T10:00:00.000Z",
+    "updated_at": "2026-05-12T10:55:00.000Z"
+  },
+  "config": {
+    "personal": {
+      "date_of_birth": "1961-09",
+      "retirement_date": "2028-09",
+      "end_age": 92,
+      "currency": "GBP"
+    },
+    "target_income": {
+      "net_annual": 36000,
+      "cpi_rate": 0.025
+    },
+    "guaranteed_income": [
+      {
+        "name": "UK State Pension",
+        "gross_annual": 11973,
+        "indexation_rate": 0.025,
+        "start_date": "2028-09",
+        "end_date": null,
+        "taxable": true,
+        "values_as_of": "2026-04"
+      },
+      {
+        "name": "Former Employer DB",
+        "gross_annual": 9600,
+        "indexation_rate": 0.03,
+        "start_date": "2028-09",
+        "end_date": null,
+        "taxable": true,
+        "values_as_of": "2026-04"
+      }
+    ],
+    "dc_pots": [
+      {
+        "name": "Consolidated DC Pot",
+        "starting_balance": 420000,
+        "growth_rate": 0.042,
+        "annual_fees": 0.005,
+        "tax_free_portion": 0.25,
+        "values_as_of": "2026-04"
+      }
+    ],
+    "tax_free_accounts": [
+      {
+        "name": "ISA Portfolio",
+        "starting_balance": 125000,
+        "growth_rate": 0.035,
+        "values_as_of": "2026-04"
+      }
+    ],
+    "withdrawal_priority": [
+      "ISA Portfolio",
+      "Consolidated DC Pot"
+    ],
+    "tax": {
+      "regime": "Isle of Man 2026-27",
+      "tax_module_id": "simple-banded",
+      "rule_pack_id": "IM-2026-27",
+      "personal_allowance": 17000,
+      "personal_allowance_taper": {
+        "starts_at": 100000,
+        "rate": 0.5,
+        "minimum_allowance": 0
+      },
+      "bands": [
+        {
+          "name": "Standard rate",
+          "width": 6500,
+          "rate": 0.1
+        },
+        {
+          "name": "Higher rate",
+          "width": null,
+          "rate": 0.21
+        }
+      ],
+      "tax_cap_enabled": false,
+      "tax_cap_amount": 220000
+    },
+    "drawdown_strategy": "fixed_target",
+    "drawdown_strategy_params": {}
+  },
+  "review_store": {
+    "baseline_config": null,
+    "baseline_locked_date": null,
+    "reviews": []
+  },
+  "scenarios": [
+    {
+      "id": "demo-im-dc-first",
+      "name": "DC-first drawdown order",
+      "config": {
+        "personal": {
+          "date_of_birth": "1961-09",
+          "retirement_date": "2028-09",
+          "end_age": 92,
+          "currency": "GBP"
+        },
+        "target_income": {
+          "net_annual": 39000,
+          "cpi_rate": 0.025
+        },
+        "guaranteed_income": [
+          {
+            "name": "UK State Pension",
+            "gross_annual": 11973,
+            "indexation_rate": 0.025,
+            "start_date": "2028-09",
+            "end_date": null,
+            "taxable": true,
+            "values_as_of": "2026-04"
+          },
+          {
+            "name": "Former Employer DB",
+            "gross_annual": 9600,
+            "indexation_rate": 0.03,
+            "start_date": "2028-09",
+            "end_date": null,
+            "taxable": true,
+            "values_as_of": "2026-04"
+          }
+        ],
+        "dc_pots": [
+          {
+            "name": "Consolidated DC Pot",
+            "starting_balance": 420000,
+            "growth_rate": 0.042,
+            "annual_fees": 0.005,
+            "tax_free_portion": 0.25,
+            "values_as_of": "2026-04"
+          }
+        ],
+        "tax_free_accounts": [
+          {
+            "name": "ISA Portfolio",
+            "starting_balance": 125000,
+            "growth_rate": 0.035,
+            "values_as_of": "2026-04"
+          }
+        ],
+        "withdrawal_priority": [
+          "Consolidated DC Pot",
+          "ISA Portfolio"
+        ],
+        "tax": {
+          "regime": "Isle of Man 2026-27",
+          "tax_module_id": "simple-banded",
+          "rule_pack_id": "IM-2026-27",
+          "personal_allowance": 17000,
+          "personal_allowance_taper": {
+            "starts_at": 100000,
+            "rate": 0.5,
+            "minimum_allowance": 0
+          },
+          "bands": [
+            {
+              "name": "Standard rate",
+              "width": 6500,
+              "rate": 0.1
+            },
+            {
+              "name": "Higher rate",
+              "width": null,
+              "rate": 0.21
+            }
+          ],
+          "tax_cap_enabled": false,
+          "tax_cap_amount": 220000
+        },
+        "drawdown_strategy": "fixed_target",
+        "drawdown_strategy_params": {}
+      },
+      "createdAt": "2026-05-12T10:30:00.000Z"
+    }
+  ]
+}

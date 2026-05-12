@@ -1,0 +1,313 @@
+{
+  "schema": "rip.full_case",
+  "version": 1,
+  "exported_at": "2026-05-12T10:55:00.000Z",
+  "app": "RetirementIncomePlannerV3",
+  "case_metadata": {
+    "case_name": "Demo Post-Retirement Review",
+    "case_reference": "DEMO-REV-001",
+    "owner_label": "Example retired user",
+    "notes": "Post-retirement example with a locked baseline and two review snapshots, showing actual balances/income and the live projection basis after review.",
+    "created_at": "2026-05-12T10:00:00.000Z",
+    "updated_at": "2026-05-12T10:55:00.000Z"
+  },
+  "config": {
+    "personal": {
+      "date_of_birth": "1958-03",
+      "retirement_date": "2024-03",
+      "end_age": 90,
+      "currency": "GBP"
+    },
+    "target_income": {
+      "net_annual": 30000,
+      "cpi_rate": 0.025
+    },
+    "guaranteed_income": [
+      {
+        "name": "State Pension",
+        "gross_annual": 11973,
+        "indexation_rate": 0.025,
+        "start_date": "2024-03",
+        "end_date": null,
+        "taxable": true,
+        "values_as_of": "2026-04"
+      }
+    ],
+    "dc_pots": [
+      {
+        "name": "Retirement DC Pot",
+        "starting_balance": 226500,
+        "growth_rate": 0.04,
+        "annual_fees": 0.005,
+        "tax_free_portion": 0.25,
+        "values_as_of": "2026-04"
+      }
+    ],
+    "tax_free_accounts": [
+      {
+        "name": "ISA",
+        "starting_balance": 54500,
+        "growth_rate": 0.03,
+        "values_as_of": "2026-04"
+      }
+    ],
+    "withdrawal_priority": [
+      "ISA",
+      "Retirement DC Pot"
+    ],
+    "tax": {
+      "regime": "UK England/Wales/NI 2026-27",
+      "tax_module_id": "simple-banded",
+      "rule_pack_id": "GB-EWNI-2026-27",
+      "personal_allowance": 12570,
+      "personal_allowance_taper": {
+        "starts_at": 100000,
+        "rate": 0.5,
+        "minimum_allowance": 0
+      },
+      "bands": [
+        {
+          "name": "Basic rate",
+          "width": 37700,
+          "rate": 0.2
+        },
+        {
+          "name": "Higher rate",
+          "width": 87440,
+          "rate": 0.4
+        },
+        {
+          "name": "Additional rate",
+          "width": null,
+          "rate": 0.45
+        }
+      ],
+      "tax_cap_enabled": false,
+      "tax_cap_amount": 200000
+    },
+    "drawdown_strategy": "fixed_target",
+    "drawdown_strategy_params": {}
+  },
+  "review_store": {
+    "baseline_config": {
+      "personal": {
+        "date_of_birth": "1958-03",
+        "retirement_date": "2024-03",
+        "end_age": 90,
+        "currency": "GBP"
+      },
+      "target_income": {
+        "net_annual": 30000,
+        "cpi_rate": 0.025
+      },
+      "guaranteed_income": [
+        {
+          "name": "State Pension",
+          "gross_annual": 11973,
+          "indexation_rate": 0.025,
+          "start_date": "2024-03",
+          "end_date": null,
+          "taxable": true,
+          "values_as_of": "2026-04"
+        }
+      ],
+      "dc_pots": [
+        {
+          "name": "Retirement DC Pot",
+          "starting_balance": 240000,
+          "growth_rate": 0.04,
+          "annual_fees": 0.005,
+          "tax_free_portion": 0.25,
+          "values_as_of": "2024-03"
+        }
+      ],
+      "tax_free_accounts": [
+        {
+          "name": "ISA",
+          "starting_balance": 62000,
+          "growth_rate": 0.03,
+          "values_as_of": "2024-03"
+        }
+      ],
+      "withdrawal_priority": [
+        "ISA",
+        "Retirement DC Pot"
+      ],
+      "tax": {
+        "regime": "UK England/Wales/NI 2026-27",
+        "tax_module_id": "simple-banded",
+        "rule_pack_id": "GB-EWNI-2026-27",
+        "personal_allowance": 12570,
+        "personal_allowance_taper": {
+          "starts_at": 100000,
+          "rate": 0.5,
+          "minimum_allowance": 0
+        },
+        "bands": [
+          {
+            "name": "Basic rate",
+            "width": 37700,
+            "rate": 0.2
+          },
+          {
+            "name": "Higher rate",
+            "width": 87440,
+            "rate": 0.4
+          },
+          {
+            "name": "Additional rate",
+            "width": null,
+            "rate": 0.45
+          }
+        ],
+        "tax_cap_enabled": false,
+        "tax_cap_amount": 200000
+      },
+      "drawdown_strategy": "fixed_target",
+      "drawdown_strategy_params": {}
+    },
+    "baseline_locked_date": "2024-03-01T09:00:00.000Z",
+    "reviews": [
+      {
+        "id": "demo-review-2025-04",
+        "date": "2025-04",
+        "pot_balances": {
+          "Retirement DC Pot": 235800,
+          "ISA": 58600
+        },
+        "income_since_last": {
+          "Retirement DC Pot": 9000,
+          "ISA": 9000,
+          "State Pension": 11973
+        },
+        "guaranteed_monthly": {
+          "State Pension": 997.75
+        },
+        "guaranteed_income_update_mode": "record_only",
+        "strategy": "fixed_target",
+        "strategy_params": {},
+        "tax_context": {
+          "regime": "UK England/Wales/NI 2026-27",
+          "rule_pack_id": "GB-EWNI-2026-27",
+          "tax_year": "2026-27",
+          "tax_module_id": "simple-banded",
+          "source_count": 2,
+          "known_exclusions": []
+        },
+        "notes": "First annual review after retirement. Actual drawdowns broadly matched the baseline plan."
+      },
+      {
+        "id": "demo-review-2026-04",
+        "date": "2026-04",
+        "pot_balances": {
+          "Retirement DC Pot": 226500,
+          "ISA": 54500
+        },
+        "income_since_last": {
+          "Retirement DC Pot": 10500,
+          "ISA": 7500,
+          "State Pension": 11973
+        },
+        "guaranteed_monthly": {
+          "State Pension": 997.75
+        },
+        "guaranteed_income_update_mode": "update_current_assumption",
+        "strategy": "fixed_target",
+        "strategy_params": {},
+        "tax_context": {
+          "regime": "UK England/Wales/NI 2026-27",
+          "rule_pack_id": "GB-EWNI-2026-27",
+          "tax_year": "2026-27",
+          "tax_module_id": "simple-banded",
+          "source_count": 2,
+          "known_exclusions": []
+        },
+        "notes": "Second review updates the current projection basis from actual balances and current State Pension amount."
+      }
+    ]
+  },
+  "scenarios": [
+    {
+      "id": "demo-review-lower-income",
+      "name": "Reduce target income after review",
+      "config": {
+        "personal": {
+          "date_of_birth": "1958-03",
+          "retirement_date": "2024-03",
+          "end_age": 90,
+          "currency": "GBP"
+        },
+        "target_income": {
+          "net_annual": 27000,
+          "cpi_rate": 0.025
+        },
+        "guaranteed_income": [
+          {
+            "name": "State Pension",
+            "gross_annual": 11973,
+            "indexation_rate": 0.025,
+            "start_date": "2024-03",
+            "end_date": null,
+            "taxable": true,
+            "values_as_of": "2026-04"
+          }
+        ],
+        "dc_pots": [
+          {
+            "name": "Retirement DC Pot",
+            "starting_balance": 226500,
+            "growth_rate": 0.04,
+            "annual_fees": 0.005,
+            "tax_free_portion": 0.25,
+            "values_as_of": "2026-04"
+          }
+        ],
+        "tax_free_accounts": [
+          {
+            "name": "ISA",
+            "starting_balance": 54500,
+            "growth_rate": 0.03,
+            "values_as_of": "2026-04"
+          }
+        ],
+        "withdrawal_priority": [
+          "ISA",
+          "Retirement DC Pot"
+        ],
+        "tax": {
+          "regime": "UK England/Wales/NI 2026-27",
+          "tax_module_id": "simple-banded",
+          "rule_pack_id": "GB-EWNI-2026-27",
+          "personal_allowance": 12570,
+          "personal_allowance_taper": {
+            "starts_at": 100000,
+            "rate": 0.5,
+            "minimum_allowance": 0
+          },
+          "bands": [
+            {
+              "name": "Basic rate",
+              "width": 37700,
+              "rate": 0.2
+            },
+            {
+              "name": "Higher rate",
+              "width": 87440,
+              "rate": 0.4
+            },
+            {
+              "name": "Additional rate",
+              "width": null,
+              "rate": 0.45
+            }
+          ],
+          "tax_cap_enabled": false,
+          "tax_cap_amount": 200000
+        },
+        "drawdown_strategy": "fixed_target",
+        "drawdown_strategy_params": {}
+      },
+      "createdAt": "2026-05-12T10:30:00.000Z"
+    }
+  ]
+}
