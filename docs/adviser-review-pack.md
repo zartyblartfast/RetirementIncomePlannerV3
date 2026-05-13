@@ -318,9 +318,9 @@ show that the implementation consistently applies the documented model, not to
 replace adviser judgement about whether the model is complete or suitable for a
 specific person.
 
-The current recorded Dev01 baseline is:
+The current recorded adviser-readiness baseline is:
 
-- 244 Vitest tests passing;
+- 278 Vitest tests passing;
 - TypeScript passing with `npx tsc -b`;
 - production build passing with `npm run build`, with the existing chunk-size
   warning only.
@@ -348,6 +348,8 @@ The test suite includes checks for:
   orders;
 - tax rule-pack context, source metadata, and known exclusions being exposed in
   review/workings views.
+- fictional adviser demo case files remaining parseable, projectable, and
+  explicitly mapped to broad asset allocation assumptions.
 
 These checks give confidence that figures shown in annual tables, charts,
 workings, and summaries are internally consistent with the configured model.

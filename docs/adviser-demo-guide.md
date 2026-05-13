@@ -19,6 +19,7 @@ is needed.
    - guaranteed income;
    - DC pension pots;
    - tax-free accounts;
+   - asset allocation mappings and growth-rate assumptions;
    - tax rule pack or custom tax settings;
    - drawdown strategy and drawdown order.
 4. Review the Dashboard outputs:
@@ -69,6 +70,8 @@ Use careful assurance wording:
 - `docs/calculation-assumptions.md` - simplifications and exclusions.
 - `docs/calculation-worked-examples.md` - generic hand-checkable examples.
 - `docs/isle-of-man-worked-examples.md` - Isle of Man 2026-27 tax examples.
+- `docs/investment-assumptions-and-asset-mapping.md` - allocation mapping and
+  historical proxy caveats.
 - `docs/test-coverage-review.md` - assurance trail and current test coverage.
 - `docs/case-persistence-and-review-semantics.md` - Save Case / Restore Case
   semantics.
@@ -83,6 +86,8 @@ Use careful assurance wording:
   volatility or sequence-of-returns risk directly.
 - Tax treatment is limited to the implemented rule-pack scope and explicit
   exclusions.
+- Asset allocation mappings are broad planning assumptions selected by the user
+  or adviser, not provider fund-specific validations.
 - The app does not replace personalised regulated financial advice.
 - Full-case files are the recommended demo format. Config-only files are an
   advanced/backwards-compatible option and exclude case details, Review history,

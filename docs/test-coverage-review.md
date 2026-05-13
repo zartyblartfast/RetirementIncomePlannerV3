@@ -15,15 +15,14 @@ The central distinction is:
 
 ## Current Recorded Baseline
 
-Latest recorded local Dev01 verification after adding the internal consistency
-suite:
+Latest recorded local `main` adviser-readiness verification:
 
-- 244 Vitest tests passing.
+- 278 Vitest tests passing.
 - TypeScript check passing with `npx tsc -b`.
 - Production build passing with `npm run build`, with the existing chunk-size
   warning only.
-- Internal consistency addition committed locally as `8e2dfa9 test: add internal
-  consistency checks`.
+- Demo full-case files parse, project, and include explicit adviser-visible asset
+  allocation mappings for each DC pot and tax-free account.
 
 This baseline should be re-run before any adviser pack is finalised or shared.
 
@@ -86,6 +85,7 @@ The tests do not prove that:
 | `src/store/__tests__/configStore.test.ts` | Store smoke tests | Basic localStorage presence/reset behaviour works. | Does not cover the full provider first-run state machine. |
 | `src/store/__tests__/ConfigProvider.test.tsx` | Store/import workflow | Empty storage starts first-run mode; stored legacy configs are migrated; import-style save plus mark-configured exits first-run mode; reset returns to first-run mode. | File picker/browser import UI still needs manual browser smoke testing. |
 | `src/store/__tests__/reviewStore.test.ts` | Review snapshot persistence | Review snapshots and tax context survive expected store operations. | Does not validate adviser interpretation of the snapshot. |
+| `src/store/__tests__/demoCaseFiles.test.ts` | Demo case assurance | Fictional adviser walkthrough full-case files parse, project, and include explicit asset allocation mappings for DC pots and tax-free accounts. | Does not prove the chosen mappings are adviser-approved or suitable for a real client. |
 
 ## Current Strengths
 
@@ -101,6 +101,8 @@ The tests do not prove that:
   source links, and known exclusions.
 - Asset allocation tests guard the default Diversified Growth mapping and the
   template/custom selector helpers used by DC pots and tax-free accounts.
+- Demo case tests guard that prepared adviser walkthrough files remain parseable,
+  projectable, and visibly mapped to broad asset allocation assumptions.
 - Golden and cross-version tests reduce the risk of accidental behavioural
   changes during refactors.
 

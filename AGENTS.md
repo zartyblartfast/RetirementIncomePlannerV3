@@ -88,11 +88,11 @@ Build production bundle:
 npm run build
 ```
 
-Current expected baseline:
+Current expected baseline on `main` after the adviser-readiness asset-allocation/demo-case pass:
 
-- Dev01 after the Dashboard Income Breakdown chart reconciliation fix: about 214 Vitest tests passing
-- Older/main snapshots may show about 194 tests passing
+- 278 Vitest tests passing
 - TypeScript: 0 errors
+- Production build passing, with the existing chunk-size warning only
 
 If this baseline changes legitimately, update this file in the same diff.
 

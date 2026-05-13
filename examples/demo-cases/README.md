@@ -19,6 +19,9 @@ current planner config, case details, Review history, and What If scenarios.
 
 - Figures are deliberately plausible but fictional.
 - Tax treatment follows the current app rule packs and known exclusions.
+- Each DC pot and ISA/tax-free account includes an explicit broad asset allocation
+  mapping so the adviser can challenge the growth/historical-proxy assumptions
+  during the walkthrough.
 - These files demonstrate app workflow and data portability; they do not prove
   that any tax/planning treatment is adviser-approved.
 - For the live walkthrough path, see `docs/adviser-demo-guide.md`.

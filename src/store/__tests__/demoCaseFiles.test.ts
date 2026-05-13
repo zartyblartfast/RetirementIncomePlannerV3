@@ -27,6 +27,19 @@ describe('demo case files', () => {
     expect(caseFile.case_metadata.case_name).not.toBe('');
     expect(caseFile.config.personal.retirement_date).toMatch(/^\d{4}-\d{2}$/);
 
+    for (const pot of caseFile.config.dc_pots) {
+      expect(
+        pot.allocation,
+        `${file} ${pot.name} should include an adviser-visible allocation`,
+      ).toBeDefined();
+    }
+    for (const account of caseFile.config.tax_free_accounts) {
+      expect(
+        account.allocation,
+        `${file} ${account.name} should include an adviser-visible allocation`,
+      ).toBeDefined();
+    }
+
     const projection = runProjection(caseFile.config);
     expect(projection.years.length).toBeGreaterThan(0);
     expect(projection.summary.end_age).toBe(caseFile.config.personal.end_age);

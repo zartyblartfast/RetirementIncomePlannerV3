@@ -40,7 +40,12 @@
         "growth_rate": 0.04,
         "annual_fees": 0.005,
         "tax_free_portion": 0.25,
-        "values_as_of": "2026-04"
+        "values_as_of": "2026-04",
+        "allocation": {
+          "mode": "template",
+          "template_id": "cautious_40_60",
+          "manual_override": true
+        }
       }
     ],
     "tax_free_accounts": [
@@ -48,7 +53,12 @@
         "name": "ISA",
         "starting_balance": 54500,
         "growth_rate": 0.03,
-        "values_as_of": "2026-04"
+        "values_as_of": "2026-04",
+        "allocation": {
+          "mode": "template",
+          "template_id": "defensive_20_80",
+          "manual_override": true
+        }
       }
     ],
     "withdrawal_priority": [

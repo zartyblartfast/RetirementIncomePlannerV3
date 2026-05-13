@@ -49,7 +49,12 @@
         "growth_rate": 0.045,
         "annual_fees": 0.006,
         "tax_free_portion": 0.25,
-        "values_as_of": "2026-04"
+        "values_as_of": "2026-04",
+        "allocation": {
+          "mode": "template",
+          "template_id": "balanced_60_40",
+          "manual_override": true
+        }
       },
       {
         "name": "Personal SIPP",
@@ -57,7 +62,12 @@
         "growth_rate": 0.04,
         "annual_fees": 0.0045,
         "tax_free_portion": 0.25,
-        "values_as_of": "2026-04"
+        "values_as_of": "2026-04",
+        "allocation": {
+          "mode": "template",
+          "template_id": "balanced_80_20",
+          "manual_override": true
+        }
       }
     ],
     "tax_free_accounts": [
@@ -65,13 +75,25 @@
         "name": "Stocks and Shares ISA",
         "starting_balance": 82000,
         "growth_rate": 0.035,
-        "values_as_of": "2026-04"
+        "values_as_of": "2026-04",
+        "allocation": {
+          "mode": "template",
+          "template_id": "balanced_80_20",
+          "manual_override": true
+        }
       },
       {
         "name": "Cash Reserve",
         "starting_balance": 18000,
         "growth_rate": 0.02,
-        "values_as_of": "2026-04"
+        "values_as_of": "2026-04",
+        "allocation": {
+          "mode": "custom",
+          "custom_weights": {
+            "cash": 1.0
+          },
+          "manual_override": true
+        }
       }
     ],
     "withdrawal_priority": [
