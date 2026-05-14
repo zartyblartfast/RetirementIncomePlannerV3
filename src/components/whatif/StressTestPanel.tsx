@@ -65,6 +65,7 @@ export default function StressTestPanel({ config }: Props) {
       const p50 = stress!.percentile_trajectories.p50?.[i]?.[field] ?? 0;
       const p75 = stress!.percentile_trajectories.p75?.[i]?.[field] ?? 0;
       const p90 = stress!.percentile_trajectories.p90?.[i]?.[field] ?? 0;
+      const target_income = stress!.percentile_trajectories.p50?.[i]?.target_income ?? 0;
       return {
         age,
         // Stacked bands: base + differences
@@ -75,7 +76,7 @@ export default function StressTestPanel({ config }: Props) {
         band_50_75: Math.max(0, p75 - p50),
         band_75_90: Math.max(0, p90 - p75),
         // Raw values for overlay lines & tooltip
-        p5, p10, p25, p50, p75, p90,
+        p5, p10, p25, p50, p75, p90, target_income,
       };
     });
   }
@@ -101,6 +102,11 @@ export default function StressTestPanel({ config }: Props) {
         <span className="text-sm text-gray-500">
           {getStrategyDisplayName(strategyId)} — {stress.n_windows} periods
         </span>
+      </div>
+
+      <div className="rounded-lg border border-blue-100 bg-blue-50/70 p-3 text-xs text-blue-900">
+        Historical windows are applied from the plan's retirement age, not from today's date.
+        The x-axis shows projection age; the historical year labels show which past market/inflation sequence is being replayed.
       </div>
 
       {/* Summary Cards */}
@@ -245,6 +251,7 @@ export default function StressTestPanel({ config }: Props) {
                     <p style={{ color: '#15803d' }}>P90: {fmt(d.p90)}</p>
                     <p style={{ color: '#22863a' }}>P75: {fmt(d.p75)}</p>
                     <p style={{ color: '#0d6efd' }} className="font-bold">P50: {fmt(d.p50)}</p>
+                    <p style={{ color: '#6b7280' }}>Target: {fmt(d.target_income)}</p>
                     <p style={{ color: '#d97706' }}>P25: {fmt(d.p25)}</p>
                     <p style={{ color: '#dc3545' }}>P10: {fmt(d.p10)}</p>
                     <p style={{ color: '#991b1b' }}>P5: {fmt(d.p5)}</p>
@@ -262,9 +269,17 @@ export default function StressTestPanel({ config }: Props) {
             {/* Overlay lines */}
             <Line type="monotone" dataKey="p90" stroke="#15803d88" strokeWidth={1} strokeDasharray="4 4" dot={false} isAnimationActive={false} />
             <Line type="monotone" dataKey="p50" stroke="#0d6efd" strokeWidth={2.5} dot={false} isAnimationActive={false} />
+            <Line type="monotone" dataKey="target_income" stroke="#111827" strokeWidth={3} strokeDasharray="10 5" dot={false} isAnimationActive={false} name="Target income" />
             <Line type="monotone" dataKey="p5" stroke="#991b1b88" strokeWidth={1} strokeDasharray="4 4" dot={false} isAnimationActive={false} />
           </ComposedChart>
         </ResponsiveContainer>
+        <div className="mt-2 flex items-center gap-2 text-xs text-gray-500" aria-label="Income chart legend">
+          <span
+            className="inline-block h-0 w-10 border-t-[3px] border-dashed border-gray-900"
+            aria-hidden="true"
+          />
+          <span>Inflation-indexed target net income</span>
+        </div>
       </div>
 
       {/* Period Timeline */}
@@ -330,7 +345,7 @@ export default function StressTestPanel({ config }: Props) {
           <p><strong>Bond returns:</strong> UK gilt yields (BoE Millennium), approximated as yield + 10yr duration × (−Δyield).</p>
           <p><strong>Inflation:</strong> UK CPI from BoE Millennium (to 2016) + ONS CPI (2017+).</p>
           <p><strong>Cash:</strong> Bank of England Bank Rate.</p>
-          <p><strong>Method:</strong> Each pot's return is weighted by its asset allocation. The projection is run for every viable historical period of the required length. Results show how the scenario would have performed across {stress.n_windows} years of real market history.</p>
+          <p><strong>Method:</strong> Each pot's return is weighted by its asset allocation. The projection is run for every viable historical period of the required length, starting at the plan's retirement age. Results show how the scenario would have performed across {stress.n_windows} years of real market history; the age axis remains the plan age, not the historical calendar year.</p>
         </div>
       </details>
     </div>

@@ -58,3 +58,22 @@ describe('config withdrawal_priority normalization', () => {
     ])
   })
 })
+
+
+describe('income source normalization', () => {
+  beforeEach(() => { localStorage.clear() })
+
+  it('adds income source type and open-ended end date for older saved configs', () => {
+    const { income_type: _incomeType, end_date: _endDate, ...legacyIncome } = DEFAULT_CONFIG.guaranteed_income[0]!
+    const storedConfig = {
+      ...DEFAULT_CONFIG,
+      guaranteed_income: [legacyIncome],
+    } as unknown as PlannerConfig
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(storedConfig))
+
+    const income = loadConfig().guaranteed_income[0]!
+    expect(income.income_type).toBe('state_pension')
+    expect(income.end_date).toBeNull()
+  })
+})

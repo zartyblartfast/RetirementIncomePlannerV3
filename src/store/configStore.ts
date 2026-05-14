@@ -31,6 +31,7 @@ export const DEFAULT_CONFIG: PlannerConfig = {
   guaranteed_income: [
     {
       name: 'State Pension',
+      income_type: 'state_pension',
       gross_annual: 11973,
       indexation_rate: 0.025,
       start_date: '2032-01',

@@ -384,6 +384,7 @@ export interface PercentilePoint {
   age: number;
   total_capital: number;
   net_income: number;
+  target_income: number;
 }
 
 export interface StressTestResult {
@@ -505,10 +506,12 @@ export function extractStressTest(
     for (const age of ages) {
       const sortedCap = [...capitalByAge[age]!].sort((a, b) => a - b);
       const sortedInc = [...incomeByAge[age]!].sort((a, b) => a - b);
+      const sortedTarget = [...targetByAge[age]!].sort((a, b) => a - b);
       pctTrajectories[label]!.push({
         age,
         total_capital: round2(percentile(sortedCap, p)),
         net_income: round2(percentile(sortedInc, p)),
+        target_income: round2(percentile(sortedTarget, p)),
       });
     }
   }

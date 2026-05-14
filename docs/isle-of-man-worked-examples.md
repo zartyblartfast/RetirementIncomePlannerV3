@@ -11,12 +11,19 @@ personal tax advice.
 
 The `IM-2026-27` pack currently models:
 
-- personal allowance of £17,000;
+- personal allowance of £17,000 for the 2026/27 tax year, commencing
+  6 April 2026;
 - personal allowance taper above £100,000 at £1 lost for every £2 of
   income above the threshold;
 - standard rate: first £6,500 after personal allowance at 10%;
 - higher rate: remaining income after personal allowance at 21%;
 - optional tax cap amount of £220,000, only when `tax_cap_enabled` is set.
+
+Note on year differences: the Isle of Man Government rates-and-allowances table
+shows the single-person allowance as £14,500 for 2022/23 to 2024/25, £14,750
+for 2025/26, and £17,000 for 2026/27. This document is deliberately testing the
+`IM-2026-27` rule pack, so the £17,000 allowance is not the same as the older
+£14,500 figure.
 
 Known exclusions from the current rule pack:
 

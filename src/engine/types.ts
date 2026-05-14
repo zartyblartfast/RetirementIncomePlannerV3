@@ -20,8 +20,11 @@ export interface TargetIncomeConfig {
   cpi_rate: number;
 }
 
+export type IncomeSourceType = 'state_pension' | 'defined_benefit' | 'annuity' | 'part_time_salary' | 'other';
+
 export interface GuaranteedIncomeConfig {
   name: string;
+  income_type?: IncomeSourceType;
   gross_annual: number;
   indexation_rate: number;
   start_date?: string;          // "YYYY-MM" — source of truth

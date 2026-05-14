@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Settings, ChevronDown, ChevronUp, Plus, Trash2, Download, Upload } from 'lucide-react';
 import { useConfig, exportConfigToFile, importConfigFromFile } from '../../store/configStore';
 import { exportCaseToFile, importCaseFromFile, loadCaseMetadata, saveCaseMetadata, type CaseMetadata } from '../../store/caseStore';
 import { STRATEGIES, STRATEGY_IDS } from '../../engine/strategies';
 import { TAX_RULE_PACKS, taxConfigFromRulePack } from '../../engine/taxRulePacks';
-import type { PlannerConfig, GuaranteedIncomeConfig, DCPotConfig, TaxFreeAccountConfig, AllocationConfig } from '../../engine/types';
+import type { PlannerConfig, GuaranteedIncomeConfig, DCPotConfig, TaxFreeAccountConfig, AllocationConfig, IncomeSourceType } from '../../engine/types';
 import {
   allocationFromTemplate,
   allocationTemplateLabel,
@@ -16,8 +16,18 @@ import {
   normalizeAllocation,
   defaultGrowthRateFromAllocation,
 } from '../../engine/assetAllocation';
+import { deriveRetirementAge } from '../../engine/dateUtils';
 
 const NOW_MONTH = new Date().toISOString().slice(0, 7);
+
+function addMonths(yearMonth: string, monthsToAdd: number): string {
+  const [year, month] = yearMonth.split('-').map(Number) as [number, number];
+  if (!year || !month) return NOW_MONTH;
+  const zeroBased = month - 1 + monthsToAdd;
+  const nextYear = year + Math.floor(zeroBased / 12);
+  const nextMonth = (zeroBased % 12) + 1;
+  return `${nextYear}-${String(nextMonth).padStart(2, '0')}`;
+}
 
 function newDcPot(name: string): DCPotConfig {
   const allocation = makeDefaultAllocation();
@@ -43,16 +53,34 @@ function newTfAccount(name: string): TaxFreeAccountConfig {
   };
 }
 
-function newGuaranteedIncome(name: string, retirementDate: string): GuaranteedIncomeConfig {
+function newGuaranteedIncome(
+  name: string,
+  retirementDate: string,
+  incomeType: IncomeSourceType = 'defined_benefit',
+): GuaranteedIncomeConfig {
   return {
     name,
+    income_type: incomeType,
     gross_annual: 0,
-    indexation_rate: 0.03,
+    indexation_rate: incomeType === 'part_time_salary' ? 0 : 0.03,
     start_date: retirementDate || NOW_MONTH,
-    end_date: null,
+    end_date: incomeType === 'part_time_salary' ? addMonths(retirementDate || NOW_MONTH, 24) : null,
     taxable: true,
     values_as_of: NOW_MONTH,
   };
+}
+
+const INCOME_SOURCE_TYPE_OPTIONS: Array<{ value: IncomeSourceType; label: string }> = [
+  { value: 'state_pension', label: 'State Pension' },
+  { value: 'defined_benefit', label: 'DB / pension income' },
+  { value: 'annuity', label: 'Annuity' },
+  { value: 'part_time_salary', label: 'Part-time salary' },
+  { value: 'other', label: 'Other income' },
+];
+
+function ageLabelAtMonth(dateOfBirth: string, month?: string | null): string | null {
+  if (!dateOfBirth || !month) return null;
+  return `age ${deriveRetirementAge(dateOfBirth, month)}`;
 }
 
 export default function ConfigPanel() {
@@ -147,7 +175,17 @@ export default function ConfigPanel() {
       ...prev,
       guaranteed_income: [
         ...prev.guaranteed_income,
-        newGuaranteedIncome(`Pension ${prev.guaranteed_income.length + 1}`, prev.personal.retirement_date),
+        newGuaranteedIncome(`Income source ${prev.guaranteed_income.length + 1}`, prev.personal.retirement_date),
+      ],
+    }));
+  }
+
+  function addPartTimeSalary() {
+    updateConfig(prev => ({
+      ...prev,
+      guaranteed_income: [
+        ...prev.guaranteed_income,
+        newGuaranteedIncome('Part-time salary', prev.personal.retirement_date, 'part_time_salary'),
       ],
     }));
   }
@@ -403,6 +441,7 @@ export default function ConfigPanel() {
                 onChange={e => setNested('personal.retirement_date', e.target.value)}
                 className="input-field"
               />
+              <HelperText>{ageLabelAtMonth(config.personal.date_of_birth, config.personal.retirement_date)}</HelperText>
             </Field>
 
             <Field label="Plan Until Age">
@@ -507,25 +546,38 @@ export default function ConfigPanel() {
             </div>
           )}
 
-          {/* Guaranteed Income */}
+          {/* Income Sources */}
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Guaranteed Income (Pensions)
-              </h4>
-              <button
-                onClick={addGuaranteed}
-                className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" /> Add pension
-              </button>
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <div>
+                <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Income Sources
+                </h4>
+                <p className="text-xs text-gray-400 mt-1">
+                  Pensions, annuities, salary or other income. Start/end dates, taxability and indexation are explicit so temporary semi-retirement income is visible.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={addPartTimeSalary}
+                  className="flex items-center gap-1 text-xs text-emerald-700 hover:text-emerald-900 transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add part-time salary
+                </button>
+                <button
+                  onClick={addGuaranteed}
+                  className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add income source
+                </button>
+              </div>
             </div>
             {config.guaranteed_income.length === 0 && (
-              <p className="text-xs text-gray-400 italic">No guaranteed income sources configured.</p>
+              <p className="text-xs text-gray-400 italic">No income sources configured.</p>
             )}
             <div className="space-y-3">
               {config.guaranteed_income.map((gi, i) => (
-                <div key={i} className="grid grid-cols-[1fr_1fr_auto_auto_auto_auto] sm:grid-cols-[2fr_1fr_0.8fr_0.7fr_0.7fr_auto] gap-2 items-end">
+                <div key={i} className="grid grid-cols-2 sm:grid-cols-[1.7fr_1.2fr_1fr_0.8fr_0.8fr_0.8fr_0.8fr_auto] gap-2 items-start rounded-md border border-gray-100 bg-gray-50/40 p-2">
                   <Field label="Name">
                     <input
                       type="text"
@@ -533,6 +585,20 @@ export default function ConfigPanel() {
                       onChange={e => updateGuaranteed(i, 'name', e.target.value)}
                       className="input-field"
                     />
+                  </Field>
+                  <Field label="Type">
+                    <select
+                      value={gi.income_type ?? 'defined_benefit'}
+                      onChange={e => updateGuaranteed(i, 'income_type', e.target.value)}
+                      className="input-field"
+                    >
+                      {INCOME_SOURCE_TYPE_OPTIONS.map(option => (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      ))}
+                    </select>
+                    {gi.income_type === 'part_time_salary' && (
+                      <HelperText>Salary-style taxable income; use Ends for semi-retirement work.</HelperText>
+                    )}
                   </Field>
                   <Field label="Gross Annual (£)">
                     <input
@@ -559,6 +625,18 @@ export default function ConfigPanel() {
                       onChange={e => updateGuaranteed(i, 'start_date', e.target.value)}
                       className="input-field"
                     />
+                    {gi.income_type === 'state_pension' && (
+                      <HelperText>{ageLabelAtMonth(config.personal.date_of_birth, gi.start_date)}</HelperText>
+                    )}
+                  </Field>
+                  <Field label="Ends">
+                    <input
+                      type="month"
+                      value={gi.end_date ?? ''}
+                      onChange={e => updateGuaranteed(i, 'end_date', e.target.value || null)}
+                      className="input-field"
+                    />
+                    <HelperText>{gi.end_date ? ageLabelAtMonth(config.personal.date_of_birth, gi.end_date) : 'Lifetime / ongoing'}</HelperText>
                   </Field>
                   <Field label="Taxable">
                     <select
@@ -573,7 +651,7 @@ export default function ConfigPanel() {
                   <button
                     onClick={() => removeGuaranteed(i)}
                     className="mb-0.5 p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                    title="Remove pension"
+                    title="Remove income source"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -876,10 +954,15 @@ function AllocationSelector({
   );
 }
 
+function HelperText({ children }: { children: ReactNode }) {
+  if (!children) return null;
+  return <p className="mt-1 text-[11px] leading-snug text-gray-400">{children}</p>;
+}
+
 function Field({ label, tooltip, children }: {
   label: string;
   tooltip?: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <label className="block">

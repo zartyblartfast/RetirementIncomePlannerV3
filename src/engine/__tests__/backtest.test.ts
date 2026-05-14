@@ -54,12 +54,13 @@ describe('Backtest — stress test extraction', () => {
     expect(stress!.ages.length).toBe(23);
   });
 
-  it('has percentile trajectories', () => {
+  it('has percentile trajectories with target income overlay values', () => {
     expect(stress!.percentile_trajectories).toHaveProperty('p5');
     expect(stress!.percentile_trajectories).toHaveProperty('p50');
     expect(stress!.percentile_trajectories).toHaveProperty('p90');
     // Each trajectory has an entry per age
     expect(stress!.percentile_trajectories.p50!.length).toBe(23);
+    expect(stress!.percentile_trajectories.p50![0]!.target_income).toBeGreaterThan(0);
   });
 
   it('p90 capital >= p50 >= p10 at end age', () => {
