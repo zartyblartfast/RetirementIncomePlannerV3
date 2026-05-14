@@ -17,6 +17,7 @@ import type { PlannerConfig } from '../../engine/types';
 import { runBacktest, extractStressTest } from '../../engine/backtest';
 import type { StressTestResult } from '../../engine/backtest';
 import { getStrategyDisplayName } from '../../engine/strategies';
+import { stressChartLabelsForStrategy } from './stressChartLabels';
 
 interface Props {
   config: PlannerConfig;
@@ -51,6 +52,7 @@ export default function StressTestPanel({ config }: Props) {
   }
 
   const strategyId = config.drawdown_strategy ?? 'fixed_target';
+  const labels = stressChartLabelsForStrategy(strategyId);
   const sus = stress.sustainability;
   const inc = stress.income_stability;
   const worst = stress.worst_window;
@@ -233,7 +235,7 @@ export default function StressTestPanel({ config }: Props) {
       {/* Income Fan Chart */}
       <div className="rounded-lg border border-gray-200 bg-white p-4">
         <h3 className="text-sm font-semibold text-gray-700 mb-3">
-          Net Income — Historical Percentile Bands
+          {labels.incomeChartTitle}
         </h3>
         <ResponsiveContainer width="100%" height={300}>
           <ComposedChart data={fanIncomeData} margin={{ top: 5, right: 20, bottom: 5, left: 10 }}>
@@ -251,7 +253,7 @@ export default function StressTestPanel({ config }: Props) {
                     <p style={{ color: '#15803d' }}>P90: {fmt(d.p90)}</p>
                     <p style={{ color: '#22863a' }}>P75: {fmt(d.p75)}</p>
                     <p style={{ color: '#0d6efd' }} className="font-bold">P50: {fmt(d.p50)}</p>
-                    <p style={{ color: '#6b7280' }}>Target: {fmt(d.target_income)}</p>
+                    <p style={{ color: '#6b7280' }}>{labels.benchmarkTooltipLabel}: {fmt(d.target_income)}</p>
                     <p style={{ color: '#d97706' }}>P25: {fmt(d.p25)}</p>
                     <p style={{ color: '#dc3545' }}>P10: {fmt(d.p10)}</p>
                     <p style={{ color: '#991b1b' }}>P5: {fmt(d.p5)}</p>
@@ -269,7 +271,7 @@ export default function StressTestPanel({ config }: Props) {
             {/* Overlay lines */}
             <Line type="monotone" dataKey="p90" stroke="#15803d88" strokeWidth={1} strokeDasharray="4 4" dot={false} isAnimationActive={false} />
             <Line type="monotone" dataKey="p50" stroke="#0d6efd" strokeWidth={2.5} dot={false} isAnimationActive={false} />
-            <Line type="monotone" dataKey="target_income" stroke="#111827" strokeWidth={3} strokeDasharray="10 5" dot={false} isAnimationActive={false} name="Target income" />
+            <Line type="monotone" dataKey="target_income" stroke="#111827" strokeWidth={3} strokeDasharray="10 5" dot={false} isAnimationActive={false} name={labels.benchmarkLineName} />
             <Line type="monotone" dataKey="p5" stroke="#991b1b88" strokeWidth={1} strokeDasharray="4 4" dot={false} isAnimationActive={false} />
           </ComposedChart>
         </ResponsiveContainer>
@@ -278,7 +280,7 @@ export default function StressTestPanel({ config }: Props) {
             className="inline-block h-0 w-10 border-t-[3px] border-dashed border-gray-900"
             aria-hidden="true"
           />
-          <span>Inflation-indexed target net income</span>
+          <span>{labels.benchmarkLegendText}</span>
         </div>
       </div>
 
@@ -308,8 +310,8 @@ export default function StressTestPanel({ config }: Props) {
                 <th className="px-3 py-2 text-right font-medium text-gray-600">Market</th>
                 <th className="px-3 py-2 text-right font-medium text-gray-600">Capital</th>
                 <th className="px-3 py-2 text-right font-medium text-gray-600">Income</th>
-                <th className="px-3 py-2 text-right font-medium text-gray-600">Target</th>
-                <th className="px-3 py-2 text-right font-medium text-gray-600">% of Target</th>
+                <th className="px-3 py-2 text-right font-medium text-gray-600">{labels.timelineBenchmarkHeading}</th>
+                <th className="px-3 py-2 text-right font-medium text-gray-600">{labels.timelineRatioHeading}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">

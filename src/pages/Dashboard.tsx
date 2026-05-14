@@ -8,6 +8,7 @@ import VerificationPanel from '../components/dashboard/VerificationPanel';
 import { getStrategyDisplayName } from '../engine/strategies';
 import { deriveTaxContext } from '../engine/taxContext';
 import ConfigPanel from '../components/dashboard/ConfigPanel';
+import { dashboardHeaderLabelsForStrategy } from '../components/dashboard/dashboardHeaderLabels';
 
 function deepClone<T>(obj: T): T {
   return JSON.parse(JSON.stringify(obj));
@@ -19,6 +20,7 @@ export default function Dashboard() {
   const { config } = useConfig();
   const result = useProjection(config);
   const strategyId = config.drawdown_strategy ?? 'fixed_target';
+  const headerLabels = dashboardHeaderLabelsForStrategy(strategyId);
   const taxContext = useMemo(() => deriveTaxContext(config.tax), [config.tax]);
 
   // Extended projection for charts — shows a few years past plan end
@@ -39,10 +41,10 @@ export default function Dashboard() {
         </div>
         <p className="text-sm text-gray-500 mt-0.5">
           Strategy: <span className="font-medium text-gray-700">{getStrategyDisplayName(strategyId)}</span>
-          {' · '}Target: <span className="font-medium text-gray-700">
+          {' · '}{headerLabels.incomeLabel}: <span className="font-medium text-gray-700">
             £{Math.round(config.target_income.net_annual).toLocaleString('en-GB')}/yr
           </span>
-          {' · '}CPI: <span className="font-medium text-gray-700">
+          {' · '}{headerLabels.cpiLabel}: <span className="font-medium text-gray-700">
             {(config.target_income.cpi_rate * 100).toFixed(1)}%
           </span>
         </p>
