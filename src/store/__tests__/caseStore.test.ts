@@ -43,6 +43,28 @@ describe('caseStore', () => {
     expect(caseFile.scenarios).toHaveLength(1);
   });
 
+  it('normalizes drawdown stages in case config and scenario config during full-case round-trip', () => {
+    saveScenario('Legacy scenario', {
+      ...DEFAULT_CONFIG,
+      withdrawal_priority: ['ISA', 'DC Pension'],
+      drawdown_stages: undefined,
+    });
+
+    const caseFile = buildCaseFile({
+      ...DEFAULT_CONFIG,
+      withdrawal_priority: ['ISA', 'DC Pension'],
+      drawdown_stages: undefined,
+    });
+
+    const parsed = parseCaseFile(JSON.stringify(caseFile));
+
+    expect(parsed.config.drawdown_stages?.map(stage => stage.id)).toEqual(['legacy_stage_1', 'legacy_stage_2']);
+    expect(parsed.scenarios[0]?.config.drawdown_stages?.map(stage => stage.id)).toEqual([
+      'legacy_stage_1',
+      'legacy_stage_2',
+    ]);
+  });
+
   it('imports a full case and replaces all local case stores', () => {
     lockBaseline(DEFAULT_CONFIG);
     addReview({

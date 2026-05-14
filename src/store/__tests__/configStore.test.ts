@@ -23,7 +23,7 @@ describe('hasStoredConfig', () => {
   })
 })
 
-describe('config withdrawal_priority normalization', () => {
+describe('config withdrawal_priority and drawdown stage normalization', () => {
   beforeEach(() => { localStorage.clear() })
 
   it('repairs malformed stored withdrawal_priority when loading config', () => {
@@ -55,6 +55,27 @@ describe('config withdrawal_priority normalization', () => {
     expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!).withdrawal_priority).toEqual([
       'ISA',
       'DC Pension',
+    ])
+  })
+
+  it('adds deterministic drawdown stages before saving config-only legacy shapes', () => {
+    const cfg = {
+      ...DEFAULT_CONFIG,
+      withdrawal_priority: ['ISA', 'DC Pension'],
+      drawdown_stages: undefined,
+    } as PlannerConfig
+
+    saveConfig(cfg)
+
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!).drawdown_stages).toEqual([
+      {
+        id: 'legacy_stage_1',
+        sources: [{ source_type: 'tax_free_account', source_name: 'ISA', target_share: 1 }],
+      },
+      {
+        id: 'legacy_stage_2',
+        sources: [{ source_type: 'dc_pot', source_name: 'DC Pension', target_share: 1 }],
+      },
     ])
   })
 })

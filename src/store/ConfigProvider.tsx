@@ -5,6 +5,7 @@
 import { useState, useCallback, type ReactNode } from 'react';
 import { ConfigContext, loadConfig, saveConfig, resetConfig, hasStoredConfig } from './configStore';
 import type { PlannerConfig } from '../engine/types';
+import { normalizeConfigDrawdownStages } from '../engine/drawdownStages';
 import { normalizeConfigWithdrawalPriority } from '../engine/withdrawalPriority';
 
 export default function ConfigProvider({ children }: { children: ReactNode }) {
@@ -12,14 +13,16 @@ export default function ConfigProvider({ children }: { children: ReactNode }) {
   const [config, setConfigState] = useState<PlannerConfig>(() => loadConfig());
 
   const setConfig = useCallback((cfg: PlannerConfig) => {
-    const next = normalizeConfigWithdrawalPriority(JSON.parse(JSON.stringify(cfg)) as PlannerConfig);
+    const normalizedPriority = normalizeConfigWithdrawalPriority(JSON.parse(JSON.stringify(cfg)) as PlannerConfig);
+    const next = normalizeConfigDrawdownStages(normalizedPriority);
     setConfigState(next);
     saveConfig(next);
   }, []);
 
   const updateConfig = useCallback((updater: (prev: PlannerConfig) => PlannerConfig) => {
     setConfigState(prev => {
-      const next = normalizeConfigWithdrawalPriority(updater(prev));
+      const normalizedPriority = normalizeConfigWithdrawalPriority(updater(prev));
+      const next = normalizeConfigDrawdownStages(normalizedPriority);
       saveConfig(next);
       return next;
     });

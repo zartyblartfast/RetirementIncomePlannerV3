@@ -9,6 +9,7 @@ import { createContext, useContext } from 'react';
 import type { PlannerConfig } from '../engine/types';
 import { makeDefaultAllocation, normalizeConfigAssetAllocations, defaultGrowthRateFromAllocation } from '../engine/assetAllocation';
 import { normalizeLoadedConfig } from './configMigration';
+import { normalizeConfigDrawdownStages } from '../engine/drawdownStages';
 import { normalizeConfigWithdrawalPriority } from '../engine/withdrawalPriority';
 
 const STORAGE_KEY = 'rip_v2_config';
@@ -95,7 +96,8 @@ export function hasStoredConfig(): boolean {
 
 export function saveConfig(cfg: PlannerConfig): void {
   const normalizedAllocations = normalizeConfigAssetAllocations(JSON.parse(JSON.stringify(cfg)) as PlannerConfig);
-  const normalized = normalizeConfigWithdrawalPriority(normalizedAllocations);
+  const normalizedPriority = normalizeConfigWithdrawalPriority(normalizedAllocations);
+  const normalized = normalizeConfigDrawdownStages(normalizedPriority);
   localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
 }
 

@@ -126,6 +126,31 @@ describe('ConfigProvider first-run flow', () => {
     ]);
   });
 
+  it('adds migrated drawdown stages through the first-run setConfig import path', () => {
+    mounted = renderProvider();
+    const importedConfig = {
+      ...DEFAULT_CONFIG,
+      withdrawal_priority: ['ISA', 'DC Pension'],
+      drawdown_stages: undefined,
+    } as PlannerConfig;
+
+    act(() => {
+      mounted!.value.setConfig(importedConfig);
+    });
+
+    expect(mounted.value.config.drawdown_stages).toEqual([
+      {
+        id: 'legacy_stage_1',
+        sources: [{ source_type: 'tax_free_account', source_name: 'ISA', target_share: 1 }],
+      },
+      {
+        id: 'legacy_stage_2',
+        sources: [{ source_type: 'dc_pot', source_name: 'DC Pension', target_share: 1 }],
+      },
+    ]);
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!).drawdown_stages).toEqual(mounted.value.config.drawdown_stages);
+  });
+
   it('normalizes withdrawal_priority after updateConfig changes drawable sources', () => {
     mounted = renderProvider();
 
