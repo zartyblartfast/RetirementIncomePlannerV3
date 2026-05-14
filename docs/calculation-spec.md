@@ -94,6 +94,11 @@ Open review item:
 
 ## Withdrawal Ordering
 
+See `drawdown-strategy-and-tax-free-cash-spec.md` for the proposed staged
+source-allocation model covering sequential, blended, and hybrid drawdown.
+
+Current implementation baseline:
+
 - `withdrawal_priority` controls the order in which DC pots and tax-free
   accounts are used.
 - The engine attempts to meet the remaining monthly net target from sources in
