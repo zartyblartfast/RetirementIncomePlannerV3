@@ -56,4 +56,33 @@ describe('computeYearWorkings', () => {
 
     expect(w.taxContext).toEqual(taxContext);
   });
+
+  it('includes staged drawdown allocation detail when present on the year row', () => {
+    const w = computeYearWorkings({
+      ...yr1,
+      drawdown_stage_allocations: [
+        {
+          stage_id: 'stage_blend',
+          stage_name: 'Blend DC and ISA',
+          source_type: 'dc_pot',
+          source_name: 'Main DC',
+          target_share: 0.5,
+          actual_gross_withdrawal: 11000,
+          actual_net_income: 10000,
+          tax_free_amount: 2750,
+          taxable_amount: 8250,
+        },
+      ],
+    });
+
+    const step = w.steps.find(s => s.id === 'drawdown_stage_allocation_stage_blend_Main_DC');
+    expect(step).toBeDefined();
+    expect(step!.label).toBe('Drawdown stage allocation: Blend DC and ISA / Main DC');
+    expect(step!.formula).toContain('Target split 50%');
+    expect(step!.formula).toContain('gross £11,000');
+    expect(step!.formula).toContain('net £10,000');
+    expect(step!.formula).toContain('tax-free £2,750');
+    expect(step!.formula).toContain('taxable £8,250');
+    expect(step!.value).toBe(10000);
+  });
 });

@@ -20,6 +20,9 @@ import type {
   GrowthProvenance,
   StrategyState,
   DrawdownStageTransition,
+  DrawdownStageAllocationDetail,
+  DrawdownStageConfig,
+  DrawdownStageSourceConfig,
 } from './types';
 
 import { calculateTax, calculateTaxFromEventsWithModule, grossUp } from './tax';
@@ -59,6 +62,10 @@ function absToYm(a: number): [number, number] {
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
+}
+
+function drawdownStageDisplayName(stage: DrawdownStageConfig, stageIndex: number): string {
+  return stage.name?.trim() || `Stage ${stageIndex + 1}`;
 }
 
 function sumValues(obj: Record<string, number>): number {
@@ -109,6 +116,7 @@ interface AnnualAgg {
   months_counted: number;
   monthly_target_sum: number;
   drawdown_stage_transitions: DrawdownStageTransition[];
+  drawdown_stage_allocations: DrawdownStageAllocationDetail[];
 }
 
 interface DcMeta {
@@ -224,6 +232,17 @@ function buildYearRow(
 
   if (agg.drawdown_stage_transitions.length > 0) {
     row.drawdown_stage_transitions = agg.drawdown_stage_transitions;
+  }
+
+  if (agg.drawdown_stage_allocations.length > 0) {
+    row.drawdown_stage_allocations = agg.drawdown_stage_allocations.map(allocation => ({
+      ...allocation,
+      target_share: round2(allocation.target_share),
+      actual_gross_withdrawal: round2(allocation.actual_gross_withdrawal),
+      actual_net_income: round2(allocation.actual_net_income),
+      tax_free_amount: round2(allocation.tax_free_amount),
+      taxable_amount: round2(allocation.taxable_amount),
+    }));
   }
 
   return row;
@@ -492,6 +511,7 @@ export function runProjection(
       months_counted: 0,
       monthly_target_sum: 0,
       drawdown_stage_transitions: [],
+      drawdown_stage_allocations: [],
     };
   }
 
@@ -701,6 +721,42 @@ export function runProjection(
     const drawdownStages = cfg.drawdown_stages ?? [];
     const useBlendedStages = hasBlendedDrawdownStages(drawdownStages);
 
+    function recordStageAllocation(
+      stage: DrawdownStageConfig,
+      stageIndex: number,
+      source: DrawdownStageSourceConfig,
+      actualGross: number,
+      actualNet: number,
+      taxFreeAmount: number,
+      taxableAmount: number,
+    ): void {
+      const existing = currentAgg!.drawdown_stage_allocations.find(allocation =>
+        allocation.stage_id === stage.id
+        && allocation.source_type === source.source_type
+        && allocation.source_name === source.source_name,
+      );
+
+      if (existing) {
+        existing.actual_gross_withdrawal += actualGross;
+        existing.actual_net_income += actualNet;
+        existing.tax_free_amount += taxFreeAmount;
+        existing.taxable_amount += taxableAmount;
+        return;
+      }
+
+      currentAgg!.drawdown_stage_allocations.push({
+        stage_id: stage.id,
+        stage_name: drawdownStageDisplayName(stage, stageIndex),
+        source_type: source.source_type,
+        source_name: source.source_name,
+        target_share: source.target_share,
+        actual_gross_withdrawal: actualGross,
+        actual_net_income: actualNet,
+        tax_free_amount: taxFreeAmount,
+        taxable_amount: taxableAmount,
+      });
+    }
+
     function netFromDcWithdrawal(gross: number, taxFreePortion: number): number {
       const taxableAnnual = gross * 12 * (1 - taxFreePortion);
       const taxBefore = calculateTax(monthlyTaxableBaseAnnual, taxCfg).total;
@@ -713,7 +769,13 @@ export function runProjection(
       // GROSS mode: fixed monthly pot withdrawal target
       let remaining = Math.max(0, strategyAmount / 12);
 
-      function withdrawGrossDc(sourceName: string, grossNeeded: number): number {
+      function withdrawGrossDc(
+        sourceName: string,
+        grossNeeded: number,
+        allocationSource?: DrawdownStageSourceConfig,
+        allocationStage?: DrawdownStageConfig,
+        allocationStageIndex = 0,
+      ): number {
         const available = dcBalances[sourceName]!;
         const actual = Math.min(grossNeeded, available);
         if (actual <= 0.01) return 0;
@@ -723,6 +785,17 @@ export function runProjection(
         currentAgg!.dc_gross += actual;
         currentAgg!.dc_tf += actual * tfp;
         const netFromDc = netFromDcWithdrawal(actual, tfp);
+        if (allocationSource && allocationStage) {
+          recordStageAllocation(
+            allocationStage,
+            allocationStageIndex,
+            allocationSource,
+            actual,
+            netFromDc,
+            actual * tfp,
+            actual * (1 - tfp),
+          );
+        }
         currentAgg!.withdrawal_detail[sourceName] = (currentAgg!.withdrawal_detail[sourceName] ?? 0) + netFromDc;
         currentAgg!.pnl[sourceName]!.withdrawal += actual;
         monthlyWithdrawalDetail[sourceName] = (monthlyWithdrawalDetail[sourceName] ?? 0) + netFromDc;
@@ -730,13 +803,30 @@ export function runProjection(
         return actual;
       }
 
-      function withdrawGrossTf(sourceName: string, grossNeeded: number): number {
+      function withdrawGrossTf(
+        sourceName: string,
+        grossNeeded: number,
+        allocationSource?: DrawdownStageSourceConfig,
+        allocationStage?: DrawdownStageConfig,
+        allocationStageIndex = 0,
+      ): number {
         const available = tfBalances[sourceName]!;
         const actual = Math.min(grossNeeded, available);
         if (actual <= 0.01) return 0;
         tfBalances[sourceName] = tfBalances[sourceName]! - actual;
         if (tfBalances[sourceName]! < 0.01) tfBalances[sourceName] = 0;
         currentAgg!.tf_total += actual;
+        if (allocationSource && allocationStage) {
+          recordStageAllocation(
+            allocationStage,
+            allocationStageIndex,
+            allocationSource,
+            actual,
+            actual,
+            actual,
+            0,
+          );
+        }
         currentAgg!.withdrawal_detail[sourceName] = (currentAgg!.withdrawal_detail[sourceName] ?? 0) + actual;
         currentAgg!.pnl[sourceName]!.withdrawal += actual;
         monthlyWithdrawalDetail[sourceName] = (monthlyWithdrawalDetail[sourceName] ?? 0) + actual;
@@ -753,9 +843,9 @@ export function runProjection(
           sourceBalance: source => source.source_type === 'dc_pot'
             ? (dcBalances[source.source_name] ?? 0)
             : (tfBalances[source.source_name] ?? 0),
-          withdrawSource: (source, grossNeeded) => source.source_type === 'dc_pot'
-            ? withdrawGrossDc(source.source_name, grossNeeded)
-            : withdrawGrossTf(source.source_name, grossNeeded),
+          withdrawSource: (source, grossNeeded, stage, stageIndex) => source.source_type === 'dc_pot'
+            ? withdrawGrossDc(source.source_name, grossNeeded, source, stage, stageIndex)
+            : withdrawGrossTf(source.source_name, grossNeeded, source, stage, stageIndex),
           recordTransition: transition => currentAgg!.drawdown_stage_transitions.push(transition),
         });
       } else {
@@ -775,7 +865,13 @@ export function runProjection(
       const guarNetMo = guarGrossMo - (annualTaxOnGuar / 12);
       let remainingNet = Math.max(0, monthlyTarget - guarNetMo);
 
-      function withdrawDc(sourceName: string, netNeeded: number): number {
+      function withdrawDc(
+        sourceName: string,
+        netNeeded: number,
+        allocationSource?: DrawdownStageSourceConfig,
+        allocationStage?: DrawdownStageConfig,
+        allocationStageIndex = 0,
+      ): number {
         const tfp = dcMeta[sourceName]!.tax_free_portion;
         let grossNeeded: number;
         const taxableIfNetAsGross = netNeeded * 12 * (1 - tfp);
@@ -794,6 +890,17 @@ export function runProjection(
         currentAgg!.dc_gross += grossNeeded;
         currentAgg!.dc_tf += tfpAmt;
         const netFromThis = netFromDcWithdrawal(grossNeeded, tfp);
+        if (allocationSource && allocationStage) {
+          recordStageAllocation(
+            allocationStage,
+            allocationStageIndex,
+            allocationSource,
+            grossNeeded,
+            netFromThis,
+            tfpAmt,
+            grossNeeded - tfpAmt,
+          );
+        }
         currentAgg!.withdrawal_detail[sourceName] = (currentAgg!.withdrawal_detail[sourceName] ?? 0) + netFromThis;
         currentAgg!.pnl[sourceName]!.withdrawal += grossNeeded;
         monthlyWithdrawalDetail[sourceName] = (monthlyWithdrawalDetail[sourceName] ?? 0) + netFromThis;
@@ -801,13 +908,30 @@ export function runProjection(
         return netFromThis;
       }
 
-      function withdrawTf(sourceName: string, netNeeded: number): number {
+      function withdrawTf(
+        sourceName: string,
+        netNeeded: number,
+        allocationSource?: DrawdownStageSourceConfig,
+        allocationStage?: DrawdownStageConfig,
+        allocationStageIndex = 0,
+      ): number {
         const available = tfBalances[sourceName]!;
         const actual = Math.min(netNeeded, available);
         if (actual <= 0.01) return 0;
         tfBalances[sourceName] = tfBalances[sourceName]! - actual;
         if (tfBalances[sourceName]! < 0.01) tfBalances[sourceName] = 0;
         currentAgg!.tf_total += actual;
+        if (allocationSource && allocationStage) {
+          recordStageAllocation(
+            allocationStage,
+            allocationStageIndex,
+            allocationSource,
+            actual,
+            actual,
+            actual,
+            0,
+          );
+        }
         currentAgg!.withdrawal_detail[sourceName] = (currentAgg!.withdrawal_detail[sourceName] ?? 0) + actual;
         currentAgg!.pnl[sourceName]!.withdrawal += actual;
         monthlyWithdrawalDetail[sourceName] = (monthlyWithdrawalDetail[sourceName] ?? 0) + actual;
@@ -824,9 +948,9 @@ export function runProjection(
           sourceBalance: source => source.source_type === 'dc_pot'
             ? (dcBalances[source.source_name] ?? 0)
             : (tfBalances[source.source_name] ?? 0),
-          withdrawSource: (source, netNeeded) => source.source_type === 'dc_pot'
-            ? withdrawDc(source.source_name, netNeeded)
-            : withdrawTf(source.source_name, netNeeded),
+          withdrawSource: (source, netNeeded, stage, stageIndex) => source.source_type === 'dc_pot'
+            ? withdrawDc(source.source_name, netNeeded, source, stage, stageIndex)
+            : withdrawTf(source.source_name, netNeeded, source, stage, stageIndex),
           recordTransition: transition => currentAgg!.drawdown_stage_transitions.push(transition),
         });
       } else {

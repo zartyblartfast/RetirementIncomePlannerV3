@@ -94,6 +94,30 @@ describe('blended drawdown stage allocation', () => {
     });
     expect(year.pot_balances['Main DC']).toBe(39000);
     expect(year.tf_balances.ISA).toBe(0);
+    expect(year.drawdown_stage_allocations).toEqual([
+      {
+        stage_id: 'stage_blend',
+        stage_name: 'Blend DC and ISA',
+        source_type: 'dc_pot',
+        source_name: 'Main DC',
+        target_share: 0.5,
+        actual_gross_withdrawal: 11000,
+        actual_net_income: 11000,
+        tax_free_amount: 2750,
+        taxable_amount: 8250,
+      },
+      {
+        stage_id: 'stage_blend',
+        stage_name: 'Blend DC and ISA',
+        source_type: 'tax_free_account',
+        source_name: 'ISA',
+        target_share: 0.5,
+        actual_gross_withdrawal: 1000,
+        actual_net_income: 1000,
+        tax_free_amount: 1000,
+        taxable_amount: 0,
+      },
+    ]);
   });
 
   it('allocates portfolio-driven gross withdrawals across blended stages without grossing up to the planning benchmark', () => {

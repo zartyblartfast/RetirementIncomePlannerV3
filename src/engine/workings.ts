@@ -38,6 +38,10 @@ function fmtGBP(n: number): string {
   return '£' + Math.round(n).toLocaleString('en-GB');
 }
 
+function safeIdPart(s: string): string {
+  return s.replace(/\s+/g, '_');
+}
+
 export function computeYearWorkings(yr: YearRow, taxContext?: TaxContext): WorkingsReport {
   const steps: WorkingsStep[] = [];
 
@@ -89,6 +93,17 @@ export function computeYearWorkings(yr: YearRow, taxContext?: TaxContext): Worki
     value: yr.tf_withdrawal,
     isCrossCheck: false,
   });
+
+  // ── Staged drawdown allocation detail ───────────────────────────────
+  for (const allocation of yr.drawdown_stage_allocations ?? []) {
+    steps.push({
+      id: `drawdown_stage_allocation_${safeIdPart(allocation.stage_id)}_${safeIdPart(allocation.source_name)}`,
+      label: `Drawdown stage allocation: ${allocation.stage_name} / ${allocation.source_name}`,
+      formula: `Target split ${(allocation.target_share * 100).toFixed(0)}%; actual gross ${fmtGBP(allocation.actual_gross_withdrawal)}, net ${fmtGBP(allocation.actual_net_income)}, tax-free ${fmtGBP(allocation.tax_free_amount)}, taxable ${fmtGBP(allocation.taxable_amount)}`,
+      value: allocation.actual_net_income,
+      isCrossCheck: false,
+    });
+  }
 
   // ── Total taxable income ────────────────────────────────────────────
   steps.push({

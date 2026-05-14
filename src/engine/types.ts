@@ -217,6 +217,18 @@ export interface DrawdownStageTransition {
   reason: 'stage_depleted' | 'source_unavailable' | 'validation_repair' | 'all_sources_depleted';
 }
 
+export interface DrawdownStageAllocationDetail {
+  stage_id: string;
+  stage_name: string;
+  source_type: DrawdownStageSourceType;
+  source_name: string;
+  target_share: number;
+  actual_gross_withdrawal: number;
+  actual_net_income: number;
+  tax_free_amount: number;
+  taxable_amount: number;
+}
+
 export interface YearRow {
   age: number;
   tax_year: string;
@@ -237,6 +249,7 @@ export interface YearRow {
   total_capital: number;
   pot_pnl: Record<string, PotPnl>;
   drawdown_stage_transitions?: DrawdownStageTransition[];
+  drawdown_stage_allocations?: DrawdownStageAllocationDetail[];
 }
 
 export interface ProjectionSummary {

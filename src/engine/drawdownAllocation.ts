@@ -14,7 +14,12 @@ interface AllocateBlendedNetWithdrawalParams {
   month: number;
   recordedTransitionKeys: Set<string>;
   sourceBalance: (source: DrawdownStageSourceConfig) => number;
-  withdrawSource: (source: DrawdownStageSourceConfig, netNeeded: number) => number;
+  withdrawSource: (
+    source: DrawdownStageSourceConfig,
+    netNeeded: number,
+    stage: DrawdownStageConfig,
+    stageIndex: number,
+  ) => number;
   recordTransition: (transition: DrawdownStageTransition) => void;
 }
 
@@ -24,7 +29,12 @@ interface AllocateBlendedGrossWithdrawalParams {
   month: number;
   recordedTransitionKeys: Set<string>;
   sourceBalance: (source: DrawdownStageSourceConfig) => number;
-  withdrawSource: (source: DrawdownStageSourceConfig, grossNeeded: number) => number;
+  withdrawSource: (
+    source: DrawdownStageSourceConfig,
+    grossNeeded: number,
+    stage: DrawdownStageConfig,
+    stageIndex: number,
+  ) => number;
   recordTransition: (transition: DrawdownStageTransition) => void;
 }
 
@@ -71,7 +81,7 @@ export function allocateBlendedNetWithdrawal(params: AllocateBlendedNetWithdrawa
 
       for (const source of activeSources) {
         const sourceNeed = roundNeed * (source.target_share / shareTotal);
-        const netFromSource = params.withdrawSource(source, sourceNeed);
+        const netFromSource = params.withdrawSource(source, sourceNeed, stage, stageIndex);
         if (netFromSource > 0) {
           progressed = true;
           stageRemaining = Math.max(0, stageRemaining - netFromSource);
@@ -116,7 +126,7 @@ export function allocateBlendedGrossWithdrawal(params: AllocateBlendedGrossWithd
 
       for (const source of activeSources) {
         const sourceNeed = roundNeed * (source.target_share / shareTotal);
-        const grossFromSource = params.withdrawSource(source, sourceNeed);
+        const grossFromSource = params.withdrawSource(source, sourceNeed, stage, stageIndex);
         if (grossFromSource > 0) {
           progressed = true;
           stageRemaining = Math.max(0, stageRemaining - grossFromSource);
