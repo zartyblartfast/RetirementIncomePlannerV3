@@ -145,6 +145,17 @@ Display-name rule:
 
 This avoids forcing users to name every stage while keeping workings and audit text readable.
 
+### Stage identity
+
+`DrawdownStageConfig.id` is a stable internal identifier for persistence, React keying, and future stage renaming. It is not user-facing.
+
+Recommended ID rules:
+
+- Newly created stages should use an app-generated stable ID, preferably `stage_${crypto.randomUUID()}` where browser support is available, with a deterministic fallback if needed.
+- Migration from legacy `withdrawal_priority` should create deterministic IDs from the migrated order, for example `legacy_stage_1`, `legacy_stage_2`, and so on.
+- Import/normalisation must reject duplicate stage IDs or repair them by assigning new stable IDs while preserving the stage order; the repair should be surfaced in validation/import feedback rather than silently changing persisted identity.
+- UI display and adviser-facing wording should use the display name rule above, not the internal ID.
+
 ### Stage transition rules
 
 A stage remains active while at least one source in that stage can provide funding.
@@ -162,6 +173,29 @@ Monthly/annual boundary rule:
 - Stage state transitions should be evaluated inside the monthly projection loop because depletion can happen mid-year.
 - Annual `YearRow` output should aggregate the monthly results and record any stage transitions that occurred during that projection year.
 - Do not wait until year end to move to the next stage if the active stage depletes part-way through the year.
+
+### YearRow stage-transition output
+
+`YearRow` does not currently expose stage transitions. The first implementation that adds drawdown stages should add a structured, optional field rather than burying transitions in display text.
+
+Suggested shape:
+
+```ts
+interface DrawdownStageTransition {
+  month: number; // 1 to 12 within the projection year
+  from_stage_id: string;
+  from_stage_name: string;
+  to_stage_id: string | null;
+  to_stage_name: string | null;
+  reason: 'stage_depleted' | 'source_unavailable' | 'validation_repair' | 'all_sources_depleted';
+}
+
+interface YearRow {
+  drawdown_stage_transitions?: DrawdownStageTransition[];
+}
+```
+
+If the active stage depletes and there is no next stage, `to_stage_id` / `to_stage_name` should be `null` and the reason should make the resulting shortfall or reduced-income outcome auditable.
 
 ### Backward compatibility
 
@@ -295,11 +329,33 @@ Recommended first-version gross-up algorithm for target-led strategies:
 1. Calculate the net income already available for the period from guaranteed income and any non-drawdown sources.
 2. Calculate the remaining net income requirement for the period.
 3. If the requirement is zero or negative, no target-led drawdown is required for that period.
-4. Use the active drawdown stage to produce an initial gross withdrawal estimate. A practical starting estimate is `remaining_net_requirement / estimated_net_per_gross`, where `estimated_net_per_gross` is derived from the stage's available-source mix and known tax-free proportions.
+4. Use the active drawdown stage to produce an initial gross withdrawal estimate: `remaining_net_requirement / estimated_net_per_gross`.
 5. Allocate that gross estimate across sources using the stage share/capping/rebalancing rules.
 6. Calculate taxable income and tax using the normal tax module path for the period.
 7. Compare resulting net income with the requested net amount.
 8. Iterate the gross withdrawal estimate until the net result is within a defined tolerance or no further funding is available.
+
+Recommended initial estimate for target-led gross-up:
+
+```text
+available_share_i = source target share after removing unavailable sources and renormalising remaining shares
+tax_free_rate_i = 1.0 for tax-free accounts; dc_pot.tax_free_portion for DC pots
+taxable_rate_i = 1.0 - tax_free_rate_i
+estimated_marginal_tax_rate = current tax result's marginal rate for the period before this drawdown, or the configured basic-rate band rate if no current marginal rate is available
+estimated_net_per_gross = sum(available_share_i * (tax_free_rate_i + taxable_rate_i * (1 - estimated_marginal_tax_rate)))
+initial_gross_estimate = remaining_net_requirement / clamp(estimated_net_per_gross, 0.01, 1.0)
+```
+
+Example: a 40% ISA / 60% DC blend, where the DC pot has 25% tax-free portion and the estimated marginal tax rate is 20%, gives:
+
+```text
+ISA contribution: 0.40 * 1.00 = 0.400
+DC contribution: 0.60 * (0.25 + 0.75 * 0.80) = 0.510
+estimated_net_per_gross = 0.910
+initial_gross_estimate = remaining_net_requirement / 0.910
+```
+
+This estimate is deliberately only a starting point. It will be wrong near tax-band boundaries or where allowances/tapers/caps apply, so the bounded convergence step remains the source of truth. Tests should assert the final converged output, not rely on the initial estimate except in focused unit tests for deterministic seeding.
 
 Recommended convergence rules:
 
@@ -310,6 +366,19 @@ Recommended convergence rules:
 - If the target cannot be met because available sources are exhausted, return the maximum fundable result and record the shortfall.
 
 This algorithm is a specification target, not a requirement to duplicate the exact current projection implementation. The implementation must be covered by worked examples and tests before replacing the current sequential path.
+
+### Portfolio-driven gross-up rule
+
+Portfolio-driven strategies such as ARVA and Fixed Percentage calculate a gross withdrawal amount from portfolio rules. That gross withdrawal is the binding strategy output. The staged source-allocation engine should distribute that gross amount across sources using the same share/capping/rebalancing and stage-transition rules, but it should not gross up further to make net income equal the strategy amount.
+
+Implications:
+
+- Tax is calculated after allocating the strategy-calculated gross withdrawal.
+- Net income achieved may be lower than the gross strategy withdrawal where taxable pension income is involved.
+- Any configured target income is a planning benchmark only, so workings should show benchmark gap/adequacy rather than treating the difference as a failure to meet the strategy.
+- If all selected sources cannot fund the strategy-calculated gross withdrawal, record the unfunded gross amount and resulting benchmark gap or reduced-income outcome.
+
+This rule keeps portfolio-driven strategy maths separate from tax gross-up. If a later adviser-reviewed strategy is intended to produce a target net income after tax, it should be classified as target-led or explicitly documented as tax-aware.
 
 Specification principle:
 
@@ -440,7 +509,7 @@ This is illustrative only and should be refined during implementation planning.
 
 ```ts
 interface DrawdownStageConfig {
-  id: string;
+  id: string; // stable internal ID; not user-facing
   name?: string;
   sources: DrawdownStageSourceConfig[];
 }
@@ -463,7 +532,7 @@ interface DCPotTaxFreeCashConfig {
 
 Migration rule:
 
-- If `drawdown_stages` is missing, derive it from `withdrawal_priority` as one 100% source per stage, using `target_share: 1`.
+- If `drawdown_stages` is missing, derive it from `withdrawal_priority` as one 100% source per stage, using `target_share: 1` and deterministic IDs such as `legacy_stage_1`.
 - If per-pot TFC treatment is missing, treat the pot as `gradual_pro_rata` using the existing `tax_free_portion`.
 
 ## Validation rules
@@ -471,6 +540,7 @@ Migration rule:
 Suggested validation rules:
 
 - A drawdown stage must contain at least one source.
+- A drawdown stage must have a stable non-blank `id`; duplicate stage IDs in imported data must be rejected or repaired with explicit import feedback.
 - A source must refer to an existing DC pot or tax-free account.
 - Within a stage, configured source shares are decimal values from `0.0` to `1.0` and should sum to `1.0` for normal saved configs.
 - The UI may temporarily allow non-`1.0` totals while editing, but must warn clearly and must not save silently ambiguous stages.
@@ -479,6 +549,7 @@ Suggested validation rules:
 - Duplicate source entries inside a single stage should be rejected for the first implementation.
 - A source may appear in more than one stage only if the intended semantics are explicitly defined. Initial recommendation: reject duplicates across stages to avoid confusing behaviour.
 - TFC upfront amount/percentage must not exceed available tax-free entitlement under the app's simplified per-pot assumptions. This is not Lump Sum Allowance tracking.
+- For `mode: 'upfront_lump_sum'`, a valid config must set exactly one of `upfront_amount` or `upfront_percentage_of_pot`. If both are present or neither is present, reject the config or require the user/import flow to choose one explicitly; do not infer precedence silently.
 - If a TFC lump sum has a destination inside the plan, the destination must be explicit and included in workings.
 
 ## UI principles
@@ -554,7 +625,7 @@ Core regression tests should cover:
 - portfolio-driven strategy funding a strategy-calculated withdrawal;
 - per-pot gradual pro-rata TFC matching current behaviour;
 - validation/rejection of invalid share totals, duplicate sources, and missing sources;
-- workings data showing configured split, actual split, gross withdrawal, taxable/tax-free portions, tax, net income, shortfall, and stage transitions.
+- workings data showing configured split, actual split, gross withdrawal, taxable/tax-free portions, tax, net income, shortfall, and structured stage transitions.
 
 Compatibility rule:
 
@@ -572,13 +643,14 @@ Suggested phases:
 2. Data model and migration
    - Add drawdown-stage config types using decimal `target_share` values.
    - Derive stages from existing `withdrawal_priority`.
-   - Add validation for share totals, duplicates, and missing sources.
+   - Add validation for share totals, duplicate/missing sources, duplicate stage IDs, and TFC amount-vs-percentage exclusivity.
    - Preserve current output for sequential cases, proven by golden migration tests before engine changes.
 
 3. Engine support for stages
    - Implement one-source stages first.
    - Add multi-source gross-share blending.
-   - Add bounded target-led gross-up/convergence.
+   - Add bounded target-led gross-up/convergence with deterministic initial estimate seeding.
+   - Apply portfolio-driven withdrawals as gross strategy outputs without net-income gross-up.
    - Add partial-depletion rebalancing and monthly stage transitions.
 
 4. Workings and UI transparency
