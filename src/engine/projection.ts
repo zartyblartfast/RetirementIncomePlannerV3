@@ -25,7 +25,7 @@ import { calculateTax, calculateTaxFromEventsWithModule, grossUp } from './tax';
 import { annualTaxEventsFromAmounts } from './taxEvents';
 import { normalizeConfig, computeAnnualTarget } from './strategies';
 import { validateConfig, validateStrategyOutput } from './validation';
-import { normalizeWithdrawalPriority } from './withdrawalPriority';
+import { resolveSequentialDrawdownPriority } from './drawdownStages';
 
 // ------------------------------------------------------------------ //
 //  Helpers
@@ -410,7 +410,7 @@ export function runProjection(
     };
   }
 
-  const priority = normalizeWithdrawalPriority(cfg);
+  const priority = resolveSequentialDrawdownPriority(cfg);
 
   // Pre-compute monthly rates
   const dcMonthly: Record<string, { growth: number; fees: number }> = {};

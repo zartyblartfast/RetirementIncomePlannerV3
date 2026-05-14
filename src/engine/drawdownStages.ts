@@ -1,4 +1,5 @@
 import type { DrawdownStageConfig, DrawdownStageSourceConfig, PlannerConfig } from './types';
+import { normalizeWithdrawalPriority } from './withdrawalPriority';
 
 type SourceLookup = {
   dc: Set<string>;
@@ -50,6 +51,26 @@ export function normalizeConfigDrawdownStages<T extends PlannerConfig>(cfg: T): 
     cfg.drawdown_stages = deriveDrawdownStagesFromPriority(cfg);
   }
   return cfg;
+}
+
+export function resolveSequentialDrawdownPriority(cfg: PlannerConfig): string[] {
+  if (!Array.isArray(cfg.drawdown_stages) || cfg.drawdown_stages.length === 0) {
+    return normalizeWithdrawalPriority(cfg);
+  }
+
+  const sequentialSources: string[] = [];
+  for (const stage of cfg.drawdown_stages) {
+    if (!Array.isArray(stage.sources) || stage.sources.length !== 1) {
+      return normalizeWithdrawalPriority(cfg);
+    }
+    const source = stage.sources[0]!;
+    if (Math.abs(source.target_share - 1) > SHARE_TOLERANCE) {
+      return normalizeWithdrawalPriority(cfg);
+    }
+    sequentialSources.push(source.source_name);
+  }
+
+  return normalizeWithdrawalPriority({ ...cfg, withdrawal_priority: sequentialSources });
 }
 
 function sourceKey(source: DrawdownStageSourceConfig): string {
