@@ -70,6 +70,29 @@ export interface TaxFreeAccountConfig {
   holdings?: HoldingConfig[];
 }
 
+export type DrawdownStageSourceType = 'dc_pot' | 'tax_free_account';
+
+export interface DrawdownStageSourceConfig {
+  source_type: DrawdownStageSourceType;
+  source_name: string;
+  target_share: number;
+}
+
+export interface DrawdownStageConfig {
+  id: string;
+  name?: string;
+  sources: DrawdownStageSourceConfig[];
+}
+
+export interface DCPotTaxFreeCashConfig {
+  mode: 'gradual_pro_rata' | 'upfront_lump_sum' | 'already_taken';
+  upfront_amount?: number;
+  upfront_percentage_of_pot?: number;
+  event_date?: string;
+  destination?: 'outside_plan' | 'tax_free_account' | 'cash_account';
+  residual_mode?: 'gradual_pro_rata' | 'none';
+}
+
 export interface TaxBandConfig {
   name: string;
   width: number | null;
@@ -98,6 +121,7 @@ export interface PlannerConfig {
   dc_pots: DCPotConfig[];
   tax_free_accounts: TaxFreeAccountConfig[];
   withdrawal_priority: string[];
+  drawdown_stages?: DrawdownStageConfig[];
   tax: TaxConfig;
   drawdown_strategy?: string;
   drawdown_strategy_params?: Record<string, number>;
@@ -184,6 +208,15 @@ export interface DepletionEvent {
   month: number;
 }
 
+export interface DrawdownStageTransition {
+  month: number;
+  from_stage_id: string;
+  from_stage_name: string;
+  to_stage_id: string | null;
+  to_stage_name: string | null;
+  reason: 'stage_depleted' | 'source_unavailable' | 'validation_repair' | 'all_sources_depleted';
+}
+
 export interface YearRow {
   age: number;
   tax_year: string;
@@ -203,6 +236,7 @@ export interface YearRow {
   tf_balances: Record<string, number>;
   total_capital: number;
   pot_pnl: Record<string, PotPnl>;
+  drawdown_stage_transitions?: DrawdownStageTransition[];
 }
 
 export interface ProjectionSummary {
