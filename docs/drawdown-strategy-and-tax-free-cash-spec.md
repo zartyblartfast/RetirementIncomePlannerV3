@@ -110,7 +110,7 @@ This is separate from the spending strategy.
 
 The preferred future model is an ordered list of drawdown stages.
 
-Each stage contains one or more funding sources. Within a stage, each source has a target percentage share.
+Each stage contains one or more funding sources. Within a stage, each source has a target share stored as a decimal (`0.0` to `1.0`) and displayed to users as a percentage.
 
 Example:
 
@@ -129,10 +129,39 @@ Stage 3
 The engine works stages left-to-right:
 
 1. Use the active stage to fund the requested withdrawal.
-2. Inside the active stage, allocate withdrawals according to the configured percentages.
+2. Inside the active stage, allocate withdrawals according to the configured shares.
 3. If one source cannot satisfy its share, rebalance that stage's remaining requested withdrawal across the still-available sources in the same stage.
-4. If the stage can no longer provide meaningful funding, move to the next stage.
+4. If the stage can no longer provide meaningful funding under the transition rules below, move to the next stage.
 5. If all stages are depleted or unavailable, record a shortfall or reduced income outcome depending on the spending strategy.
+
+### Stage naming
+
+`DrawdownStageConfig.name` is optional for saved data, but workings and UI must always have a display name.
+
+Display-name rule:
+
+- If `name` is present and non-blank, use it.
+- Otherwise use `Stage N`, where `N` is the 1-based position after migration/normalisation.
+
+This avoids forcing users to name every stage while keeping workings and audit text readable.
+
+### Stage transition rules
+
+A stage remains active while at least one source in that stage can provide funding.
+
+A stage is exhausted and the engine moves to the next stage when all sources in the current stage are unavailable for further withdrawal in the current calculation period. A source is unavailable when:
+
+- its opening/remaining balance for that period is zero or effectively zero after rounding;
+- it has reached a source-specific withdrawal limit, if such limits are later added; or
+- it is invalid or missing after config normalisation, which should normally be caught before projection.
+
+For the first implementation, "meaningful funding" should not be a vague judgement. Use a small explicit money tolerance only to avoid penny-level loops and rounding noise. Recommended initial tolerance: less than £0.01 available gross withdrawal in the current monthly calculation step.
+
+Monthly/annual boundary rule:
+
+- Stage state transitions should be evaluated inside the monthly projection loop because depletion can happen mid-year.
+- Annual `YearRow` output should aggregate the monthly results and record any stage transitions that occurred during that projection year.
+- Do not wait until year end to move to the next stage if the active stage depletes part-way through the year.
 
 ### Backward compatibility
 
@@ -223,6 +252,30 @@ After Pot A is depleted:
 
 The workings should show both the requested split and the actual split.
 
+Partial depletion within a calculation period:
+
+1. Allocate the requested gross withdrawal across the available sources according to the configured shares, normalised across currently available sources.
+2. Cap each source's gross withdrawal at its available balance for that period.
+3. If any source is capped, redistribute the unfunded remainder across the still-available sources in the same stage, preserving their relative configured shares.
+4. Repeat until either the requested withdrawal is fully allocated, no available sources remain in the stage, or only a penny-level residual remains.
+5. If a residual remains because the stage is exhausted, move to the next stage and continue funding the same period's requested withdrawal from the next stage.
+
+Example:
+
+```text
+Requested gross withdrawal this month: £1,000
+Stage shares: Pot A 50%, Pot B 50%
+Pot A available balance: £200
+Pot B available balance: £2,000
+
+Initial allocation: Pot A £500, Pot B £500
+Pot A capped at £200, leaving £300 unfunded
+Redistribute £300 to Pot B
+Actual allocation: Pot A £200, Pot B £800
+```
+
+The workings should record both the configured/requested split and the actual split after capping and redistribution.
+
 ## Gross-up and tax interaction
 
 Source allocation cannot be treated as a purely net-income split because sources have different tax treatments.
@@ -235,17 +288,39 @@ Examples:
 
 For target-led strategies, the engine must gross up taxable withdrawals sufficiently to try to meet the net target, subject to available balances and tax rules.
 
-For blended stages, this means the engine may need to iterate or calculate source-specific gross withdrawals so that the resulting net income is close to the requested net amount while respecting the source allocation rule.
+For blended stages, this means the engine needs an explicit gross-up process so that the resulting net income is close to the requested net amount while respecting the source allocation rule.
+
+Recommended first-version gross-up algorithm for target-led strategies:
+
+1. Calculate the net income already available for the period from guaranteed income and any non-drawdown sources.
+2. Calculate the remaining net income requirement for the period.
+3. If the requirement is zero or negative, no target-led drawdown is required for that period.
+4. Use the active drawdown stage to produce an initial gross withdrawal estimate. A practical starting estimate is `remaining_net_requirement / estimated_net_per_gross`, where `estimated_net_per_gross` is derived from the stage's available-source mix and known tax-free proportions.
+5. Allocate that gross estimate across sources using the stage share/capping/rebalancing rules.
+6. Calculate taxable income and tax using the normal tax module path for the period.
+7. Compare resulting net income with the requested net amount.
+8. Iterate the gross withdrawal estimate until the net result is within a defined tolerance or no further funding is available.
+
+Recommended convergence rules:
+
+- Use a deterministic bounded search such as bisection rather than an unbounded increment loop.
+- Lower bound: £0 additional gross withdrawal.
+- Upper bound: total currently available gross withdrawal across the current and subsequent stages, capped further if the spending strategy imposes a maximum.
+- Stop when the absolute net-income error is below £0.01 for the monthly calculation step, or after a fixed maximum such as 40 iterations.
+- If the target cannot be met because available sources are exhausted, return the maximum fundable result and record the shortfall.
+
+This algorithm is a specification target, not a requirement to duplicate the exact current projection implementation. The implementation must be covered by worked examples and tests before replacing the current sequential path.
 
 Specification principle:
 
 - The configured blend expresses the intended gross funding shares unless a later design deliberately chooses net-share semantics.
+- Gross-share semantics mean `target_share` controls gross money leaving each source before tax; it does not promise that each source contributes the same percentage of net income after tax.
 - The UI must explain that different tax treatments mean the net contribution from each source may not match the gross withdrawal percentage exactly.
 - If adviser review favours net-share semantics, this document should be updated before implementation.
 
 Open adviser question:
 
-> Should blended percentages represent gross withdrawals from each source, or intended net income contribution after tax?
+> Do you agree that first-version blended percentages should represent gross withdrawals from each source, rather than intended net income contribution after tax?
 
 Initial recommendation:
 
@@ -274,6 +349,19 @@ Taxable pension income: £7,500
 ```
 
 This is the preferred default for now because it is simple and transparent.
+
+Simplified entitlement assumption:
+
+- The app uses each pot's configured `tax_free_portion` as the available tax-free proportion for that pot.
+- It does not track a separate crystallisation ledger.
+- It does not track the UK's Lump Sum Allowance or Lump Sum and Death Benefit Allowance.
+- Any validation that a tax-free amount does not exceed entitlement is therefore limited to the app's simplified per-pot assumption, not a full statutory allowance check.
+
+UK/Isle of Man caveat:
+
+- Pension tax-free cash treatment is currently framed around common UK DC pension assumptions.
+- The app supports Isle of Man income-tax calculations, but this document does not yet validate whether each TFC/crystallisation assumption is appropriate for an Isle of Man resident or for cross-border UK/IoM pension circumstances.
+- Adviser review should explicitly confirm the caveat wording and whether the first implementation should remain UK-assumption-led while IoM tax is applied separately to taxable income.
 
 Recommended adviser-facing wording:
 
@@ -360,7 +448,7 @@ interface DrawdownStageConfig {
 interface DrawdownStageSourceConfig {
   source_type: 'dc_pot' | 'tax_free_account';
   source_name: string;
-  target_share: number; // percentage or decimal; implementation must choose one
+  target_share: number; // decimal share, 0.0 to 1.0; e.g. 0.5 means 50%
 }
 
 interface DCPotTaxFreeCashConfig {
@@ -375,7 +463,7 @@ interface DCPotTaxFreeCashConfig {
 
 Migration rule:
 
-- If `drawdown_stages` is missing, derive it from `withdrawal_priority` as one 100% source per stage.
+- If `drawdown_stages` is missing, derive it from `withdrawal_priority` as one 100% source per stage, using `target_share: 1`.
 - If per-pot TFC treatment is missing, treat the pot as `gradual_pro_rata` using the existing `tax_free_portion`.
 
 ## Validation rules
@@ -384,11 +472,13 @@ Suggested validation rules:
 
 - A drawdown stage must contain at least one source.
 - A source must refer to an existing DC pot or tax-free account.
-- Within a stage, configured source shares should sum to 100% for normal saved configs.
-- The UI may temporarily allow non-100% totals while editing, but must warn clearly.
-- Duplicate source entries inside a single stage should be normalised or rejected.
+- Within a stage, configured source shares are decimal values from `0.0` to `1.0` and should sum to `1.0` for normal saved configs.
+- The UI may temporarily allow non-`1.0` totals while editing, but must warn clearly and must not save silently ambiguous stages.
+- Saved/imported configs with shares that do not sum to `1.0` should be handled explicitly: preferred first-version behaviour is to reject the invalid stage with a clear validation message rather than silently normalising financial intent.
+- If a migration path must repair legacy invalid data, it should only normalise when the intended ratios are unambiguous, and the repair should be surfaced in config validation.
+- Duplicate source entries inside a single stage should be rejected for the first implementation.
 - A source may appear in more than one stage only if the intended semantics are explicitly defined. Initial recommendation: reject duplicates across stages to avoid confusing behaviour.
-- TFC upfront amount/percentage must not exceed available tax-free entitlement under the app's simplified assumptions.
+- TFC upfront amount/percentage must not exceed available tax-free entitlement under the app's simplified per-pot assumptions. This is not Lump Sum Allowance tracking.
 - If a TFC lump sum has a destination inside the plan, the destination must be explicit and included in workings.
 
 ## UI principles
@@ -424,7 +514,7 @@ Recommended wording for current simple TFC default:
 ## Adviser review questions
 
 1. Is the separation between spending strategy, source allocation, and pension tax-free cash clear and useful?
-2. For blended stages, should percentages represent gross withdrawal shares or intended net income contribution after tax?
+2. For blended stages, do you agree with the first-version recommendation that percentages represent gross withdrawal shares rather than intended net income contribution after tax?
 3. Is one-source-per-stage plus multi-source blended stages sufficient for common client cases?
 4. Should the first implementation reject the same source appearing in multiple stages?
 5. Is gradual pro-rata pension tax-free cash an acceptable default approximation at this stage?
@@ -454,16 +544,17 @@ Implementation should be test-first.
 
 Core regression tests should cover:
 
-- legacy `withdrawal_priority` migration to one-source stages;
-- sequential stages matching current projection output exactly;
+- golden migration test proving legacy `withdrawal_priority` migration to one-source stages preserves current projection output exactly;
+- sequential stages matching current projection output exactly for DC-first, ISA-first, and mixed-source priorities;
 - simple two-source blend with tax-free account and DC pension;
-- blend rebalancing after one source depletes;
+- blend rebalancing after one source depletes mid-period;
 - stage transition after all sources in a stage deplete;
-- target-led strategy funding a net target;
+- target-led strategy funding a net target through the bounded gross-up algorithm;
+- target-led strategy recording a shortfall when the bounded gross-up cannot meet the target;
 - portfolio-driven strategy funding a strategy-calculated withdrawal;
 - per-pot gradual pro-rata TFC matching current behaviour;
-- workings data showing requested split vs actual split;
-- validation of invalid/duplicate/missing sources.
+- validation/rejection of invalid share totals, duplicate sources, and missing sources;
+- workings data showing configured split, actual split, gross withdrawal, taxable/tax-free portions, tax, net income, shortfall, and stage transitions.
 
 Compatibility rule:
 
@@ -475,18 +566,20 @@ Suggested phases:
 
 1. Specification and adviser review
    - Review this document.
-   - Resolve gross-share vs net-share semantics for blended percentages.
-   - Confirm first-version TFC scope.
+   - Confirm gross-share semantics for blended percentages, or explicitly switch to net-share semantics before implementation.
+   - Confirm first-version TFC scope and UK/IoM caveat wording.
 
 2. Data model and migration
-   - Add drawdown-stage config types.
+   - Add drawdown-stage config types using decimal `target_share` values.
    - Derive stages from existing `withdrawal_priority`.
-   - Preserve current output for sequential cases.
+   - Add validation for share totals, duplicates, and missing sources.
+   - Preserve current output for sequential cases, proven by golden migration tests before engine changes.
 
 3. Engine support for stages
    - Implement one-source stages first.
    - Add multi-source gross-share blending.
-   - Add depletion rebalancing and stage transitions.
+   - Add bounded target-led gross-up/convergence.
+   - Add partial-depletion rebalancing and monthly stage transitions.
 
 4. Workings and UI transparency
    - Surface active stage, requested split, actual split, tax, and shortfall/benchmark gap.
