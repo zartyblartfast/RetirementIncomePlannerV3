@@ -17,6 +17,14 @@ import {
   defaultGrowthRateFromAllocation,
 } from '../../engine/assetAllocation';
 import { deriveRetirementAge } from '../../engine/dateUtils';
+import {
+  appendDrawdownStageForSource,
+  displayNameForDrawdownStage,
+  moveDrawdownStage,
+  normalizeConfigDrawdownStages,
+  removeDrawdownStageSource,
+  renameDrawdownStageSource,
+} from '../../engine/drawdownStages';
 
 const NOW_MONTH = new Date().toISOString().slice(0, 7);
 
@@ -207,6 +215,7 @@ export default function ConfigPanel() {
       if (field === 'name') {
         pot.name = val as string;
         next.withdrawal_priority = next.withdrawal_priority.map(n => n === oldName ? val as string : n);
+        renameDrawdownStageSource(next, oldName, val as string);
       } else {
         (pot as unknown as Record<string, unknown>)[field] = val;
       }
@@ -217,11 +226,13 @@ export default function ConfigPanel() {
   function addDcPot() {
     updateConfig(prev => {
       const name = `DC Pot ${prev.dc_pots.length + 1}`;
-      return {
+      const next = {
         ...prev,
         dc_pots: [...prev.dc_pots, newDcPot(name)],
         withdrawal_priority: [...prev.withdrawal_priority, name],
       };
+      appendDrawdownStageForSource(next, name);
+      return next;
     });
   }
 
@@ -230,6 +241,7 @@ export default function ConfigPanel() {
       const next = JSON.parse(JSON.stringify(prev)) as PlannerConfig;
       const removed = next.dc_pots.splice(index, 1)[0]!;
       next.withdrawal_priority = next.withdrawal_priority.filter(n => n !== removed.name);
+      removeDrawdownStageSource(next, removed.name);
       return next;
     });
   }
@@ -243,6 +255,7 @@ export default function ConfigPanel() {
       if (field === 'name') {
         acc.name = val as string;
         next.withdrawal_priority = next.withdrawal_priority.map(n => n === oldName ? val as string : n);
+        renameDrawdownStageSource(next, oldName, val as string);
       } else {
         (acc as unknown as Record<string, unknown>)[field] = val;
       }
@@ -253,11 +266,13 @@ export default function ConfigPanel() {
   function addTfAccount() {
     updateConfig(prev => {
       const name = `ISA ${prev.tax_free_accounts.length + 1}`;
-      return {
+      const next = {
         ...prev,
         tax_free_accounts: [...prev.tax_free_accounts, newTfAccount(name)],
         withdrawal_priority: [...prev.withdrawal_priority, name],
       };
+      appendDrawdownStageForSource(next, name);
+      return next;
     });
   }
 
@@ -266,6 +281,7 @@ export default function ConfigPanel() {
       const next = JSON.parse(JSON.stringify(prev)) as PlannerConfig;
       const removed = next.tax_free_accounts.splice(index, 1)[0]!;
       next.withdrawal_priority = next.withdrawal_priority.filter(n => n !== removed.name);
+      removeDrawdownStageSource(next, removed.name);
       return next;
     });
   }
@@ -755,38 +771,45 @@ export default function ConfigPanel() {
             </div>
           </div>
 
-          {/* Withdrawal Priority */}
+          {/* Drawdown order and blending */}
           <div>
             <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
-              Withdrawal Priority
+              Drawdown order and blending
             </h4>
-            <p className="text-xs text-gray-400 mb-2">Top = withdrawn first. Use arrows to reorder.</p>
+            <p className="text-xs text-gray-400 mb-2">
+              Top stage funds withdrawals first. One source behaves like the old priority order; multiple sources in one stage are blended by the percentages shown.
+            </p>
             <div className="space-y-1">
-              {config.withdrawal_priority.map((name, i) => (
-                <div key={name} className="flex items-center gap-2 bg-gray-50 rounded px-3 py-1.5 text-sm text-gray-700">
+              {normalizeConfigDrawdownStages(JSON.parse(JSON.stringify(config)) as PlannerConfig).drawdown_stages?.map((stage, i, stages) => (
+                <div key={stage.id} className="flex items-center gap-2 bg-gray-50 rounded px-3 py-1.5 text-sm text-gray-700">
                   <span className="text-xs font-medium text-gray-400 w-4">{i + 1}.</span>
-                  <span className="flex-1">{name}</span>
+                  <div className="flex-1">
+                    <div className="font-medium text-gray-700">{displayNameForDrawdownStage(stage, i)}</div>
+                    <div className="text-xs text-gray-500">
+                      {stage.sources.map(source => `${source.source_name} ${Math.round(source.target_share * 100)}%`).join(' + ')}
+                    </div>
+                  </div>
                   <button
                     disabled={i === 0}
                     onClick={() => updateConfig(prev => {
-                      const next = [...prev.withdrawal_priority];
-                      [next[i - 1]!, next[i]!] = [next[i]!, next[i - 1]!];
-                      return { ...prev, withdrawal_priority: next };
+                      const next = normalizeConfigDrawdownStages(JSON.parse(JSON.stringify(prev)) as PlannerConfig);
+                      moveDrawdownStage(next, i, -1);
+                      return next;
                     })}
                     className="p-0.5 text-gray-400 hover:text-gray-700 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
-                    title="Move up"
+                    title="Move stage up"
                   >
                     <ChevronUp className="w-4 h-4" />
                   </button>
                   <button
-                    disabled={i === config.withdrawal_priority.length - 1}
+                    disabled={i === stages.length - 1}
                     onClick={() => updateConfig(prev => {
-                      const next = [...prev.withdrawal_priority];
-                      [next[i]!, next[i + 1]!] = [next[i + 1]!, next[i]!];
-                      return { ...prev, withdrawal_priority: next };
+                      const next = normalizeConfigDrawdownStages(JSON.parse(JSON.stringify(prev)) as PlannerConfig);
+                      moveDrawdownStage(next, i, 1);
+                      return next;
                     })}
                     className="p-0.5 text-gray-400 hover:text-gray-700 disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
-                    title="Move down"
+                    title="Move stage down"
                   >
                     <ChevronDown className="w-4 h-4" />
                   </button>

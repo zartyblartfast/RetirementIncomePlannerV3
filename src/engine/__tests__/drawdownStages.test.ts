@@ -2,8 +2,13 @@ import { describe, expect, it } from 'vitest';
 import type { PlannerConfig } from '../types';
 import { DEFAULT_CONFIG } from '../../store/configStore';
 import {
+  appendDrawdownStageForSource,
   deriveDrawdownStagesFromPriority,
+  displayNameForDrawdownStage,
+  moveDrawdownStage,
   normalizeConfigDrawdownStages,
+  removeDrawdownStageSource,
+  renameDrawdownStageSource,
   validateDrawdownStages,
 } from '../drawdownStages';
 
@@ -95,5 +100,99 @@ describe('drawdown stage validation', () => {
       'Drawdown stage stage_1 contains duplicate source: dc_pot:DC Pension',
       'Drawdown stage stage_2 references missing tax-free account: Missing ISA',
     ]);
+  });
+});
+
+
+describe('drawdown stage source maintenance', () => {
+  it('renames staged sources when a pot/account is renamed', () => {
+    const cfg: PlannerConfig = {
+      ...DEFAULT_CONFIG,
+      drawdown_stages: [
+        {
+          id: 'stage_1',
+          sources: [{ source_type: 'dc_pot', source_name: 'DC Pension', target_share: 1 }],
+        },
+      ],
+    };
+
+    renameDrawdownStageSource(cfg, 'DC Pension', 'Main pension');
+
+    expect(cfg.drawdown_stages?.[0]?.sources[0]?.source_name).toBe('Main pension');
+    expect(cfg.withdrawal_priority).toEqual(['Main pension']);
+  });
+
+  it('appends a one-source stage for a newly added source', () => {
+    const cfg: PlannerConfig = {
+      ...DEFAULT_CONFIG,
+      dc_pots: [
+        ...DEFAULT_CONFIG.dc_pots,
+        { ...DEFAULT_CONFIG.dc_pots[0]!, name: 'Second pension' },
+      ],
+      drawdown_stages: deriveDrawdownStagesFromPriority(DEFAULT_CONFIG),
+    };
+
+    appendDrawdownStageForSource(cfg, 'Second pension');
+
+    const lastStage = cfg.drawdown_stages?.[cfg.drawdown_stages.length - 1];
+    expect(lastStage).toEqual({
+      id: 'stage_second_pension_3',
+      sources: [
+        { source_type: 'dc_pot', source_name: 'Second pension', target_share: 1 },
+      ],
+    });
+    expect(cfg.withdrawal_priority).toEqual(['DC Pension', 'ISA', 'Second pension']);
+  });
+
+  it('removes deleted sources and rebalances the remaining stage shares', () => {
+    const cfg: PlannerConfig = {
+      ...DEFAULT_CONFIG,
+      drawdown_stages: [
+        {
+          id: 'stage_1',
+          sources: [
+            { source_type: 'dc_pot', source_name: 'DC Pension', target_share: 0.25 },
+            { source_type: 'tax_free_account', source_name: 'ISA', target_share: 0.75 },
+          ],
+        },
+      ],
+    };
+
+    removeDrawdownStageSource(cfg, 'ISA');
+
+    expect(cfg.drawdown_stages).toEqual([
+      {
+        id: 'stage_1',
+        sources: [{ source_type: 'dc_pot', source_name: 'DC Pension', target_share: 1 }],
+      },
+    ]);
+    expect(cfg.withdrawal_priority).toEqual(['DC Pension']);
+  });
+
+  it('moves drawdown stages and keeps legacy withdrawal_priority in the same visible order', () => {
+    const cfg: PlannerConfig = {
+      ...DEFAULT_CONFIG,
+      withdrawal_priority: ['DC Pension', 'ISA'],
+      drawdown_stages: [
+        {
+          id: 'stage_1',
+          sources: [{ source_type: 'dc_pot', source_name: 'DC Pension', target_share: 1 }],
+        },
+        {
+          id: 'stage_2',
+          sources: [{ source_type: 'tax_free_account', source_name: 'ISA', target_share: 1 }],
+        },
+      ],
+    };
+
+    moveDrawdownStage(cfg, 1, -1);
+
+    expect(cfg.drawdown_stages?.map(stage => stage.id)).toEqual(['stage_2', 'stage_1']);
+    expect(cfg.withdrawal_priority).toEqual(['ISA', 'DC Pension']);
+  });
+
+  it('uses configured stage names or deterministic fallback labels for display', () => {
+    expect(displayNameForDrawdownStage({ id: 'stage_1', name: 'Bridge years', sources: [] }, 0)).toBe('Bridge years');
+    expect(displayNameForDrawdownStage({ id: 'stage_2', sources: [] }, 1)).toBe('Stage 2');
   });
 });
