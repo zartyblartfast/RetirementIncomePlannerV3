@@ -26,6 +26,66 @@ describe('hasStoredConfig', () => {
 describe('config withdrawal_priority and drawdown stage normalization', () => {
   beforeEach(() => { localStorage.clear() })
 
+  it('uses one blended drawdown stage for a fresh/default config', () => {
+    expect(DEFAULT_CONFIG.drawdown_stages).toEqual([
+      {
+        id: 'stage_1',
+        sources: [
+          { source_type: 'dc_pot', source_name: 'DC Pension', target_share: 0.5 },
+          { source_type: 'tax_free_account', source_name: 'ISA', target_share: 0.5 },
+        ],
+      },
+    ])
+    expect(loadConfig().drawdown_stages).toEqual(DEFAULT_CONFIG.drawdown_stages)
+    expect(resetConfig().drawdown_stages).toEqual(DEFAULT_CONFIG.drawdown_stages)
+  })
+
+  it('repairs saved configs that contain only empty drawdown stage drafts', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      ...DEFAULT_CONFIG,
+      withdrawal_priority: ['ISA', 'DC Pension'],
+      drawdown_stages: [
+        { id: 'stage_1', sources: [] },
+        { id: 'stage_2', sources: [] },
+        { id: 'stage_3', sources: [] },
+      ],
+    }))
+
+    expect(loadConfig().drawdown_stages).toEqual([
+      {
+        id: 'legacy_stage_1',
+        sources: [{ source_type: 'tax_free_account', source_name: 'ISA', target_share: 1 }],
+      },
+      {
+        id: 'legacy_stage_2',
+        sources: [{ source_type: 'dc_pot', source_name: 'DC Pension', target_share: 1 }],
+      },
+    ])
+  })
+
+  it('does not persist transient empty drawdown stage drafts', () => {
+    saveConfig({
+      ...DEFAULT_CONFIG,
+      withdrawal_priority: ['DC Pension', 'ISA'],
+      drawdown_stages: [
+        { id: 'stage_1', sources: [] },
+        { id: 'stage_2', sources: [] },
+        { id: 'stage_3', sources: [] },
+      ],
+    })
+
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!).drawdown_stages).toEqual([
+      {
+        id: 'legacy_stage_1',
+        sources: [{ source_type: 'dc_pot', source_name: 'DC Pension', target_share: 1 }],
+      },
+      {
+        id: 'legacy_stage_2',
+        sources: [{ source_type: 'tax_free_account', source_name: 'ISA', target_share: 1 }],
+      },
+    ])
+  })
+
   it('repairs malformed stored withdrawal_priority when loading config', () => {
     const storedConfig = {
       ...DEFAULT_CONFIG,

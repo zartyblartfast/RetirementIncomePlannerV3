@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { DEFAULT_CONFIG } from '../configStore';
-import { buildCaseFile, caseFileDownloadName, importCaseFile, loadCaseMetadata, parseCaseFile, saveCaseMetadata } from '../caseStore';
+import { buildCaseFile, caseFileDownloadName, importCaseFile, importPlannerBackupFile, loadCaseMetadata, parseCaseFile, parsePlannerBackupFile, saveCaseMetadata } from '../caseStore';
 import { addReview, lockBaseline, loadReviewStore } from '../reviewStore';
 import { loadScenarios, saveScenario } from '../scenarioStore';
 
@@ -104,6 +104,67 @@ describe('caseStore', () => {
 
   it('rejects config-only JSON as a full case file', () => {
     expect(() => parseCaseFile(JSON.stringify(DEFAULT_CONFIG))).toThrow(/not a RIP full case export/);
+  });
+
+  it('parses full-case files through the first-visit backup restore path', () => {
+    const caseFile = buildCaseFile({
+      ...DEFAULT_CONFIG,
+      personal: { ...DEFAULT_CONFIG.personal, end_age: 94 },
+    });
+
+    const backup = parsePlannerBackupFile(JSON.stringify(caseFile));
+
+    expect(backup.kind).toBe('full_case');
+    expect(backup.config.personal.end_age).toBe(94);
+  });
+
+  it('still parses config-only files through the first-visit backup restore path', () => {
+    const backup = parsePlannerBackupFile(JSON.stringify({
+      ...DEFAULT_CONFIG,
+      personal: { ...DEFAULT_CONFIG.personal, end_age: 93 },
+    }));
+
+    expect(backup.kind).toBe('config_only');
+    expect(backup.config.personal.end_age).toBe(93);
+  });
+
+  it('imports a full-case backup through the first-visit restore path and replaces all stores', () => {
+    lockBaseline(DEFAULT_CONFIG);
+    addReview({
+      date: '2032-03',
+      pot_balances: { 'DC Pension': 170_000 },
+      income_since_last: {},
+      guaranteed_monthly: { 'State Pension': 1_040 },
+      guaranteed_income_update_mode: 'record_only',
+      strategy: 'fixed_target',
+      strategy_params: {},
+      notes: 'first-visit restore target',
+    });
+    saveScenario('First visit restore scenario', DEFAULT_CONFIG);
+    saveCaseMetadata({
+      case_name: 'First visit plan',
+      case_reference: 'FIRST-001',
+      owner_label: 'Client B',
+      notes: 'First visit restore metadata',
+      created_at: '2026-05-01T00:00:00.000Z',
+      updated_at: '2026-05-01T00:00:00.000Z',
+    });
+    const caseFile = buildCaseFile({
+      ...DEFAULT_CONFIG,
+      personal: { ...DEFAULT_CONFIG.personal, end_age: 96 },
+    });
+    const backup = parsePlannerBackupFile(JSON.stringify(caseFile));
+    expect(backup.kind).toBe('full_case');
+
+    localStorage.clear();
+    const imported = importPlannerBackupFile(backup);
+
+    expect(imported.kind).toBe('full_case');
+    expect(loadReviewStore().reviews[0]?.date).toBe('2032-03');
+    expect(loadScenarios()[0]?.name).toBe('First visit restore scenario');
+    expect(loadCaseMetadata().case_name).toBe('First visit plan');
+    const restoredConfig = JSON.parse(localStorage.getItem('rip_v2_config') ?? '{}');
+    expect(restoredConfig.personal.end_age).toBe(96);
   });
 
   it('parses older full-case files without metadata using blank metadata', () => {

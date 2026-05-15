@@ -8,6 +8,14 @@ type SourceLookup = {
 
 const SHARE_TOLERANCE = 0.000001;
 
+type NormalizeDrawdownStagesOptions = {
+  /**
+   * Empty stages can exist as in-editor drafts, but they are not meaningful
+   * persisted planning assumptions. Enable this for load/save/import paths.
+   */
+  repairEmptyStages?: boolean;
+};
+
 function buildSourceLookup(cfg: Pick<PlannerConfig, 'dc_pots' | 'tax_free_accounts'>): SourceLookup {
   return {
     dc: new Set((cfg.dc_pots ?? []).map((pot) => pot.name)),
@@ -46,10 +54,25 @@ export function deriveDrawdownStagesFromPriority(
   return stages;
 }
 
-export function normalizeConfigDrawdownStages<T extends PlannerConfig>(cfg: T): T {
+export function normalizeConfigDrawdownStages<T extends PlannerConfig>(
+  cfg: T,
+  options: NormalizeDrawdownStagesOptions = {},
+): T {
   if (!Array.isArray(cfg.drawdown_stages)) {
     cfg.drawdown_stages = deriveDrawdownStagesFromPriority(cfg);
+    return cfg;
   }
+
+  if (options.repairEmptyStages) {
+    const nonEmptyStages = cfg.drawdown_stages.filter(stage => Array.isArray(stage.sources) && stage.sources.length > 0);
+    if (nonEmptyStages.length !== cfg.drawdown_stages.length) {
+      cfg.drawdown_stages = nonEmptyStages.length > 0
+        ? nonEmptyStages
+        : deriveDrawdownStagesFromPriority(cfg);
+      return syncWithdrawalPriorityFromDrawdownStages(cfg);
+    }
+  }
+
   return cfg;
 }
 
@@ -125,20 +148,45 @@ export function renameDrawdownStageSource<T extends PlannerConfig>(cfg: T, oldNa
   return syncWithdrawalPriorityFromDrawdownStages(cfg);
 }
 
+function uniqueStageId(stages: DrawdownStageConfig[], base: string): string {
+  const existingIds = new Set(stages.map(stage => stage.id));
+  let suffix = stages.length + 1;
+  let candidate = `${base}_${suffix}`;
+  while (existingIds.has(candidate)) {
+    suffix += 1;
+    candidate = `${base}_${suffix}`;
+  }
+  return candidate;
+}
+
 function stageIdForNewSource(stages: DrawdownStageConfig[], sourceName: string): string {
   const slug = sourceName
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '') || 'source';
-  const existingIds = new Set(stages.map(stage => stage.id));
-  let suffix = stages.length + 1;
-  let candidate = `stage_${slug}_${suffix}`;
-  while (existingIds.has(candidate)) {
-    suffix += 1;
-    candidate = `stage_${slug}_${suffix}`;
+  return uniqueStageId(stages, `stage_${slug}`);
+}
+
+export function appendDrawdownStage<T extends PlannerConfig>(cfg: T): T {
+  if (!Array.isArray(cfg.drawdown_stages)) {
+    cfg.drawdown_stages = deriveDrawdownStagesFromPriority(cfg);
   }
-  return candidate;
+  cfg.drawdown_stages = [
+    ...cfg.drawdown_stages,
+    {
+      id: uniqueStageId(cfg.drawdown_stages, 'stage'),
+      sources: [],
+    },
+  ];
+  return syncWithdrawalPriorityFromDrawdownStages(cfg);
+}
+
+export function removeDrawdownStageAt<T extends PlannerConfig>(cfg: T, stageIndex: number): T {
+  if (!Array.isArray(cfg.drawdown_stages)) return cfg;
+  if (stageIndex < 0 || stageIndex >= cfg.drawdown_stages.length) return cfg;
+  cfg.drawdown_stages = cfg.drawdown_stages.filter((_, index) => index !== stageIndex);
+  return syncWithdrawalPriorityFromDrawdownStages(cfg);
 }
 
 export function appendDrawdownStageForSource<T extends PlannerConfig>(cfg: T, sourceName: string): T {
@@ -171,6 +219,52 @@ export function removeDrawdownStageSource<T extends PlannerConfig>(cfg: T, sourc
     }))
     .filter(stage => stage.sources.length > 0)
     .map(rebalanceStageShares);
+  return syncWithdrawalPriorityFromDrawdownStages(cfg);
+}
+
+function rebalanceStageSharesEqually(stage: DrawdownStageConfig): DrawdownStageConfig {
+  if (stage.sources.length === 0) return stage;
+  const equalShare = 1 / stage.sources.length;
+  return {
+    ...stage,
+    sources: stage.sources.map(source => ({ ...source, target_share: equalShare })),
+  };
+}
+
+export function appendSourceToDrawdownStage<T extends PlannerConfig>(cfg: T, stageIndex: number, sourceName: string): T {
+  if (!Array.isArray(cfg.drawdown_stages)) {
+    cfg.drawdown_stages = deriveDrawdownStagesFromPriority(cfg);
+  }
+  const stage = cfg.drawdown_stages[stageIndex];
+  if (!stage) return cfg;
+  const source = sourceForName(sourceName, buildSourceLookup(cfg));
+  if (!source) return cfg;
+  if (stage.sources.some(existing => sourceKey(existing) === sourceKey(source))) return cfg;
+  const movingKey = sourceKey(source);
+
+  cfg.drawdown_stages = cfg.drawdown_stages
+    .map((existing, index) => {
+      const sourcesWithoutMovingSource = existing.sources.filter(existingSource => sourceKey(existingSource) !== movingKey);
+      if (index === stageIndex) {
+        return rebalanceStageSharesEqually({ ...existing, sources: [...sourcesWithoutMovingSource, source] });
+      }
+      return rebalanceStageSharesEqually({ ...existing, sources: sourcesWithoutMovingSource });
+    })
+    .filter(existing => existing.sources.length > 0);
+  return syncWithdrawalPriorityFromDrawdownStages(cfg);
+}
+
+export function removeSourceFromDrawdownStage<T extends PlannerConfig>(cfg: T, stageIndex: number, sourceIndex: number): T {
+  if (!Array.isArray(cfg.drawdown_stages)) return cfg;
+  const stage = cfg.drawdown_stages[stageIndex];
+  if (!stage || sourceIndex < 0 || sourceIndex >= stage.sources.length) return cfg;
+
+  cfg.drawdown_stages = cfg.drawdown_stages.map((existing, index) => index === stageIndex
+    ? rebalanceStageSharesEqually({
+      ...existing,
+      sources: existing.sources.filter((_, existingSourceIndex) => existingSourceIndex !== sourceIndex),
+    })
+    : existing);
   return syncWithdrawalPriorityFromDrawdownStages(cfg);
 }
 

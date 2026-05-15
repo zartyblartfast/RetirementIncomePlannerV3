@@ -13,6 +13,7 @@ export function normalizeLoadedConfig(raw: unknown): PlannerConfig {
   normalizeIncomeSources(cfg);
   return normalizeConfigDrawdownStages(
     normalizeConfigWithdrawalPriority(normalizeConfigAssetAllocations(cfg as PlannerConfig)),
+    { repairEmptyStages: true },
   );
 }
 

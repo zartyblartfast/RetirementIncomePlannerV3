@@ -14,7 +14,7 @@ export default function ConfigProvider({ children }: { children: ReactNode }) {
 
   const setConfig = useCallback((cfg: PlannerConfig) => {
     const normalizedPriority = normalizeConfigWithdrawalPriority(JSON.parse(JSON.stringify(cfg)) as PlannerConfig);
-    const next = normalizeConfigDrawdownStages(normalizedPriority);
+    const next = normalizeConfigDrawdownStages(normalizedPriority, { repairEmptyStages: true });
     setConfigState(next);
     saveConfig(next);
   }, []);

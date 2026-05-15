@@ -7,7 +7,8 @@ import Review from './pages/Review'
 import Optimise from './pages/Optimise'
 import WelcomeScreen from './pages/WelcomeScreen'
 import OnboardingWizard from './components/onboarding/OnboardingWizard'
-import { useConfig, importConfigFromFile } from './store/configStore'
+import { useConfig } from './store/configStore'
+import { importPlannerBackupFromFile } from './store/caseStore'
 
 function App() {
   const { isFirstVisit, setConfig, markConfigured } = useConfig()
@@ -16,9 +17,9 @@ function App() {
 
   function handleLoadFile() {
     setImportError(null)
-    importConfigFromFile()
-      .then(cfg => {
-        setConfig(cfg)
+    importPlannerBackupFromFile()
+      .then(backup => {
+        setConfig(backup.config)
         markConfigured()
       })
       .catch(err => { setImportError((err as Error).message) })

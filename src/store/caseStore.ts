@@ -8,7 +8,7 @@
 
 import type { PlannerConfig } from '../engine/types';
 import { normalizeLoadedConfig } from './configMigration';
-import { saveConfig } from './configStore';
+import { parseConfigFile, saveConfig } from './configStore';
 import { loadReviewStore, saveReviewStore, type ReviewStore } from './reviewStore';
 import { loadScenarios, saveScenarios, type Scenario } from './scenarioStore';
 
@@ -169,6 +169,59 @@ export function importCaseFile(caseFile: CaseFile): CaseFile {
   saveReviewStore(normalized.review_store);
   saveScenarios(normalized.scenarios);
   return normalized;
+}
+
+export type PlannerBackupFile =
+  | { kind: 'full_case'; caseFile: CaseFile; config: PlannerConfig }
+  | { kind: 'config_only'; config: PlannerConfig };
+
+export function parsePlannerBackupFile(raw: string): PlannerBackupFile {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw) as unknown;
+  } catch {
+    throw new Error('Invalid JSON file');
+  }
+
+  if (isRecord(parsed) && parsed.schema === 'rip.full_case') {
+    const caseFile = parseCaseFile(raw);
+    return { kind: 'full_case', caseFile, config: caseFile.config };
+  }
+
+  return { kind: 'config_only', config: parseConfigFile(raw) };
+}
+
+export function importPlannerBackupFile(backup: PlannerBackupFile): PlannerBackupFile {
+  if (backup.kind === 'full_case') {
+    const caseFile = importCaseFile(backup.caseFile);
+    return { kind: 'full_case', caseFile, config: caseFile.config };
+  }
+
+  saveConfig(backup.config);
+  return backup;
+}
+
+export function importPlannerBackupFromFile(): Promise<PlannerBackupFile> {
+  return new Promise((resolve, reject) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (!file) { reject(new Error('No file selected')); return; }
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          resolve(importPlannerBackupFile(parsePlannerBackupFile(reader.result as string)));
+        } catch (err) {
+          reject(err instanceof Error ? err : new Error('Invalid backup file'));
+        }
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsText(file);
+    };
+    input.click();
+  });
 }
 
 export function importCaseFromFile(): Promise<CaseFile> {

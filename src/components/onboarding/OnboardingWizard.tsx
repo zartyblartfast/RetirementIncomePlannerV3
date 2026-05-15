@@ -6,7 +6,7 @@
 import { useState } from 'react';
 import { ChevronRight, ChevronLeft, Check } from 'lucide-react';
 import { useConfig, DEFAULT_CONFIG, exportConfigToFile } from '../../store/configStore';
-import type { PlannerConfig } from '../../engine/types';
+import type { DrawdownStageSourceConfig, PlannerConfig } from '../../engine/types';
 
 // ------------------------------------------------------------------ //
 //  WizardData — the raw form state
@@ -61,7 +61,7 @@ function currentYYYYMM(): string {
   return `${y}-${m}`;
 }
 
-function buildConfig(data: WizardData): PlannerConfig {
+export function buildConfig(data: WizardData): PlannerConfig {
   const cfg: PlannerConfig = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
 
   cfg.personal.date_of_birth = data.dob;
@@ -125,6 +125,18 @@ function buildConfig(data: WizardData): PlannerConfig {
   cfg.withdrawal_priority = [
     ...(data.hasDcPot ? [data.dcPotName] : []),
     ...(data.hasIsa ? ['ISA'] : []),
+  ];
+
+  const stageSources: DrawdownStageSourceConfig[] = [
+    ...(data.hasDcPot ? [{ source_type: 'dc_pot' as const, source_name: data.dcPotName, target_share: 1 }] : []),
+    ...(data.hasIsa ? [{ source_type: 'tax_free_account' as const, source_name: 'ISA', target_share: 1 }] : []),
+  ];
+  const targetShare = stageSources.length > 0 ? 1 / stageSources.length : 0;
+  cfg.drawdown_stages = [
+    {
+      id: 'stage_1',
+      sources: stageSources.map(source => ({ ...source, target_share: targetShare })),
+    },
   ];
 
   return cfg;

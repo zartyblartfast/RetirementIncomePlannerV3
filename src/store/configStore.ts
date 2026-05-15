@@ -62,6 +62,15 @@ export const DEFAULT_CONFIG: PlannerConfig = {
     },
   ],
   withdrawal_priority: ['DC Pension', 'ISA'],
+  drawdown_stages: [
+    {
+      id: 'stage_1',
+      sources: [
+        { source_type: 'dc_pot', source_name: 'DC Pension', target_share: 0.5 },
+        { source_type: 'tax_free_account', source_name: 'ISA', target_share: 0.5 },
+      ],
+    },
+  ],
   tax: {
     regime: 'Custom',
     personal_allowance: 12570,
@@ -97,7 +106,7 @@ export function hasStoredConfig(): boolean {
 export function saveConfig(cfg: PlannerConfig): void {
   const normalizedAllocations = normalizeConfigAssetAllocations(JSON.parse(JSON.stringify(cfg)) as PlannerConfig);
   const normalizedPriority = normalizeConfigWithdrawalPriority(normalizedAllocations);
-  const normalized = normalizeConfigDrawdownStages(normalizedPriority);
+  const normalized = normalizeConfigDrawdownStages(normalizedPriority, { repairEmptyStages: true });
   localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
 }
 
@@ -121,6 +130,15 @@ export function exportConfigToFile(cfg: PlannerConfig): void {
   URL.revokeObjectURL(url);
 }
 
+export function parseConfigFile(raw: string): PlannerConfig {
+  const cfg = normalizeLoadedConfig(JSON.parse(raw));
+  // Basic validation: check required top-level keys
+  if (!cfg.personal || !cfg.target_income || !cfg.tax) {
+    throw new Error('Invalid config file: missing required sections');
+  }
+  return cfg;
+}
+
 export function importConfigFromFile(): Promise<PlannerConfig> {
   return new Promise((resolve, reject) => {
     const input = document.createElement('input');
@@ -132,13 +150,7 @@ export function importConfigFromFile(): Promise<PlannerConfig> {
       const reader = new FileReader();
       reader.onload = () => {
         try {
-          const cfg = normalizeLoadedConfig(JSON.parse(reader.result as string));
-          // Basic validation: check required top-level keys
-          if (!cfg.personal || !cfg.target_income || !cfg.tax) {
-            reject(new Error('Invalid config file: missing required sections'));
-            return;
-          }
-          resolve(cfg);
+          resolve(parseConfigFile(reader.result as string));
         } catch {
           reject(new Error('Invalid JSON file'));
         }

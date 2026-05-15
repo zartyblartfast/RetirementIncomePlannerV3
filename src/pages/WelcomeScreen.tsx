@@ -28,7 +28,7 @@ export default function WelcomeScreen({ onLoadFile, onStartWizard, importError }
             <Upload className="w-8 h-8 text-blue-400 mb-3" />
             <h2 className="text-white font-semibold text-lg">Restore from file</h2>
             <p className="text-gray-400 text-sm mt-1">
-              Load a previously exported .json config file.
+              Load a previously exported .json case or config file.
             </p>
           </button>
 

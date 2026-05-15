@@ -149,6 +149,7 @@ describe('normalizeWithdrawalPriority', () => {
       ],
       tax_free_accounts: [],
       withdrawal_priority: ['Old DC'],
+      drawdown_stages: undefined,
       tax: { ...DEFAULT_CONFIG.tax, personal_allowance: 99_999, bands: [] },
     } as PlannerConfig;
 
