@@ -30,7 +30,9 @@ export function formatDrawdownStageSummary(stage: DrawdownStageConfig, index: nu
 }
 
 export function formatDrawdownStrategySummary(stages: DrawdownStageConfig[]): string {
-  return stages.map((stage, index) => formatDrawdownStageSummary(stage, index)).join('; ');
+  const activeStages = stages.filter(stage => Array.isArray(stage.sources) && stage.sources.length > 0);
+  if (activeStages.length === 0) return 'No projection-ready drawdown stages configured';
+  return activeStages.map((stage, index) => formatDrawdownStageSummary(stage, index)).join('; ');
 }
 
 export function formatDrawdownStageMode(stage: DrawdownStageConfig): string {
@@ -148,13 +150,13 @@ export default function DrawdownStagesPanel({ variant }: { variant: Variant }) {
         </h4>
         <div className="rounded bg-gray-50 px-3 py-2 text-sm text-gray-700">
           <p className="text-xs text-gray-500 mb-1">
-            Active source order/blending used by the projection.
+            Active source order/blending used by the projection. Draft empty stages are edited on the Drawdown Order page and are not listed here.
           </p>
           <p className="text-xs text-gray-700 leading-relaxed">
             {formatDrawdownStrategySummary(stages)}
           </p>
           <Link to="/optimise" className="inline-block mt-2 text-xs font-medium text-blue-600 hover:text-blue-800">
-            Edit drawdown strategy in Optimise →
+            Edit drawdown order and blending →
           </Link>
         </div>
       </div>

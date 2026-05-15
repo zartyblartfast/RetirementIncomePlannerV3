@@ -51,6 +51,30 @@ describe('drawdown stage summary labels', () => {
     );
   });
 
+  it('omits empty draft stages from the compact dashboard summary', () => {
+    const stages: DrawdownStageConfig[] = [
+      {
+        id: 'stage_1',
+        name: 'Bridge years',
+        sources: [
+          { source_type: 'dc_pot', source_name: 'DC Pension', target_share: 0.7 },
+          { source_type: 'tax_free_account', source_name: 'ISA', target_share: 0.3 },
+        ],
+      },
+      { id: 'stage_2', sources: [] },
+    ];
+
+    expect(formatDrawdownStrategySummary(stages)).toBe(
+      'Bridge years — DC Pension 70.0% + ISA 30.0%',
+    );
+  });
+
+  it('shows a safe fallback when no projection-ready stages exist', () => {
+    expect(formatDrawdownStrategySummary([{ id: 'stage_1', sources: [] }])).toBe(
+      'No projection-ready drawdown stages configured',
+    );
+  });
+
   it('formats explanatory stage details for the editable Optimise panel', () => {
     const blended: DrawdownStageConfig = {
       id: 'stage_1',
