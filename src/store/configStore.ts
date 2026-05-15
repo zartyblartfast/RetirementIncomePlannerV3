@@ -10,6 +10,7 @@ import type { PlannerConfig } from '../engine/types';
 import { makeDefaultAllocation, normalizeConfigAssetAllocations, defaultGrowthRateFromAllocation } from '../engine/assetAllocation';
 import { normalizeLoadedConfig } from './configMigration';
 import { normalizeConfigDrawdownStages } from '../engine/drawdownStages';
+import { DEFAULT_TAX_FREE_CASH_CONFIG, normalizeConfigTaxFreeCash } from '../engine/taxFreeCash';
 import { normalizeConfigWithdrawalPriority } from '../engine/withdrawalPriority';
 
 const STORAGE_KEY = 'rip_v2_config';
@@ -48,6 +49,7 @@ export const DEFAULT_CONFIG: PlannerConfig = {
       growth_rate: defaultGrowthRateFromAllocation(makeDefaultAllocation()),
       annual_fees: 0.005,
       tax_free_portion: 0.25,
+      tax_free_cash: { ...DEFAULT_TAX_FREE_CASH_CONFIG },
       allocation: makeDefaultAllocation(),
       values_as_of: '2026-04',
     },
@@ -105,7 +107,8 @@ export function hasStoredConfig(): boolean {
 
 export function saveConfig(cfg: PlannerConfig): void {
   const normalizedAllocations = normalizeConfigAssetAllocations(JSON.parse(JSON.stringify(cfg)) as PlannerConfig);
-  const normalizedPriority = normalizeConfigWithdrawalPriority(normalizedAllocations);
+  const normalizedTaxFreeCash = normalizeConfigTaxFreeCash(normalizedAllocations);
+  const normalizedPriority = normalizeConfigWithdrawalPriority(normalizedTaxFreeCash);
   const normalized = normalizeConfigDrawdownStages(normalizedPriority, { repairEmptyStages: true });
   localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
 }

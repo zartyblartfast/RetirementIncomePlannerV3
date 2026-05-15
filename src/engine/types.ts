@@ -56,6 +56,7 @@ export interface DCPotConfig {
   growth_rate: number;
   annual_fees: number;
   tax_free_portion: number;
+  tax_free_cash?: DCPotTaxFreeCashConfig;
   allocation?: AllocationConfig;
   values_as_of?: string;
   holdings?: HoldingConfig[];

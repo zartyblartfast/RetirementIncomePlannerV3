@@ -22,6 +22,7 @@ import {
   removeDrawdownStageSource,
   renameDrawdownStageSource,
 } from '../../engine/drawdownStages';
+import { DEFAULT_TAX_FREE_CASH_CONFIG, describeTaxFreeCashAssumption } from '../../engine/taxFreeCash';
 import DrawdownStagesPanel from './drawdownStageSummary';
 
 const NOW_MONTH = new Date().toISOString().slice(0, 7);
@@ -43,6 +44,7 @@ function newDcPot(name: string): DCPotConfig {
     growth_rate: defaultGrowthRateFromAllocation(allocation),
     annual_fees: 0.004,
     tax_free_portion: 0.25,
+    tax_free_cash: { ...DEFAULT_TAX_FREE_CASH_CONFIG },
     allocation,
     values_as_of: NOW_MONTH,
   };
@@ -741,6 +743,7 @@ export default function ConfigPanel() {
                       onChange={e => updateDcPot(i, 'tax_free_portion', Number(e.target.value) / 100)}
                       className="input-field"
                     />
+                    <HelperText>{describeTaxFreeCashAssumption(pot)}</HelperText>
                   </Field>
                   <AllocationSelector
                     allocation={pot.allocation}

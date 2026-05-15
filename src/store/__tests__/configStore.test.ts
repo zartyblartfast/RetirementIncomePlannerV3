@@ -158,3 +158,37 @@ describe('income source normalization', () => {
     expect(income.end_date).toBeNull()
   })
 })
+
+
+describe('DC pension tax-free cash metadata normalization', () => {
+  beforeEach(() => { localStorage.clear() })
+
+  it('adds default gradual pro-rata metadata when loading older saved configs', () => {
+    const { tax_free_cash: _taxFreeCash, ...legacyPot } = DEFAULT_CONFIG.dc_pots[0]!
+    const storedConfig = {
+      ...DEFAULT_CONFIG,
+      dc_pots: [legacyPot],
+    } as unknown as PlannerConfig
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(storedConfig))
+
+    expect(loadConfig().dc_pots[0]!.tax_free_cash).toEqual({
+      mode: 'gradual_pro_rata',
+      residual_mode: 'gradual_pro_rata',
+    })
+  })
+
+  it('persists default gradual pro-rata metadata for config-only saves', () => {
+    const { tax_free_cash: _taxFreeCash, ...legacyPot } = DEFAULT_CONFIG.dc_pots[0]!
+
+    saveConfig({
+      ...DEFAULT_CONFIG,
+      dc_pots: [legacyPot],
+    } as unknown as PlannerConfig)
+
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!).dc_pots[0].tax_free_cash).toEqual({
+      mode: 'gradual_pro_rata',
+      residual_mode: 'gradual_pro_rata',
+    })
+  })
+})

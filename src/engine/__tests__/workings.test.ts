@@ -57,6 +57,20 @@ describe('computeYearWorkings', () => {
     expect(w.taxContext).toEqual(taxContext);
   });
 
+  it('explains the DC tax-free cash assumption as gradual pro-rata', () => {
+    const w = computeYearWorkings({
+      ...yr1,
+      dc_withdrawal_gross: 12000,
+      dc_tax_free_portion: 3000,
+    });
+
+    const step = w.steps.find(s => s.id === 'dc_tax_free');
+    expect(step).toBeDefined();
+    expect(step!.label).toBe('DC tax-free pension element');
+    expect(step!.formula).toContain('Gradual pro-rata assumption: 25.0% of DC withdrawals treated as tax-free');
+    expect(step!.formula).toContain('£12,000 gross gives £3,000 tax-free');
+  });
+
   it('includes staged drawdown allocation detail when present on the year row', () => {
     const w = computeYearWorkings({
       ...yr1,

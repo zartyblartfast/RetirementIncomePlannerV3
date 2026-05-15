@@ -1,6 +1,7 @@
 import type { PlannerConfig } from '../engine/types';
 import { normalizeConfigAssetAllocations } from '../engine/assetAllocation';
 import { normalizeConfigDrawdownStages } from '../engine/drawdownStages';
+import { normalizeConfigTaxFreeCash } from '../engine/taxFreeCash';
 import { normalizeConfigWithdrawalPriority } from '../engine/withdrawalPriority';
 
 type LegacyPlannerConfig = PlannerConfig & {
@@ -12,7 +13,7 @@ export function normalizeLoadedConfig(raw: unknown): PlannerConfig {
   stripLegacyRetirementAge(cfg);
   normalizeIncomeSources(cfg);
   return normalizeConfigDrawdownStages(
-    normalizeConfigWithdrawalPriority(normalizeConfigAssetAllocations(cfg as PlannerConfig)),
+    normalizeConfigWithdrawalPriority(normalizeConfigTaxFreeCash(normalizeConfigAssetAllocations(cfg as PlannerConfig))),
     { repairEmptyStages: true },
   );
 }
