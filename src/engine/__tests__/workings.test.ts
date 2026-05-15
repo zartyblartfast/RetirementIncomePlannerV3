@@ -69,6 +69,7 @@ describe('computeYearWorkings', () => {
     expect(step!.label).toBe('DC tax-free pension element');
     expect(step!.formula).toContain('Gradual pro-rata assumption: 25.0% of DC withdrawals treated as tax-free');
     expect(step!.formula).toContain('£12,000 gross gives £3,000 tax-free');
+    expect(step!.formula).toContain('No upfront lump sum is modelled in this workings path');
   });
 
   it('includes staged drawdown allocation detail when present on the year row', () => {

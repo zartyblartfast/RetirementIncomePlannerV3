@@ -38,7 +38,7 @@ describe('tax-free cash metadata', () => {
     const pot = { ...DEFAULT_CONFIG.dc_pots[0]!, tax_free_portion: 0.3 };
 
     expect(describeTaxFreeCashAssumption(pot)).toBe(
-      'Gradual pro-rata: 30.0% of each DC Pension withdrawal is treated as tax-free; the remaining 70.0% is taxable.',
+      'Gradual pro-rata: 30.0% of each DC Pension withdrawal is treated as tax-free; the remaining 70.0% is taxable. No upfront tax-free lump sum or allowance tracking is modelled in this setting.',
     );
   });
 });

@@ -41,5 +41,5 @@ export function normalizeConfigTaxFreeCash(cfg: PlannerConfig): PlannerConfig {
 export function describeTaxFreeCashAssumption(pot: DCPotConfig): string {
   const normalized = normalizeTaxFreeCashConfigForPot(pot);
   const percentage = (normalized.tax_free_portion * 100).toFixed(1);
-  return `Gradual pro-rata: ${percentage}% of each ${normalized.name} withdrawal is treated as tax-free; the remaining ${(100 - normalized.tax_free_portion * 100).toFixed(1)}% is taxable.`;
+  return `Gradual pro-rata: ${percentage}% of each ${normalized.name} withdrawal is treated as tax-free; the remaining ${(100 - normalized.tax_free_portion * 100).toFixed(1)}% is taxable. No upfront tax-free lump sum or allowance tracking is modelled in this setting.`;
 }

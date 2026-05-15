@@ -84,8 +84,8 @@ export function computeYearWorkings(yr: YearRow, taxContext?: TaxContext): Worki
     id: 'dc_tax_free',
     label: 'DC tax-free pension element',
     formula: yr.dc_withdrawal_gross > 0
-      ? `Gradual pro-rata assumption: ${dcTaxFreeRate.toFixed(1)}% of DC withdrawals treated as tax-free; ${fmtGBP(yr.dc_withdrawal_gross)} gross gives ${fmtGBP(yr.dc_tax_free_portion)} tax-free`
-      : 'Gradual pro-rata assumption: DC withdrawals split between tax-free and taxable portions according to each pot setting',
+      ? `Gradual pro-rata assumption: ${dcTaxFreeRate.toFixed(1)}% of DC withdrawals treated as tax-free; ${fmtGBP(yr.dc_withdrawal_gross)} gross gives ${fmtGBP(yr.dc_tax_free_portion)} tax-free. No upfront lump sum is modelled in this workings path.`
+      : 'Gradual pro-rata assumption: DC withdrawals split between tax-free and taxable portions according to each pot setting. No upfront lump sum is modelled in this workings path.',
     value: yr.dc_tax_free_portion,
     isCrossCheck: false,
   });
