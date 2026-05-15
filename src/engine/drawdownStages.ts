@@ -186,6 +186,72 @@ export function moveDrawdownStage<T extends PlannerConfig>(cfg: T, stageIndex: n
   return syncWithdrawalPriorityFromDrawdownStages(cfg);
 }
 
+export function updateDrawdownStageName<T extends PlannerConfig>(cfg: T, stageIndex: number, name: string): T {
+  if (!Array.isArray(cfg.drawdown_stages)) return cfg;
+  const stage = cfg.drawdown_stages[stageIndex];
+  if (!stage) return cfg;
+  const trimmed = name.trim();
+  cfg.drawdown_stages = cfg.drawdown_stages.map((existing, index) => {
+    if (index !== stageIndex) return existing;
+    if (!trimmed) {
+      const { name: _name, ...withoutName } = existing;
+      return withoutName;
+    }
+    return { ...existing, name: trimmed };
+  });
+  return syncWithdrawalPriorityFromDrawdownStages(cfg);
+}
+
+function clampShare(share: number): number {
+  if (!Number.isFinite(share)) return 0;
+  return Math.max(0, Math.min(1, share));
+}
+
+export function updateDrawdownStageSourceShare<T extends PlannerConfig>(
+  cfg: T,
+  stageIndex: number,
+  sourceIndex: number,
+  targetShare: number,
+): T {
+  if (!Array.isArray(cfg.drawdown_stages)) return cfg;
+  const stage = cfg.drawdown_stages[stageIndex];
+  const source = stage?.sources[sourceIndex];
+  if (!stage || !source) return cfg;
+
+  if (stage.sources.length === 1) {
+    cfg.drawdown_stages = cfg.drawdown_stages.map((existing, index) => index === stageIndex
+      ? { ...existing, sources: [{ ...source, target_share: 1 }] }
+      : existing);
+    return syncWithdrawalPriorityFromDrawdownStages(cfg);
+  }
+
+  const selectedShare = clampShare(targetShare);
+  const remainingTarget = 1 - selectedShare;
+  const otherSources = stage.sources.filter((_, index) => index !== sourceIndex);
+  const currentOtherTotal = otherSources.reduce(
+    (total, other) => total + (Number.isFinite(other.target_share) && other.target_share > 0 ? other.target_share : 0),
+    0,
+  );
+  const equalOtherShare = otherSources.length > 0 ? remainingTarget / otherSources.length : 0;
+
+  cfg.drawdown_stages = cfg.drawdown_stages.map((existing, index) => {
+    if (index !== stageIndex) return existing;
+    return {
+      ...existing,
+      sources: existing.sources.map((existingSource, existingSourceIndex) => {
+        if (existingSourceIndex === sourceIndex) {
+          return { ...existingSource, target_share: selectedShare };
+        }
+        const proportionalShare = currentOtherTotal > 0
+          ? ((Number.isFinite(existingSource.target_share) && existingSource.target_share > 0 ? existingSource.target_share : 0) / currentOtherTotal) * remainingTarget
+          : equalOtherShare;
+        return { ...existingSource, target_share: proportionalShare };
+      }),
+    };
+  });
+  return syncWithdrawalPriorityFromDrawdownStages(cfg);
+}
+
 export function validateDrawdownStages(cfg: Pick<PlannerConfig, 'dc_pots' | 'tax_free_accounts' | 'drawdown_stages'>): string[] {
   const errors: string[] = [];
   const stages = cfg.drawdown_stages ?? [];

@@ -9,6 +9,8 @@ import {
   normalizeConfigDrawdownStages,
   removeDrawdownStageSource,
   renameDrawdownStageSource,
+  updateDrawdownStageName,
+  updateDrawdownStageSourceShare,
   validateDrawdownStages,
 } from '../drawdownStages';
 
@@ -194,5 +196,52 @@ describe('drawdown stage source maintenance', () => {
   it('uses configured stage names or deterministic fallback labels for display', () => {
     expect(displayNameForDrawdownStage({ id: 'stage_1', name: 'Bridge years', sources: [] }, 0)).toBe('Bridge years');
     expect(displayNameForDrawdownStage({ id: 'stage_2', sources: [] }, 1)).toBe('Stage 2');
+  });
+
+  it('updates editable stage names without changing source order', () => {
+    const cfg: PlannerConfig = {
+      ...DEFAULT_CONFIG,
+      withdrawal_priority: ['DC Pension', 'ISA'],
+      drawdown_stages: [
+        {
+          id: 'stage_1',
+          sources: [{ source_type: 'dc_pot', source_name: 'DC Pension', target_share: 1 }],
+        },
+      ],
+    };
+
+    updateDrawdownStageName(cfg, 0, 'Bridge years');
+
+    expect(cfg.drawdown_stages?.[0]?.name).toBe('Bridge years');
+    expect(cfg.withdrawal_priority).toEqual(['DC Pension']);
+  });
+
+  it('keeps blended stage source shares summing to 100% when one percentage is edited', () => {
+    const cfg: PlannerConfig = {
+      ...DEFAULT_CONFIG,
+      drawdown_stages: [
+        {
+          id: 'stage_1',
+          sources: [
+            { source_type: 'dc_pot', source_name: 'DC Pension', target_share: 0.5 },
+            { source_type: 'tax_free_account', source_name: 'ISA', target_share: 0.3 },
+            { source_type: 'tax_free_account', source_name: 'Second ISA', target_share: 0.2 },
+          ],
+        },
+      ],
+    };
+
+    updateDrawdownStageSourceShare(cfg, 0, 0, 0.6);
+
+    expect(cfg.drawdown_stages?.[0]?.sources[0]?.target_share).toBeCloseTo(0.6);
+    expect(cfg.drawdown_stages?.[0]?.sources[1]?.target_share).toBeCloseTo(0.24);
+    expect(cfg.drawdown_stages?.[0]?.sources[2]?.target_share).toBeCloseTo(0.16);
+    expect(validateDrawdownStages({
+      ...cfg,
+      tax_free_accounts: [
+        ...DEFAULT_CONFIG.tax_free_accounts,
+        { ...DEFAULT_CONFIG.tax_free_accounts[0]!, name: 'Second ISA' },
+      ],
+    })).toEqual([]);
   });
 });
