@@ -42,6 +42,16 @@ function safeIdPart(s: string): string {
   return s.replace(/\s+/g, '_');
 }
 
+function transitionReasonLabel(reason: string): string {
+  switch (reason) {
+    case 'stage_depleted': return 'stage depleted';
+    case 'source_unavailable': return 'source unavailable';
+    case 'validation_repair': return 'validation repair';
+    case 'all_sources_depleted': return 'all sources depleted';
+    default: return reason.replace(/_/g, ' ');
+  }
+}
+
 export function computeYearWorkings(yr: YearRow, taxContext?: TaxContext): WorkingsReport {
   const steps: WorkingsStep[] = [];
 
@@ -96,11 +106,25 @@ export function computeYearWorkings(yr: YearRow, taxContext?: TaxContext): Worki
 
   // ── Staged drawdown allocation detail ───────────────────────────────
   for (const allocation of yr.drawdown_stage_allocations ?? []) {
+    const stageGrossTotal = (yr.drawdown_stage_allocations ?? [])
+      .filter(other => other.stage_id === allocation.stage_id)
+      .reduce((total, other) => total + other.actual_gross_withdrawal, 0);
+    const actualSourceSplit = stageGrossTotal > 0 ? allocation.actual_gross_withdrawal / stageGrossTotal : 0;
     steps.push({
       id: `drawdown_stage_allocation_${safeIdPart(allocation.stage_id)}_${safeIdPart(allocation.source_name)}`,
       label: `Drawdown stage allocation: ${allocation.stage_name} / ${allocation.source_name}`,
-      formula: `Target split ${(allocation.target_share * 100).toFixed(0)}%; actual gross ${fmtGBP(allocation.actual_gross_withdrawal)}, net ${fmtGBP(allocation.actual_net_income)}, tax-free ${fmtGBP(allocation.tax_free_amount)}, taxable ${fmtGBP(allocation.taxable_amount)}`,
+      formula: `Target split ${(allocation.target_share * 100).toFixed(1)}%; actual source split ${(actualSourceSplit * 100).toFixed(1)}%; actual gross ${fmtGBP(allocation.actual_gross_withdrawal)}, net ${fmtGBP(allocation.actual_net_income)}, tax-free ${fmtGBP(allocation.tax_free_amount)}, taxable ${fmtGBP(allocation.taxable_amount)}`,
       value: allocation.actual_net_income,
+      isCrossCheck: false,
+    });
+  }
+
+  for (const transition of yr.drawdown_stage_transitions ?? []) {
+    steps.push({
+      id: `drawdown_stage_transition_${transition.month}_${safeIdPart(transition.from_stage_id)}_${safeIdPart(transition.to_stage_id ?? 'end')}`,
+      label: `Drawdown stage transition: month ${transition.month}`,
+      formula: `${transition.from_stage_name} → ${transition.to_stage_name ?? 'No further stage'} because ${transitionReasonLabel(transition.reason)}`,
+      value: transition.month,
       isCrossCheck: false,
     });
   }

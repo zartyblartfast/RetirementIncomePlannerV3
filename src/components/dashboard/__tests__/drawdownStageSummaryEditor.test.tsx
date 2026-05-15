@@ -87,7 +87,8 @@ describe('DrawdownStagesPanel editor', () => {
       'stage_1',
       'stage_2',
     ]);
-    expect(mounted.container.textContent).toContain('Add a source to this stage.');
+    expect(mounted.container.textContent).toContain('Stage 2 needs at least one source before it can be used in projections.');
+    expect(mounted.container.textContent).toContain('How staged drawdown is used');
 
     mounted.clickButton('Delete stage');
 

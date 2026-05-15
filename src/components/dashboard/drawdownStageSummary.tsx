@@ -33,6 +33,71 @@ export function formatDrawdownStrategySummary(stages: DrawdownStageConfig[]): st
   return stages.map((stage, index) => formatDrawdownStageSummary(stage, index)).join('; ');
 }
 
+export function formatDrawdownStageMode(stage: DrawdownStageConfig): string {
+  if (!Array.isArray(stage.sources) || stage.sources.length === 0) return 'Draft stage';
+  return stage.sources.length === 1 ? 'Single-source stage' : 'Blended stage';
+}
+
+export function formatDrawdownStageDetail(stage: DrawdownStageConfig, index: number): string {
+  const stageName = displayNameForDrawdownStage(stage, index);
+  if (!Array.isArray(stage.sources) || stage.sources.length === 0) {
+    return `${stageName}: draft stage with no source yet`;
+  }
+  const sourceDetail = stage.sources
+    .map(source => `${(source.target_share * 100).toFixed(1)}% ${source.source_name}`)
+    .join(' + ');
+  return `${stageName}: ${formatDrawdownStageMode(stage).toLowerCase()} using ${sourceDetail}`;
+}
+
+export function formatDrawdownStageValidationMessages(config: Pick<PlannerConfig, 'dc_pots' | 'tax_free_accounts'>, stages: DrawdownStageConfig[]): string[] {
+  const messages: string[] = [];
+  const ids = new Set<string>();
+  const dcNames = new Set((config.dc_pots ?? []).map(pot => pot.name));
+  const taxFreeNames = new Set((config.tax_free_accounts ?? []).map(account => account.name));
+
+  stages.forEach((stage, index) => {
+    const label = displayNameForDrawdownStage(stage, index);
+    const id = typeof stage.id === 'string' && stage.id.trim() !== '' ? stage.id : '';
+    if (!id) {
+      messages.push(`${label} needs an internal stage ID. Save/reload repair should normally fix this.`);
+    } else if (ids.has(id)) {
+      messages.push(`${label} has the same internal ID as another stage (${id}).`);
+    } else {
+      ids.add(id);
+    }
+
+    if (!Array.isArray(stage.sources) || stage.sources.length === 0) {
+      messages.push(`${label} needs at least one source before it can be used in projections.`);
+      return;
+    }
+
+    const sourceKeys = new Set<string>();
+    let shareTotal = 0;
+    stage.sources.forEach(source => {
+      shareTotal += Number.isFinite(source.target_share) ? source.target_share : 0;
+      const key = sourceValue(source);
+      if (sourceKeys.has(key)) {
+        messages.push(`${label} includes ${source.source_name} more than once. Move or remove the duplicate source.`);
+      } else {
+        sourceKeys.add(key);
+      }
+      if (source.source_type === 'dc_pot' && !dcNames.has(source.source_name)) {
+        messages.push(`${label} references missing DC pension source: ${source.source_name}.`);
+      } else if (source.source_type === 'tax_free_account' && !taxFreeNames.has(source.source_name)) {
+        messages.push(`${label} references missing tax-free source: ${source.source_name}.`);
+      } else if (source.source_type !== 'dc_pot' && source.source_type !== 'tax_free_account') {
+        messages.push(`${label} has an unknown source type for ${source.source_name}.`);
+      }
+    });
+
+    if (Math.abs(shareTotal - 1) > 0.000001) {
+      messages.push(`${label} source shares total ${(shareTotal * 100).toFixed(1)}%; they need to total 100.0%.`);
+    }
+  });
+
+  return messages;
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
@@ -65,11 +130,15 @@ export default function DrawdownStagesPanel({ variant }: { variant: Variant }) {
   const { config, updateConfig } = useConfig();
   const stages = normalizeConfigDrawdownStages(deepClone(config) as PlannerConfig).drawdown_stages ?? [];
   const sourceOptions = sourceOptionsForConfig(config);
-  const validationMessages = validateDrawdownStages({
+  const validationMessages = formatDrawdownStageValidationMessages({
+    dc_pots: config.dc_pots,
+    tax_free_accounts: config.tax_free_accounts,
+  }, stages);
+  const hasValidationIssues = validationMessages.length > 0 || validateDrawdownStages({
     dc_pots: config.dc_pots,
     tax_free_accounts: config.tax_free_accounts,
     drawdown_stages: stages,
-  });
+  }).length > 0;
 
   if (variant === 'summary') {
     return (
@@ -98,9 +167,23 @@ export default function DrawdownStagesPanel({ variant }: { variant: Variant }) {
       <p className="text-xs text-gray-400 mb-3">
         Top stage funds withdrawals first. One source behaves like the old priority order; multiple sources in one stage are blended by the percentages shown.
       </p>
-      {validationMessages.length > 0 && (
+      <div className="mb-3 rounded border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-800">
+        <p className="font-medium mb-1">How staged drawdown is used</p>
+        <p className="text-blue-700">
+          The projection works through these stages from top to bottom. A single source is sequential drawdown; multiple sources in the same stage are blended by the shown percentages. If one source depletes, the remaining available sources in that stage are rebalanced before moving to the next stage.
+        </p>
+        {stages.length > 0 && (
+          <ul className="mt-2 list-disc pl-4 text-blue-700 space-y-0.5">
+            {stages.map((stage, index) => (
+              <li key={stage.id}>{formatDrawdownStageDetail(stage, index)}</li>
+            ))}
+          </ul>
+        )}
+      </div>
+      {hasValidationIssues && (
         <div className="mb-3 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
           <p className="font-medium">Drawdown stage setup needs attention:</p>
+          <p className="mb-1">Resolve these before relying on the projection output.</p>
           <ul className="list-disc pl-4">
             {validationMessages.map(message => <li key={message}>{message}</li>)}
           </ul>

@@ -78,11 +78,34 @@ describe('computeYearWorkings', () => {
     const step = w.steps.find(s => s.id === 'drawdown_stage_allocation_stage_blend_Main_DC');
     expect(step).toBeDefined();
     expect(step!.label).toBe('Drawdown stage allocation: Blend DC and ISA / Main DC');
-    expect(step!.formula).toContain('Target split 50%');
+    expect(step!.formula).toContain('Target split 50.0%');
+    expect(step!.formula).toContain('actual source split 100.0%');
     expect(step!.formula).toContain('gross £11,000');
     expect(step!.formula).toContain('net £10,000');
     expect(step!.formula).toContain('tax-free £2,750');
     expect(step!.formula).toContain('taxable £8,250');
     expect(step!.value).toBe(10000);
+  });
+
+  it('includes staged drawdown transition detail when stages change during the year', () => {
+    const w = computeYearWorkings({
+      ...yr1,
+      drawdown_stage_transitions: [
+        {
+          month: 2,
+          from_stage_id: 'stage_blend',
+          from_stage_name: 'Opening blend',
+          to_stage_id: 'stage_sipp',
+          to_stage_name: 'SIPP later',
+          reason: 'stage_depleted',
+        },
+      ],
+    });
+
+    const step = w.steps.find(s => s.id === 'drawdown_stage_transition_2_stage_blend_stage_sipp');
+    expect(step).toBeDefined();
+    expect(step!.label).toBe('Drawdown stage transition: month 2');
+    expect(step!.formula).toBe('Opening blend → SIPP later because stage depleted');
+    expect(step!.value).toBe(2);
   });
 });
