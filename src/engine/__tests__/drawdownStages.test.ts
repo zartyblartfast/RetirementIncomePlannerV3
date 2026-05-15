@@ -324,6 +324,53 @@ describe('drawdown stage source maintenance', () => {
     expect(cfg.withdrawal_priority).toEqual(['DC Pension']);
   });
 
+  it('preserves unrelated blended stage shares when moving a source into an empty draft stage', () => {
+    const cfg: PlannerConfig = {
+      ...DEFAULT_CONFIG,
+      dc_pots: [
+        ...DEFAULT_CONFIG.dc_pots,
+        { ...DEFAULT_CONFIG.dc_pots[0]!, name: 'SIPP' },
+      ],
+      drawdown_stages: [
+        {
+          id: 'stage_1',
+          name: 'Opening blend',
+          sources: [
+            { source_type: 'dc_pot', source_name: 'DC Pension', target_share: 0.7 },
+            { source_type: 'tax_free_account', source_name: 'ISA', target_share: 0.3 },
+          ],
+        },
+        {
+          id: 'stage_2',
+          name: 'SIPP later',
+          sources: [{ source_type: 'dc_pot', source_name: 'SIPP', target_share: 1 }],
+        },
+        {
+          id: 'stage_3',
+          sources: [],
+        },
+      ],
+    };
+
+    appendSourceToDrawdownStage(cfg, 2, 'SIPP');
+
+    expect(cfg.drawdown_stages).toEqual([
+      {
+        id: 'stage_1',
+        name: 'Opening blend',
+        sources: [
+          { source_type: 'dc_pot', source_name: 'DC Pension', target_share: 0.7 },
+          { source_type: 'tax_free_account', source_name: 'ISA', target_share: 0.3 },
+        ],
+      },
+      {
+        id: 'stage_3',
+        sources: [{ source_type: 'dc_pot', source_name: 'SIPP', target_share: 1 }],
+      },
+    ]);
+    expect(cfg.withdrawal_priority).toEqual(['DC Pension', 'ISA', 'SIPP']);
+  });
+
   it('adds and removes sources inside a stage by moving the source from any other stage', () => {
     const cfg: PlannerConfig = {
       ...DEFAULT_CONFIG,

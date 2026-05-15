@@ -245,10 +245,14 @@ export function appendSourceToDrawdownStage<T extends PlannerConfig>(cfg: T, sta
   cfg.drawdown_stages = cfg.drawdown_stages
     .map((existing, index) => {
       const sourcesWithoutMovingSource = existing.sources.filter(existingSource => sourceKey(existingSource) !== movingKey);
+      const sourceMovedFromThisStage = sourcesWithoutMovingSource.length !== existing.sources.length;
       if (index === stageIndex) {
         return rebalanceStageSharesEqually({ ...existing, sources: [...sourcesWithoutMovingSource, source] });
       }
-      return rebalanceStageSharesEqually({ ...existing, sources: sourcesWithoutMovingSource });
+      if (!sourceMovedFromThisStage) {
+        return existing;
+      }
+      return rebalanceStageShares({ ...existing, sources: sourcesWithoutMovingSource });
     })
     .filter(existing => existing.sources.length > 0);
   return syncWithdrawalPriorityFromDrawdownStages(cfg);
