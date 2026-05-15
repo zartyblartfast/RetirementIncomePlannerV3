@@ -15,6 +15,7 @@ import type {
   KeyWindowStarts,
   OrderMetrics,
 } from '../engine/optimiser';
+import DrawdownStagesPanel from '../components/dashboard/drawdownStageSummary';
 
 function fmt(n: number): string {
   return '\u00A3' + Math.round(n).toLocaleString('en-GB');
@@ -167,6 +168,8 @@ export default function Optimise() {
           <span className="text-xs text-gray-400">{windowLabel}</span>
         </div>
       </div>
+
+      <DrawdownStagesPanel variant="editor" />
 
       <div className="rounded-lg border border-gray-200 bg-white p-4">
         <div className="flex items-center justify-between mb-3">
