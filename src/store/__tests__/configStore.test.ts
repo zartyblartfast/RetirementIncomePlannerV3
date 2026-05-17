@@ -192,3 +192,62 @@ describe('DC pension tax-free cash metadata normalization', () => {
     })
   })
 })
+
+
+describe('pension access event config normalization', () => {
+  beforeEach(() => { localStorage.clear() })
+
+  it('does not add pension access events when loading existing configs', () => {
+    const storedConfig = { ...DEFAULT_CONFIG } as PlannerConfig
+    delete storedConfig.pension_access_events
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(storedConfig))
+
+    expect(loadConfig().pension_access_events).toBeUndefined()
+  })
+
+  it('preserves explicit pension access events when saving config-only files', () => {
+    saveConfig({
+      ...DEFAULT_CONFIG,
+      pension_access_events: [
+        {
+          id: 'planned_tfc',
+          pot_ref: 'DC Pension',
+          event_type: 'tax_free_cash',
+          timing: { kind: 'date', date: '2032-01' },
+          amount: { kind: 'fixed_amount', value: 25000 },
+          destination: { kind: 'outside_plan' },
+          notes: 'Take separately from ordinary drawdown',
+        },
+      ],
+    })
+
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!).pension_access_events).toEqual([
+      {
+        id: 'planned_tfc',
+        pot_ref: 'DC Pension',
+        event_type: 'tax_free_cash',
+        timing: { kind: 'date', date: '2032-01' },
+        amount: { kind: 'fixed_amount', value: 25000 },
+        destination: { kind: 'outside_plan' },
+        notes: 'Take separately from ordinary drawdown',
+      },
+    ])
+  })
+
+  it('strips malformed non-array pension access event data on load and save', () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      ...DEFAULT_CONFIG,
+      pension_access_events: { id: 'not-an-array' },
+    }))
+
+    expect(loadConfig().pension_access_events).toBeUndefined()
+
+    saveConfig({
+      ...DEFAULT_CONFIG,
+      pension_access_events: { id: 'not-an-array' },
+    } as unknown as PlannerConfig)
+
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!).pension_access_events).toBeUndefined()
+  })
+})

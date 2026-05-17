@@ -3,6 +3,7 @@ import { normalizeConfigAssetAllocations } from '../engine/assetAllocation';
 import { normalizeConfigDrawdownStages } from '../engine/drawdownStages';
 import { normalizeConfigTaxFreeCash } from '../engine/taxFreeCash';
 import { normalizeConfigWithdrawalPriority } from '../engine/withdrawalPriority';
+import { normalizeConfigPensionAccessEvents } from '../engine/pensionAccessEvents';
 
 type LegacyPlannerConfig = PlannerConfig & {
   personal?: PlannerConfig['personal'] & { retirement_age?: number };
@@ -13,7 +14,9 @@ export function normalizeLoadedConfig(raw: unknown): PlannerConfig {
   stripLegacyRetirementAge(cfg);
   normalizeIncomeSources(cfg);
   return normalizeConfigDrawdownStages(
-    normalizeConfigWithdrawalPriority(normalizeConfigTaxFreeCash(normalizeConfigAssetAllocations(cfg as PlannerConfig))),
+    normalizeConfigWithdrawalPriority(
+      normalizeConfigPensionAccessEvents(normalizeConfigTaxFreeCash(normalizeConfigAssetAllocations(cfg as PlannerConfig))),
+    ),
     { repairEmptyStages: true },
   );
 }

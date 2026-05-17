@@ -23,6 +23,7 @@ import type {
   DrawdownStageAllocationDetail,
   DrawdownStageConfig,
   DrawdownStageSourceConfig,
+  PensionAccessResolvedEvent,
 } from './types';
 
 import { calculateTax, calculateTaxFromEventsWithModule, grossUp } from './tax';
@@ -35,6 +36,7 @@ import {
   allocateBlendedNetWithdrawal,
   hasBlendedDrawdownStages,
 } from './drawdownAllocation';
+import { resolvePensionAccessEvents } from './pensionAccessEvents';
 
 // ------------------------------------------------------------------ //
 //  Helpers
@@ -117,6 +119,7 @@ interface AnnualAgg {
   monthly_target_sum: number;
   drawdown_stage_transitions: DrawdownStageTransition[];
   drawdown_stage_allocations: DrawdownStageAllocationDetail[];
+  pension_access_events: PensionAccessResolvedEvent[];
 }
 
 interface DcMeta {
@@ -245,6 +248,10 @@ function buildYearRow(
     }));
   }
 
+  if (agg.pension_access_events.length > 0) {
+    row.pension_access_events = agg.pension_access_events;
+  }
+
   return row;
 }
 
@@ -272,6 +279,7 @@ export function runProjection(
   }
 
   const { includeMonthly = false, initialStrategyState = null } = options;
+  const resolvedPensionAccessEvents = resolvePensionAccessEvents(cfg);
   const taxCfg = cfg.tax;
   const endAgeCfg = cfg.personal.end_age;
   let cpi = cfg.target_income.cpi_rate;
@@ -512,6 +520,7 @@ export function runProjection(
       monthly_target_sum: 0,
       drawdown_stage_transitions: [],
       drawdown_stage_allocations: [],
+      pension_access_events: resolvedPensionAccessEvents.filter(event => event.projection_year === taxYearLabel.slice(0, 4)),
     };
   }
 
@@ -1106,6 +1115,9 @@ export function runProjection(
   };
 
   const result: ProjectionResult = { years, summary, warnings };
+  if (resolvedPensionAccessEvents.length > 0) {
+    result.pension_access_events = resolvedPensionAccessEvents;
+  }
   if (monthlyRows !== null) {
     result.monthly_rows = monthlyRows;
   }

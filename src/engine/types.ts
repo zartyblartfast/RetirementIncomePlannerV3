@@ -94,6 +94,36 @@ export interface DCPotTaxFreeCashConfig {
   residual_mode?: 'gradual_pro_rata' | 'none';
 }
 
+export type PensionAccessEventType = 'tax_free_cash' | 'ordinary_drawdown_marker' | 'already_taken_marker';
+
+export type PensionAccessEventTiming =
+  | { kind: 'date'; date: string }
+  | { kind: 'age'; age: number }
+  | { kind: 'retirement_date' }
+  | { kind: 'first_drawdown_from_pot' }
+  | { kind: 'plan_start' };
+
+export type PensionAccessEventAmount =
+  | { kind: 'fixed_amount'; value: number }
+  | { kind: 'percentage_of_pot'; value: number }
+  | { kind: 'percentage_of_estimated_tfc_remaining'; value: number };
+
+export type PensionAccessEventDestination =
+  | { kind: 'outside_plan' }
+  | { kind: 'held_as_cash_event' }
+  | { kind: 'tax_free_account'; target_ref?: string }
+  | { kind: 'cash_account'; target_ref?: string };
+
+export interface PensionAccessEventConfig {
+  id: string;
+  pot_ref: string;
+  event_type: PensionAccessEventType;
+  timing: PensionAccessEventTiming;
+  amount: PensionAccessEventAmount;
+  destination?: PensionAccessEventDestination;
+  notes?: string;
+}
+
 export interface TaxBandConfig {
   name: string;
   width: number | null;
@@ -123,6 +153,7 @@ export interface PlannerConfig {
   tax_free_accounts: TaxFreeAccountConfig[];
   withdrawal_priority: string[];
   drawdown_stages?: DrawdownStageConfig[];
+  pension_access_events?: PensionAccessEventConfig[];
   tax: TaxConfig;
   drawdown_strategy?: string;
   drawdown_strategy_params?: Record<string, number>;
@@ -230,6 +261,24 @@ export interface DrawdownStageAllocationDetail {
   taxable_amount: number;
 }
 
+export interface PensionAccessResolvedEvent {
+  id: string;
+  pot_ref: string;
+  pot_name: string;
+  projection_year: string;
+  month: number;
+  order_in_month: number;
+  event_type: PensionAccessEventType;
+  gross_amount: number;
+  tax_free_amount: number;
+  taxable_amount: number;
+  pot_balance_before: number;
+  pot_balance_after: number;
+  estimated_tfc_used: number;
+  estimated_tfc_remaining: number;
+  caveats: string[];
+}
+
 export interface YearRow {
   age: number;
   tax_year: string;
@@ -251,6 +300,7 @@ export interface YearRow {
   pot_pnl: Record<string, PotPnl>;
   drawdown_stage_transitions?: DrawdownStageTransition[];
   drawdown_stage_allocations?: DrawdownStageAllocationDetail[];
+  pension_access_events?: PensionAccessResolvedEvent[];
 }
 
 export interface ProjectionSummary {
@@ -273,6 +323,7 @@ export interface ProjectionResult {
   years: YearRow[];
   summary: ProjectionSummary;
   warnings: string[];
+  pension_access_events?: PensionAccessResolvedEvent[];
   monthly_rows?: MonthlyRow[];
 }
 

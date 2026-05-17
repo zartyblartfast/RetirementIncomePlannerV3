@@ -123,4 +123,37 @@ describe('computeYearWorkings', () => {
     expect(step!.formula).toBe('Opening blend → SIPP later because stage depleted');
     expect(step!.value).toBe(2);
   });
+
+  it('includes foundation-only pension access events when present on the year row', () => {
+    const w = computeYearWorkings({
+      ...yr1,
+      pension_access_events: [
+        {
+          id: 'planned_tfc',
+          pot_ref: 'DC Pension',
+          pot_name: 'DC Pension',
+          projection_year: '2032',
+          month: 1,
+          order_in_month: 0,
+          event_type: 'tax_free_cash',
+          gross_amount: 10000,
+          tax_free_amount: 0,
+          taxable_amount: 0,
+          pot_balance_before: 0,
+          pot_balance_after: 0,
+          estimated_tfc_used: 0,
+          estimated_tfc_remaining: 0,
+          caveats: ['foundation_only_not_applied'],
+        },
+      ],
+    });
+
+    const step = w.steps.find(s => s.id === 'pension_access_event_planned_tfc');
+    expect(step).toBeDefined();
+    expect(step!.label).toBe('Pension access event: DC Pension');
+    expect(step!.formula).toContain('Month 1: planned tax-free cash event for DC Pension');
+    expect(step!.formula).toContain('configured gross amount £10,000');
+    expect(step!.formula).toContain('foundation metadata only — not applied to balances, income, or tax yet');
+    expect(step!.value).toBe(10000);
+  });
 });

@@ -52,6 +52,15 @@ function transitionReasonLabel(reason: string): string {
   }
 }
 
+function pensionAccessEventLabel(eventType: string): string {
+  switch (eventType) {
+    case 'tax_free_cash': return 'tax-free cash event';
+    case 'ordinary_drawdown_marker': return 'ordinary drawdown marker';
+    case 'already_taken_marker': return 'already-taken marker';
+    default: return eventType.replace(/_/g, ' ');
+  }
+}
+
 export function computeYearWorkings(yr: YearRow, taxContext?: TaxContext): WorkingsReport {
   const steps: WorkingsStep[] = [];
 
@@ -130,6 +139,19 @@ export function computeYearWorkings(yr: YearRow, taxContext?: TaxContext): Worki
       label: `Drawdown stage transition: month ${transition.month}`,
       formula: `${transition.from_stage_name} → ${transition.to_stage_name ?? 'No further stage'} because ${transitionReasonLabel(transition.reason)}`,
       value: transition.month,
+      isCrossCheck: false,
+    });
+  }
+
+  for (const event of yr.pension_access_events ?? []) {
+    const caveat = event.caveats.includes('foundation_only_not_applied')
+      ? 'foundation metadata only — not applied to balances, income, or tax yet'
+      : event.caveats.join(', ');
+    steps.push({
+      id: `pension_access_event_${safeIdPart(event.id)}`,
+      label: `Pension access event: ${event.pot_name}`,
+      formula: `Month ${event.month}: planned ${pensionAccessEventLabel(event.event_type)} for ${event.pot_name}; configured gross amount ${fmtGBP(event.gross_amount)}; ${caveat}`,
+      value: event.gross_amount,
       isCrossCheck: false,
     });
   }

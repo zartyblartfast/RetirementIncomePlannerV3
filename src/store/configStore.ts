@@ -12,6 +12,7 @@ import { normalizeLoadedConfig } from './configMigration';
 import { normalizeConfigDrawdownStages } from '../engine/drawdownStages';
 import { DEFAULT_TAX_FREE_CASH_CONFIG, normalizeConfigTaxFreeCash } from '../engine/taxFreeCash';
 import { normalizeConfigWithdrawalPriority } from '../engine/withdrawalPriority';
+import { normalizeConfigPensionAccessEvents } from '../engine/pensionAccessEvents';
 
 const STORAGE_KEY = 'rip_v2_config';
 
@@ -108,7 +109,8 @@ export function hasStoredConfig(): boolean {
 export function saveConfig(cfg: PlannerConfig): void {
   const normalizedAllocations = normalizeConfigAssetAllocations(JSON.parse(JSON.stringify(cfg)) as PlannerConfig);
   const normalizedTaxFreeCash = normalizeConfigTaxFreeCash(normalizedAllocations);
-  const normalizedPriority = normalizeConfigWithdrawalPriority(normalizedTaxFreeCash);
+  const normalizedAccessEvents = normalizeConfigPensionAccessEvents(normalizedTaxFreeCash);
+  const normalizedPriority = normalizeConfigWithdrawalPriority(normalizedAccessEvents);
   const normalized = normalizeConfigDrawdownStages(normalizedPriority, { repairEmptyStages: true });
   localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
 }
