@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_CONFIG } from '../../store/configStore';
 import { runProjection } from '../projection';
-import type { PensionAccessEventConfig, PlannerConfig, ProjectionResult } from '../types';
+import type { PensionAccessEventConfig, PlannerConfig } from '../types';
 import {
   normalizeConfigPensionAccessEvents,
   resolvePensionAccessEvents,
@@ -10,17 +10,6 @@ import {
 
 function cloneConfig(cfg: PlannerConfig): PlannerConfig {
   return JSON.parse(JSON.stringify(cfg)) as PlannerConfig;
-}
-
-function stripPensionAccessMetadata(result: ProjectionResult): Omit<ProjectionResult, 'pension_access_events'> {
-  const { pension_access_events: _events, ...financialResult } = result;
-  return {
-    ...financialResult,
-    years: financialResult.years.map(year => {
-      const { pension_access_events: _yearEvents, ...financialYear } = year;
-      return financialYear;
-    }),
-  };
 }
 
 function event(overrides: Partial<PensionAccessEventConfig> = {}): PensionAccessEventConfig {
@@ -146,7 +135,7 @@ describe('pension access event config foundation', () => {
     ]);
   });
 
-  it('exposes resolved pension access events from projection without applying cashflow effects', () => {
+  it('applies resolved tax-free cash events as separate capital events', () => {
     const withEvents = cloneConfig(DEFAULT_CONFIG);
     withEvents.pension_access_events = [
       event({ id: 'future_tfc', timing: { kind: 'retirement_date' } }),
@@ -155,28 +144,35 @@ describe('pension access event config foundation', () => {
 
     const result = runProjection(withEvents);
 
-    expect(result.pension_access_events).toEqual([
-      expect.objectContaining({
-        id: 'future_tfc',
-        projection_year: '2032',
-        month: 1,
-        order_in_month: 0,
-        gross_amount: 10000,
-        tax_free_amount: 0,
-        taxable_amount: 0,
-        pot_balance_before: 0,
-        pot_balance_after: 0,
-        caveats: ['foundation_only_not_applied'],
-      }),
-      expect.objectContaining({
-        id: 'same_month_second',
-        projection_year: '2032',
-        month: 1,
-        order_in_month: 1,
-        gross_amount: 20000,
-        caveats: ['foundation_only_not_applied'],
-      }),
-    ]);
+    expect(result.pension_access_events![0]).toEqual(expect.objectContaining({
+      id: 'future_tfc',
+      projection_year: '2032',
+      month: 1,
+      order_in_month: 0,
+      gross_amount: 10000,
+      tax_free_amount: 10000,
+      taxable_amount: 0,
+      caveats: ['simplified_tfc_event_no_lsa_lsdba_tracking'],
+    }));
+    expect(result.pension_access_events![1]).toEqual(expect.objectContaining({
+      id: 'same_month_second',
+      projection_year: '2032',
+      month: 1,
+      order_in_month: 1,
+      taxable_amount: 0,
+      caveats: ['simplified_tfc_event_no_lsa_lsdba_tracking'],
+    }));
+    expect(result.pension_access_events![1]!.gross_amount)
+      .toBeCloseTo(result.pension_access_events![1]!.pot_balance_before * 0.1, 2);
+    expect(result.pension_access_events![1]!.tax_free_amount)
+      .toBeCloseTo(result.pension_access_events![1]!.gross_amount, 2);
+    expect(result.pension_access_events![0]!.pot_balance_after)
+      .toBeCloseTo(result.pension_access_events![0]!.pot_balance_before - 10000, 2);
+    expect(result.pension_access_events![1]!.pot_balance_after)
+      .toBeCloseTo(
+        result.pension_access_events![1]!.pot_balance_before - result.pension_access_events![1]!.gross_amount,
+        2,
+      );
   });
 
   it('groups resolved pension access events onto the matching projection year for workings display', () => {
@@ -196,7 +192,7 @@ describe('pension access event config foundation', () => {
         projection_year: '2032',
         month: 1,
         gross_amount: 10000,
-        caveats: ['foundation_only_not_applied'],
+        caveats: ['simplified_tfc_event_no_lsa_lsdba_tracking'],
       }),
     ]);
     expect(laterYear?.pension_access_events).toEqual([
@@ -205,16 +201,35 @@ describe('pension access event config foundation', () => {
         projection_year: '2033',
         month: 1,
         gross_amount: 10000,
-        caveats: ['foundation_only_not_applied'],
+        caveats: ['simplified_tfc_event_no_lsa_lsdba_tracking'],
       }),
     ]);
   });
 
-  it('does not alter financial projection outputs while pension access events are foundation-only config', () => {
+  it('does not treat applied tax-free cash events as income or taxable drawdown', () => {
     const baseline = cloneConfig(DEFAULT_CONFIG);
     const withEvents = cloneConfig(DEFAULT_CONFIG);
     withEvents.pension_access_events = [event({ id: 'future_tfc', timing: { kind: 'retirement_date' } })];
 
-    expect(stripPensionAccessMetadata(runProjection(withEvents))).toEqual(runProjection(baseline));
+    const baselineResult = runProjection(baseline);
+    const result = runProjection(withEvents);
+    const baselineYear = baselineResult.years.find(year => year.tax_year === '2032/33')!;
+    const eventYear = result.years.find(year => year.tax_year === '2032/33')!;
+
+    expect(eventYear.pension_access_events![0]).toEqual(expect.objectContaining({
+      id: 'future_tfc',
+      gross_amount: 10000,
+      tax_free_amount: 10000,
+      taxable_amount: 0,
+    }));
+    expect(eventYear.dc_withdrawal_gross).toBeCloseTo(baselineYear.dc_withdrawal_gross, 2);
+    expect(eventYear.dc_tax_free_portion).toBeCloseTo(baselineYear.dc_tax_free_portion, 2);
+    expect(eventYear.total_taxable_income).toBeCloseTo(baselineYear.total_taxable_income, 2);
+    expect(eventYear.tax_due).toBeCloseTo(baselineYear.tax_due, 2);
+    expect(eventYear.net_income_achieved).toBeCloseTo(baselineYear.net_income_achieved, 2);
+    expect(eventYear.pot_pnl['DC Pension']!.withdrawal).toBeCloseTo(
+      baselineYear.pot_pnl['DC Pension']!.withdrawal + 10000,
+      2,
+    );
   });
 });

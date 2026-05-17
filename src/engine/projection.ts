@@ -23,6 +23,7 @@ import type {
   DrawdownStageAllocationDetail,
   DrawdownStageConfig,
   DrawdownStageSourceConfig,
+  PensionAccessEventConfig,
   PensionAccessResolvedEvent,
 } from './types';
 
@@ -279,7 +280,7 @@ export function runProjection(
   }
 
   const { includeMonthly = false, initialStrategyState = null } = options;
-  const resolvedPensionAccessEvents = resolvePensionAccessEvents(cfg);
+  const pensionAccessEvents = resolvePensionAccessEvents(cfg);
   const taxCfg = cfg.tax;
   const endAgeCfg = cfg.personal.end_age;
   let cpi = cfg.target_income.cpi_rate;
@@ -492,6 +493,7 @@ export function runProjection(
   let strategyAmount = 0;
   let chartDeplCtr = 0;
   const recordedDrawdownStageTransitions = new Set<string>();
+  const appliedPensionAccessEvents: PensionAccessResolvedEvent[] = [];
 
   // Monthly rows
   const monthlyRows: MonthlyRow[] | null = includeMonthly ? [] : null;
@@ -520,8 +522,79 @@ export function runProjection(
       monthly_target_sum: 0,
       drawdown_stage_transitions: [],
       drawdown_stage_allocations: [],
-      pension_access_events: resolvedPensionAccessEvents.filter(event => event.projection_year === taxYearLabel.slice(0, 4)),
+      pension_access_events: [],
     };
+  }
+
+  function configuredPensionAccessEvent(eventId: string): PensionAccessEventConfig | undefined {
+    return cfg.pension_access_events?.find(event => event.id === eventId);
+  }
+
+  function amountFromPensionAccessRule(
+    event: PensionAccessEventConfig,
+    potBalanceBefore: number,
+    estimatedTfcRemaining: number,
+  ): number {
+    switch (event.amount.kind) {
+      case 'fixed_amount':
+        return event.amount.value;
+      case 'percentage_of_pot':
+        return potBalanceBefore * event.amount.value;
+      case 'percentage_of_estimated_tfc_remaining':
+        return estimatedTfcRemaining * event.amount.value;
+    }
+  }
+
+  function applyPensionAccessEventsForMonth(absMonth: number): void {
+    const [eventYear, eventMonth] = absToYm(absMonth);
+    const dueEvents = pensionAccessEvents.filter(event =>
+      Number(event.projection_year) === eventYear && event.month === eventMonth,
+    );
+
+    for (const baseEvent of dueEvents) {
+      const configEvent = configuredPensionAccessEvent(baseEvent.id);
+      const potBalanceBefore = dcBalances[baseEvent.pot_ref] ?? 0;
+      let grossAmount = 0;
+      let taxFreeAmount = 0;
+      const taxableAmount = 0;
+      let potBalanceAfter = potBalanceBefore;
+      let estimatedTfcUsed = 0;
+      let estimatedTfcRemaining = potBalanceBefore * (dcMeta[baseEvent.pot_ref]?.tax_free_portion ?? 0);
+      const caveats: string[] = [];
+
+      if (configEvent?.event_type === 'tax_free_cash' && potBalanceBefore > 0.01) {
+        const requestedAmount = Math.max(0, amountFromPensionAccessRule(configEvent, potBalanceBefore, estimatedTfcRemaining));
+        grossAmount = Math.min(requestedAmount, potBalanceBefore);
+        taxFreeAmount = grossAmount;
+        estimatedTfcUsed = Math.min(taxFreeAmount, estimatedTfcRemaining);
+        estimatedTfcRemaining = Math.max(0, estimatedTfcRemaining - estimatedTfcUsed);
+        potBalanceAfter = potBalanceBefore - grossAmount;
+        dcBalances[baseEvent.pot_ref] = potBalanceAfter < 0.01 ? 0 : potBalanceAfter;
+        currentAgg!.pnl[baseEvent.pot_ref]!.withdrawal += grossAmount;
+        caveats.push('simplified_tfc_event_no_lsa_lsdba_tracking');
+        if (configEvent.destination?.kind && configEvent.destination.kind !== 'outside_plan') {
+          caveats.push('destination_inside_plan_not_yet_modelled');
+        }
+      } else {
+        grossAmount = baseEvent.gross_amount;
+        caveats.push('foundation_only_not_applied');
+      }
+
+      const appliedEvent: PensionAccessResolvedEvent = {
+        ...baseEvent,
+        gross_amount: grossAmount,
+        tax_free_amount: taxFreeAmount,
+        taxable_amount: taxableAmount,
+        pot_balance_before: potBalanceBefore,
+        pot_balance_after: potBalanceAfter,
+        estimated_tfc_used: estimatedTfcUsed,
+        estimated_tfc_remaining: estimatedTfcRemaining,
+        caveats,
+      };
+
+      currentAgg!.pension_access_events.push(appliedEvent);
+      appliedPensionAccessEvents.push(appliedEvent);
+    }
   }
 
   function estimateGuaranteedForProjectionYear(startAbs: number): { gross: number; taxable: number } {
@@ -691,6 +764,12 @@ export function runProjection(
         currentAgg!.pnl[name]!.growth += g;
       }
     }
+
+    // ---- Step 1b: Explicit pension access / tax-free cash events ---- //
+    // These are separate capital events, not ordinary income. They reduce the
+    // pension pot balance and are shown in structured workings, but do not add
+    // to dc_gross, withdrawal_detail, monthly income, or taxable income.
+    applyPensionAccessEventsForMonth(absM);
 
     // ---- Step 2: Monthly guaranteed income ---- //
     for (const gi of guaranteed) {
@@ -1115,8 +1194,8 @@ export function runProjection(
   };
 
   const result: ProjectionResult = { years, summary, warnings };
-  if (resolvedPensionAccessEvents.length > 0) {
-    result.pension_access_events = resolvedPensionAccessEvents;
+  if (appliedPensionAccessEvents.length > 0) {
+    result.pension_access_events = appliedPensionAccessEvents;
   }
   if (monthlyRows !== null) {
     result.monthly_rows = monthlyRows;
