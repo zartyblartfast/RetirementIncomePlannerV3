@@ -252,11 +252,19 @@ export default function SandboxControls({ config, onChange }: Props) {
             </>
           )}
         </div>
-        <p className="mt-2 text-[11px] text-emerald-800">
-          {sandboxTfcEvent
-            ? `Scenario includes ${formatSandboxTfcAmount(sandboxTfcAmount)} from ${sandboxTfcPotLabel} as a separate pension-access capital event at retirement. Compare saved variants to see pot-balance effects; it is not ordinary income or taxable drawdown.`
-            : 'Use this to compare no separate TFC event against a retirement-date TFC variant. Saved scenarios keep their own sandbox event settings.'}
-        </p>
+        <div className="mt-2 space-y-1 text-[11px] text-emerald-800">
+          <p>
+            {sandboxTfcEvent
+              ? `Scenario includes ${formatSandboxTfcAmount(sandboxTfcAmount)} from ${sandboxTfcPotLabel} as a separate pension-access capital event at retirement. Compare saved variants to see pot-balance effects; it is not ordinary income or taxable drawdown.`
+              : 'Use this to compare no separate TFC event against a retirement-date TFC variant. Saved scenarios keep their own sandbox event settings.'}
+          </p>
+          {sandboxTfcEvent && (
+            <p className="rounded border border-emerald-200 bg-white/60 px-2 py-1">
+              <span className="font-medium">Currently modelled as pot reduction only.</span>{' '}
+              Released cash is not yet added to a modelled cash, ISA, or other destination account.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

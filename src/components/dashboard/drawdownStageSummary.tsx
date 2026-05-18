@@ -570,7 +570,8 @@ export default function DrawdownStagesPanel({ variant }: { variant: Variant }) {
                   <p className="font-medium">Capital event treatment</p>
                   <p>Reduces the selected pension pot balance. Does not count as ordinary income, taxable income, or taxable drawdown.</p>
                   <p>Selected pot context: % options are calculated against the pension pot chosen above.</p>
-                  <p>Destination modelling is currently locked to outside-plan cash; in-plan destination flows are a separate follow-up.</p>
+                  <p><span className="font-medium">Currently modelled as: outside-plan cash, informational only.</span> Released cash is not yet added to a modelled cash, ISA, or other destination account.</p>
+                  <p>In-plan destination flows are a separate follow-up.</p>
                 </div>
                 <button
                   type="button"

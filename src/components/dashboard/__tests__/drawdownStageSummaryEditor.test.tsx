@@ -190,6 +190,8 @@ describe('DrawdownStagesPanel editor', () => {
     expect(mounted.container.textContent).toContain('Capital event treatment');
     expect(mounted.container.textContent).toContain('Reduces the selected pension pot balance. Does not count as ordinary income, taxable income, or taxable drawdown.');
     expect(mounted.container.textContent).toContain('Selected pot context: % options are calculated against the pension pot chosen above.');
+    expect(mounted.container.textContent).toContain('Currently modelled as: outside-plan cash, informational only.');
+    expect(mounted.container.textContent).toContain('Released cash is not yet added to a modelled cash, ISA, or other destination account.');
 
     mounted.chooseFirstSelectByValue('percentage_of_estimated_tfc_remaining', 'fixed_amount');
     mounted.changeFirstInputValue('10000', '25000');

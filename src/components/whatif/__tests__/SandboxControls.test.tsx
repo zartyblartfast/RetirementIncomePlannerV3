@@ -68,6 +68,8 @@ describe('SandboxControls pension access scenarios', () => {
     expect(mounted.container.textContent).toContain('DC Pension');
     expect(mounted.container.textContent).toContain('SIPP 2');
     expect(mounted.container.textContent).toContain('from DC Pension');
+    expect(mounted.container.textContent).toContain('Currently modelled as pot reduction only');
+    expect(mounted.container.textContent).toContain('Released cash is not yet added to a modelled cash, ISA, or other destination account.');
 
     mounted.chooseSelectByLabel('Pension pot', 'SIPP 2');
 
