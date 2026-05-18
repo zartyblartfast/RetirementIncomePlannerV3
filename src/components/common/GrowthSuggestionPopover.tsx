@@ -119,10 +119,10 @@ export default function GrowthSuggestionPopover({
         type="button"
         onClick={() => setOpen((prev) => !prev)}
         className={[
-          'px-2 py-0.5 text-xs font-medium rounded border transition-colors',
+          'px-2.5 py-1 text-xs font-semibold rounded border shadow-sm transition-colors',
           open
-            ? 'bg-gray-100 border-gray-400 text-gray-800'
-            : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50 hover:border-gray-400',
+            ? 'bg-blue-700 border-blue-800 text-white'
+            : 'bg-blue-600 border-blue-700 text-white hover:bg-blue-700 hover:border-blue-800',
         ].join(' ')}
         aria-haspopup="true"
         aria-expanded={open}

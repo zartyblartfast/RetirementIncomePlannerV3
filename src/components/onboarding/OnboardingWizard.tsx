@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { ChevronRight, ChevronLeft, Check } from 'lucide-react';
 import { useConfig, DEFAULT_CONFIG, exportConfigToFile } from '../../store/configStore';
 import type { DrawdownStageSourceConfig, PlannerConfig } from '../../engine/types';
+import GrowthSuggestionPopover from '../common/GrowthSuggestionPopover';
 
 // ------------------------------------------------------------------ //
 //  WizardData — the raw form state
@@ -302,13 +303,22 @@ function Step4({ data, onChange }: StepProps) {
 
           <div>
             <label className="block text-sm text-gray-300 mb-1">Annual growth rate %</label>
-            <input
-              type="number"
-              step="0.1"
-              value={parseFloat((data.dcGrowthRate * 100).toFixed(4))}
-              onChange={e => onChange('dcGrowthRate', parseFloat(e.target.value) / 100)}
-              className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white text-sm"
-            />
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                type="number"
+                step="0.1"
+                value={parseFloat((data.dcGrowthRate * 100).toFixed(4))}
+                onChange={e => onChange('dcGrowthRate', parseFloat(e.target.value) / 100)}
+                className="min-w-[5rem] flex-1 bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white text-sm"
+              />
+              <div className="shrink-0">
+                <GrowthSuggestionPopover
+                  allocation={undefined}
+                  onSelect={(rate) => onChange('dcGrowthRate', rate)}
+                />
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Use Suggest to compare historical allocation-based rates.</p>
           </div>
 
           <div>
@@ -356,13 +366,22 @@ function Step5({ data, onChange }: StepProps) {
 
           <div>
             <label className="block text-sm text-gray-300 mb-1">Annual growth rate %</label>
-            <input
-              type="number"
-              step="0.1"
-              value={parseFloat((data.isaGrowthRate * 100).toFixed(4))}
-              onChange={e => onChange('isaGrowthRate', parseFloat(e.target.value) / 100)}
-              className="w-full bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white text-sm"
-            />
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                type="number"
+                step="0.1"
+                value={parseFloat((data.isaGrowthRate * 100).toFixed(4))}
+                onChange={e => onChange('isaGrowthRate', parseFloat(e.target.value) / 100)}
+                className="min-w-[5rem] flex-1 bg-gray-800 border border-gray-600 rounded px-3 py-2 text-white text-sm"
+              />
+              <div className="shrink-0">
+                <GrowthSuggestionPopover
+                  allocation={undefined}
+                  onSelect={(rate) => onChange('isaGrowthRate', rate)}
+                />
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Use Suggest to compare historical allocation-based rates.</p>
           </div>
         </>
       )}

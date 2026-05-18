@@ -8,8 +8,15 @@
 
 import { ChevronUp, ChevronDown } from 'lucide-react';
 import { STRATEGIES, STRATEGY_IDS } from '../../engine/strategies';
-import type { PlannerConfig } from '../../engine/types';
+import type { PensionAccessEventAmount, PlannerConfig } from '../../engine/types';
 import { deriveRetirementAge, retirementDateForAge } from '../../engine/dateUtils';
+import {
+  formatSandboxTfcAmount,
+  pensionAccessScenarioMode,
+  setRetirementTfcScenario,
+  updateSandboxTfcAmount,
+  updateSandboxTfcPot,
+} from './pensionAccessSandbox';
 
 interface Props {
   config: PlannerConfig;
@@ -20,6 +27,12 @@ export default function SandboxControls({ config, onChange }: Props) {
   const strategyId = config.drawdown_strategy ?? 'fixed_target';
   const strategyDef = STRATEGIES[strategyId];
   const strategyParams = config.drawdown_strategy_params ?? {};
+  const pensionAccessMode = pensionAccessScenarioMode(config);
+  const sandboxTfcEvent = config.pension_access_events?.find(event => event.id === 'sandbox_retirement_tfc');
+  const sandboxTfcAmount = sandboxTfcEvent?.amount ?? { kind: 'percentage_of_estimated_tfc_remaining' as const, value: 1 };
+  const sandboxTfcPotRef = sandboxTfcEvent?.pot_ref ?? config.dc_pots[0]?.name ?? '';
+  const selectedTfcPot = config.dc_pots.find(pot => pot.name === sandboxTfcPotRef);
+  const sandboxTfcPotLabel = selectedTfcPot?.name ?? sandboxTfcPotRef;
   const retirementAge = deriveRetirementAge(
     config.personal.date_of_birth,
     config.personal.retirement_date,
@@ -46,6 +59,22 @@ export default function SandboxControls({ config, onChange }: Props) {
       const arr = c.withdrawal_priority;
       [arr[i]!, arr[j]!] = [arr[j]!, arr[i]!];
     });
+  }
+
+  function setSandboxTfcAmountKind(kind: PensionAccessEventAmount['kind']) {
+    const amount: PensionAccessEventAmount = kind === 'fixed_amount'
+      ? { kind: 'fixed_amount', value: 10000 }
+      : kind === 'percentage_of_pot'
+        ? { kind: 'percentage_of_pot', value: 0.25 }
+        : { kind: 'percentage_of_estimated_tfc_remaining', value: 1 };
+    onChange(updateSandboxTfcAmount(config, amount));
+  }
+
+  function setSandboxTfcAmountValue(value: number) {
+    const amount: PensionAccessEventAmount = sandboxTfcAmount.kind === 'fixed_amount'
+      ? { kind: 'fixed_amount', value }
+      : { kind: sandboxTfcAmount.kind, value: value / 100 };
+    onChange(updateSandboxTfcAmount(config, amount));
   }
 
   return (
@@ -170,6 +199,64 @@ export default function SandboxControls({ config, onChange }: Props) {
             </span>
           ))}
         </div>
+      </div>
+
+      {/* Row 4: Pension access / tax-free cash scenario lever */}
+      <div className="rounded border border-emerald-100 bg-emerald-50 px-3 py-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
+          <Field label="Tax-free cash event" tooltip="Scenario-only lever. Adds or removes a retirement-date pension access event from this sandbox copy without changing dashboard settings.">
+            <select
+              value={pensionAccessMode}
+              onChange={e => onChange(setRetirementTfcScenario(config, e.target.value === 'retirement_tfc'))}
+              disabled={config.dc_pots.length === 0}
+              className="input-field disabled:bg-gray-100 disabled:text-gray-400"
+            >
+              <option value="none">None / ordinary drawdown only</option>
+              <option value="retirement_tfc">Take TFC at retirement date</option>
+            </select>
+          </Field>
+          {sandboxTfcEvent && (
+            <>
+              <Field label="Pension pot" tooltip="The selected DC pension pot that this scenario-only tax-free cash event is taken from.">
+                <select
+                  value={sandboxTfcPotRef}
+                  onChange={e => onChange(updateSandboxTfcPot(config, e.target.value))}
+                  className="input-field"
+                >
+                  {config.dc_pots.map(pot => (
+                    <option key={pot.name} value={pot.name}>{pot.name}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="TFC amount basis">
+                <select
+                  value={sandboxTfcAmount.kind}
+                  onChange={e => setSandboxTfcAmountKind(e.target.value as PensionAccessEventAmount['kind'])}
+                  className="input-field"
+                >
+                  <option value="percentage_of_estimated_tfc_remaining">% of estimated remaining TFC</option>
+                  <option value="percentage_of_pot">% of pension pot</option>
+                  <option value="fixed_amount">Fixed amount</option>
+                </select>
+              </Field>
+              <Field label={sandboxTfcAmount.kind === 'fixed_amount' ? 'TFC amount (£)' : 'TFC percentage (%)'}>
+                <input
+                  type="number"
+                  min={0}
+                  step={sandboxTfcAmount.kind === 'fixed_amount' ? 100 : 0.1}
+                  value={sandboxTfcAmount.kind === 'fixed_amount' ? sandboxTfcAmount.value : sandboxTfcAmount.value * 100}
+                  onChange={e => setSandboxTfcAmountValue(Number(e.target.value))}
+                  className="input-field"
+                />
+              </Field>
+            </>
+          )}
+        </div>
+        <p className="mt-2 text-[11px] text-emerald-800">
+          {sandboxTfcEvent
+            ? `Scenario includes ${formatSandboxTfcAmount(sandboxTfcAmount)} from ${sandboxTfcPotLabel} as a separate pension-access capital event at retirement. Compare saved variants to see pot-balance effects; it is not ordinary income or taxable drawdown.`
+            : 'Use this to compare no separate TFC event against a retirement-date TFC variant. Saved scenarios keep their own sandbox event settings.'}
+        </p>
       </div>
     </div>
   );

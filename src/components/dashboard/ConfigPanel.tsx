@@ -24,6 +24,7 @@ import {
 } from '../../engine/drawdownStages';
 import { DEFAULT_TAX_FREE_CASH_CONFIG, describeTaxFreeCashAssumption } from '../../engine/taxFreeCash';
 import DrawdownStagesPanel from './drawdownStageSummary';
+import GrowthSuggestionPopover from '../common/GrowthSuggestionPopover';
 
 const NOW_MONTH = new Date().toISOString().slice(0, 7);
 
@@ -694,7 +695,7 @@ export default function ConfigPanel() {
             )}
             <div className="space-y-3">
               {config.dc_pots.map((pot, i) => (
-                <div key={i} className="grid grid-cols-2 sm:grid-cols-[2fr_1fr_0.8fr_0.8fr_0.8fr_1.3fr_1fr_auto] gap-2 items-start">
+                <div key={i} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[2fr_1fr_1.15fr_0.8fr_0.8fr_1.3fr_1fr_auto] gap-2 items-start">
                   <Field label="Name">
                     <input
                       type="text"
@@ -714,15 +715,23 @@ export default function ConfigPanel() {
                   </Field>
                   <Field label="Growth (%)">
                     <div className="mt-1 space-y-1">
-                      <input
-                        type="number"
-                        value={(pot.growth_rate * 100).toFixed(1)}
-                        step={0.1}
-                        onChange={e => updateDcPot(i, 'growth_rate', Number(e.target.value) / 100)}
-                        className="input-field mt-0"
-                      />
+                      <div className="flex flex-wrap items-center gap-2">
+                        <input
+                          type="number"
+                          value={(pot.growth_rate * 100).toFixed(1)}
+                          step={0.1}
+                          onChange={e => updateDcPot(i, 'growth_rate', Number(e.target.value) / 100)}
+                          className="input-field mt-0 min-w-[4.5rem] flex-1"
+                        />
+                        <div className="shrink-0">
+                          <GrowthSuggestionPopover
+                            allocation={pot.allocation}
+                            onSelect={(rate) => updateDcPot(i, 'growth_rate', rate)}
+                          />
+                        </div>
+                      </div>
                       <p className="text-[11px] leading-snug text-gray-400">
-                        Auto-filled from asset allocation; edit here to override.
+                        Current rate is editable; use Suggest to compare historical allocation-based rates.
                       </p>
                     </div>
                   </Field>
@@ -792,7 +801,7 @@ export default function ConfigPanel() {
             )}
             <div className="space-y-3">
               {config.tax_free_accounts.map((acc, i) => (
-                <div key={i} className="grid grid-cols-2 sm:grid-cols-[2fr_1fr_0.8fr_1.3fr_1fr_auto] gap-2 items-start">
+                <div key={i} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-[2fr_1fr_1.15fr_1.3fr_1fr_auto] gap-2 items-start">
                   <Field label="Name">
                     <input
                       type="text"
@@ -812,15 +821,23 @@ export default function ConfigPanel() {
                   </Field>
                   <Field label="Growth (%)">
                     <div className="mt-1 space-y-1">
-                      <input
-                        type="number"
-                        value={(acc.growth_rate * 100).toFixed(1)}
-                        step={0.1}
-                        onChange={e => updateTfAccount(i, 'growth_rate', Number(e.target.value) / 100)}
-                        className="input-field mt-0"
-                      />
+                      <div className="flex flex-wrap items-center gap-2">
+                        <input
+                          type="number"
+                          value={(acc.growth_rate * 100).toFixed(1)}
+                          step={0.1}
+                          onChange={e => updateTfAccount(i, 'growth_rate', Number(e.target.value) / 100)}
+                          className="input-field mt-0 min-w-[4.5rem] flex-1"
+                        />
+                        <div className="shrink-0">
+                          <GrowthSuggestionPopover
+                            allocation={acc.allocation}
+                            onSelect={(rate) => updateTfAccount(i, 'growth_rate', rate)}
+                          />
+                        </div>
+                      </div>
                       <p className="text-[11px] leading-snug text-gray-400">
-                        Auto-filled from asset allocation; edit here to override.
+                        Current rate is editable; use Suggest to compare historical allocation-based rates.
                       </p>
                     </div>
                   </Field>
