@@ -61,6 +61,20 @@ function pensionAccessEventLabel(eventType: string): string {
   }
 }
 
+function pensionAccessCaveatLabel(caveat: string): string {
+  switch (caveat) {
+    case 'foundation_only_not_applied': return 'foundation metadata only — not applied to balances, income, or tax yet';
+    case 'simplified_tfc_event_no_lsa_lsdba_tracking': return 'simplified TFC event — no LSA/LSDBA/provider/MPAA tracking is modelled';
+    case 'destination_inside_plan_not_yet_modelled': return 'destination is caveated — inside-plan cash/account destination is not yet financially modelled';
+    default: return caveat.replace(/_/g, ' ');
+  }
+}
+
+function pensionAccessCaveatSummary(caveats: string[]): string {
+  if (caveats.length === 0) return 'no additional caveats recorded';
+  return caveats.map(pensionAccessCaveatLabel).join('; ');
+}
+
 export function computeYearWorkings(yr: YearRow, taxContext?: TaxContext): WorkingsReport {
   const steps: WorkingsStep[] = [];
 
@@ -89,12 +103,17 @@ export function computeYearWorkings(yr: YearRow, taxContext?: TaxContext): Worki
   const dcTaxFreeRate = yr.dc_withdrawal_gross > 0
     ? (yr.dc_tax_free_portion / yr.dc_withdrawal_gross) * 100
     : 0;
+  const hasAppliedPensionAccessEvents = (yr.pension_access_events ?? [])
+    .some(event => !event.caveats.includes('foundation_only_not_applied'));
+  const pensionAccessEventNote = hasAppliedPensionAccessEvents
+    ? 'Separate pension access / TFC capital events for this year are shown below and are not counted as ordinary DC income.'
+    : 'No upfront lump sum is modelled in this workings path.';
   steps.push({
     id: 'dc_tax_free',
     label: 'DC tax-free pension element',
     formula: yr.dc_withdrawal_gross > 0
-      ? `Gradual pro-rata assumption: ${dcTaxFreeRate.toFixed(1)}% of DC withdrawals treated as tax-free; ${fmtGBP(yr.dc_withdrawal_gross)} gross gives ${fmtGBP(yr.dc_tax_free_portion)} tax-free. No upfront lump sum is modelled in this workings path.`
-      : 'Gradual pro-rata assumption: DC withdrawals split between tax-free and taxable portions according to each pot setting. No upfront lump sum is modelled in this workings path.',
+      ? `Gradual pro-rata assumption: ${dcTaxFreeRate.toFixed(1)}% of ordinary DC withdrawals treated as tax-free; ${fmtGBP(yr.dc_withdrawal_gross)} gross gives ${fmtGBP(yr.dc_tax_free_portion)} tax-free. ${pensionAccessEventNote}`
+      : `Gradual pro-rata assumption: ordinary DC withdrawals split between tax-free and taxable portions according to each pot setting. ${pensionAccessEventNote}`,
     value: yr.dc_tax_free_portion,
     isCrossCheck: false,
   });
@@ -144,13 +163,14 @@ export function computeYearWorkings(yr: YearRow, taxContext?: TaxContext): Worki
   }
 
   for (const event of yr.pension_access_events ?? []) {
-    const caveat = event.caveats.includes('foundation_only_not_applied')
-      ? 'foundation metadata only — not applied to balances, income, or tax yet'
-      : event.caveats.join(', ');
+    const isFoundationOnly = event.caveats.includes('foundation_only_not_applied');
+    const eventTreatment = isFoundationOnly
+      ? 'planned only'
+      : 'applied as a separate capital event, reducing the pension pot but not ordinary income, taxable income, or tax';
     steps.push({
       id: `pension_access_event_${safeIdPart(event.id)}`,
       label: `Pension access event: ${event.pot_name}`,
-      formula: `Month ${event.month}: planned ${pensionAccessEventLabel(event.event_type)} for ${event.pot_name}; configured gross amount ${fmtGBP(event.gross_amount)}; ${caveat}`,
+      formula: `Month ${event.month}: ${pensionAccessEventLabel(event.event_type)} for ${event.pot_name}; ${eventTreatment}. Gross/tax-free amount ${fmtGBP(event.gross_amount)}; taxable amount ${fmtGBP(event.taxable_amount)}. Pot balance ${fmtGBP(event.pot_balance_before)} before → ${fmtGBP(event.pot_balance_after)} after. Estimated TFC used ${fmtGBP(event.estimated_tfc_used)}; estimated remaining ${fmtGBP(event.estimated_tfc_remaining)}. Caveats: ${pensionAccessCaveatSummary(event.caveats)}.`,
       value: event.gross_amount,
       isCrossCheck: false,
     });

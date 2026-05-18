@@ -67,7 +67,7 @@ describe('computeYearWorkings', () => {
     const step = w.steps.find(s => s.id === 'dc_tax_free');
     expect(step).toBeDefined();
     expect(step!.label).toBe('DC tax-free pension element');
-    expect(step!.formula).toContain('Gradual pro-rata assumption: 25.0% of DC withdrawals treated as tax-free');
+    expect(step!.formula).toContain('Gradual pro-rata assumption: 25.0% of ordinary DC withdrawals treated as tax-free');
     expect(step!.formula).toContain('£12,000 gross gives £3,000 tax-free');
     expect(step!.formula).toContain('No upfront lump sum is modelled in this workings path');
   });
@@ -151,9 +151,45 @@ describe('computeYearWorkings', () => {
     const step = w.steps.find(s => s.id === 'pension_access_event_planned_tfc');
     expect(step).toBeDefined();
     expect(step!.label).toBe('Pension access event: DC Pension');
-    expect(step!.formula).toContain('Month 1: planned tax-free cash event for DC Pension');
-    expect(step!.formula).toContain('configured gross amount £10,000');
+    expect(step!.formula).toContain('Month 1: tax-free cash event for DC Pension');
+    expect(step!.formula).toContain('planned only');
+    expect(step!.formula).toContain('Gross/tax-free amount £10,000');
     expect(step!.formula).toContain('foundation metadata only — not applied to balances, income, or tax yet');
     expect(step!.value).toBe(10000);
+  });
+
+  it('explains applied pension access TFC events as capital events separate from ordinary income and tax', () => {
+    const cfg = structuredClone(DEFAULT_CONFIG);
+    cfg.pension_access_events = [
+      {
+        id: 'retirement_tfc',
+        pot_ref: cfg.dc_pots[0]!.name,
+        event_type: 'tax_free_cash',
+        timing: { kind: 'retirement_date' },
+        amount: { kind: 'fixed_amount', value: 10000 },
+        destination: { kind: 'outside_plan' },
+      },
+    ];
+
+    const result = runProjection(cfg);
+    const eventYear = result.years.find(yr => yr.pension_access_events?.some(event => event.id === 'retirement_tfc'))!;
+    const w = computeYearWorkings(eventYear);
+
+    const dcTaxFreeStep = w.steps.find(s => s.id === 'dc_tax_free');
+    expect(dcTaxFreeStep).toBeDefined();
+    expect(dcTaxFreeStep!.formula).toContain('Separate pension access / TFC capital events for this year are shown below');
+    expect(dcTaxFreeStep!.formula).toContain('not counted as ordinary DC income');
+
+    const eventStep = w.steps.find(s => s.id === 'pension_access_event_retirement_tfc');
+    expect(eventStep).toBeDefined();
+    expect(eventStep!.formula).toContain('applied as a separate capital event, reducing the pension pot but not ordinary income, taxable income, or tax');
+    expect(eventStep!.formula).toContain('Gross/tax-free amount £10,000');
+    expect(eventStep!.formula).toContain('taxable amount £0');
+    expect(eventStep!.formula).toContain('Pot balance');
+    expect(eventStep!.formula).toContain('before →');
+    expect(eventStep!.formula).toContain('after');
+    expect(eventStep!.formula).toContain('Estimated TFC used £10,000');
+    expect(eventStep!.formula).toContain('simplified TFC event — no LSA/LSDBA/provider/MPAA tracking is modelled');
+    expect(eventStep!.value).toBeCloseTo(10000, 2);
   });
 });
