@@ -126,8 +126,8 @@ function formatPensionAccessTiming(event: PensionAccessEventConfig): string {
 function formatPensionAccessAmount(event: PensionAccessEventConfig): string {
   switch (event.amount.kind) {
     case 'fixed_amount': return fmtGBP(event.amount.value);
-    case 'percentage_of_pot': return `${(event.amount.value * 100).toFixed(1)}% of pot value at the event date`;
-    case 'percentage_of_estimated_tfc_remaining': return `${(event.amount.value * 100).toFixed(1)}% of estimated remaining tax-free cash`;
+    case 'percentage_of_pot': return `${(event.amount.value * 100).toFixed(1)}% of selected pot value at the event date`;
+    case 'percentage_of_estimated_tfc_remaining': return `${(event.amount.value * 100).toFixed(1)}% of estimated remaining tax-free cash from this pot`;
   }
 }
 
@@ -537,8 +537,8 @@ export default function DrawdownStagesPanel({ variant }: { variant: Variant }) {
                       }))}
                       className="input-field text-xs"
                     >
-                      <option value="percentage_of_estimated_tfc_remaining">% of estimated remaining TFC</option>
-                      <option value="percentage_of_pot">% of pot value</option>
+                      <option value="percentage_of_estimated_tfc_remaining">% of selected pot's estimated remaining TFC</option>
+                      <option value="percentage_of_pot">% of selected pot value</option>
                       <option value="fixed_amount">Fixed amount</option>
                     </select>
                   </Field>
@@ -565,6 +565,12 @@ export default function DrawdownStagesPanel({ variant }: { variant: Variant }) {
                       <option value="cash_account">Cash account destination (future modelling)</option>
                     </select>
                   </Field>
+                </div>
+                <div className="mt-2 rounded border border-emerald-100 bg-emerald-50 px-2 py-1 text-[11px] text-emerald-800">
+                  <p className="font-medium">Capital event treatment</p>
+                  <p>Reduces the selected pension pot balance. Does not count as ordinary income, taxable income, or taxable drawdown.</p>
+                  <p>Selected pot context: % options are calculated against the pension pot chosen above.</p>
+                  <p>Destination modelling is currently locked to outside-plan cash; in-plan destination flows are a separate follow-up.</p>
                 </div>
                 <button
                   type="button"

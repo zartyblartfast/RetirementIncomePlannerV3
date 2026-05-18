@@ -149,7 +149,7 @@ describe('DrawdownStagesPanel editor', () => {
     expect(mounted.config.withdrawal_priority).toEqual(['DC Pension']);
   });
 
-  it('formats pension access event summaries as separate capital events', () => {
+  it('formats pension access event summaries as separate selected-pot capital events', () => {
     expect(formatPensionAccessEventSummary({
       id: 'event_1',
       pot_ref: 'DC Pension',
@@ -157,7 +157,16 @@ describe('DrawdownStagesPanel editor', () => {
       timing: { kind: 'retirement_date' },
       amount: { kind: 'percentage_of_estimated_tfc_remaining', value: 1 },
       destination: { kind: 'outside_plan' },
-    }, 0)).toBe('Event 1: DC Pension — tax-free cash at the plan retirement date, 100.0% of estimated remaining tax-free cash paid outside the plan');
+    }, 0)).toBe('Event 1: DC Pension — tax-free cash at the plan retirement date, 100.0% of estimated remaining tax-free cash from this pot paid outside the plan');
+
+    expect(formatPensionAccessEventSummary({
+      id: 'event_2',
+      pot_ref: 'SIPP 2',
+      event_type: 'tax_free_cash',
+      timing: { kind: 'retirement_date' },
+      amount: { kind: 'percentage_of_pot', value: 0.25 },
+      destination: { kind: 'outside_plan' },
+    }, 1)).toBe('Event 2: SIPP 2 — tax-free cash at the plan retirement date, 25.0% of selected pot value at the event date paid outside the plan');
   });
 
   it('adds and edits an initial tax-free cash event without changing drawdown stages', () => {
@@ -177,7 +186,10 @@ describe('DrawdownStagesPanel editor', () => {
     ]);
     expect(mounted.config.drawdown_stages).toEqual(DEFAULT_CONFIG.drawdown_stages);
     expect(mounted.container.textContent).toContain('Optional one-off capital events, separate from ordinary staged income withdrawals.');
-    expect(mounted.container.textContent).toContain('Event 1: DC Pension — tax-free cash at the plan retirement date, 100.0% of estimated remaining tax-free cash paid outside the plan');
+    expect(mounted.container.textContent).toContain('Event 1: DC Pension — tax-free cash at the plan retirement date, 100.0% of estimated remaining tax-free cash from this pot paid outside the plan');
+    expect(mounted.container.textContent).toContain('Capital event treatment');
+    expect(mounted.container.textContent).toContain('Reduces the selected pension pot balance. Does not count as ordinary income, taxable income, or taxable drawdown.');
+    expect(mounted.container.textContent).toContain('Selected pot context: % options are calculated against the pension pot chosen above.');
 
     mounted.chooseFirstSelectByValue('percentage_of_estimated_tfc_remaining', 'fixed_amount');
     mounted.changeFirstInputValue('10000', '25000');
