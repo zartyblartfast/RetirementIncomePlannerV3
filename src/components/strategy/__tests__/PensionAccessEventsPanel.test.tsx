@@ -6,6 +6,7 @@ import { ConfigContext, DEFAULT_CONFIG, type ConfigContextValue } from '../../..
 import PensionAccessEventsPanel, {
   appendDefaultPensionAccessEvent,
   formatPensionAccessEventSummary,
+  formatPensionAccessValidationMessage,
   removePensionAccessEventAt,
 } from '../PensionAccessEventsPanel';
 
@@ -108,6 +109,21 @@ describe('PensionAccessEventsPanel', () => {
     }, 1)).toBe('Event 2: SIPP 2 — tax-free cash at the plan retirement date, 25.0% of selected pot value at the event date paid outside the plan');
   });
 
+  it('formats validation issues with user-facing event numbers and selected-pot context', () => {
+    expect(formatPensionAccessValidationMessage({
+      code: 'missing_pot_ref',
+      event_id: 'bad_event',
+      pot_ref: 'Missing pension',
+      message: 'Pension access event bad_event references Missing pension, but that pension pot was not found.',
+    }, 0)).toBe('Event 1: selected pension pot “Missing pension” was not found. Choose an existing DC pension pot.');
+
+    expect(formatPensionAccessValidationMessage({
+      code: 'invalid_percentage_amount',
+      event_id: 'too_much',
+      message: 'Pension access event too_much must use a percentage between 0% and 100%.',
+    }, 1)).toBe('Event 2: percentage must be more than 0% and no more than 100% of the selected pot/basis.');
+  });
+
   it('adds a default retirement tax-free cash event without changing drawdown stages', () => {
     const next = appendDefaultPensionAccessEvent(deepClone(DEFAULT_CONFIG));
 
@@ -178,8 +194,8 @@ describe('PensionAccessEventsPanel', () => {
       ],
     });
 
-    expect(mounted.container.textContent).toContain('Pension access event bad_event references Missing pension, but that pension pot was not found.');
-    expect(mounted.container.textContent).toContain('Pension access event bad_event must use a positive fixed amount.');
+    expect(mounted.container.textContent).toContain('Event 1: selected pension pot “Missing pension” was not found. Choose an existing DC pension pot.');
+    expect(mounted.container.textContent).toContain('Event 1: fixed amount must be more than £0.');
 
     mounted.clickButton('Remove TFC event');
 

@@ -107,6 +107,8 @@ describe('DrawdownStagesPanel editor', () => {
     ]);
     expect(mounted.container.textContent).toContain('Stage 2 needs at least one source before it can be used in projections.');
     expect(mounted.container.textContent).toContain('How staged drawdown is used');
+    expect(mounted.container.textContent).toContain('Changes here update the Current Plan strategy automatically. No separate apply step is needed.');
+    expect(mounted.container.textContent).toContain('Current strategy: Stage 1 — DC Pension 50.0% + ISA 50.0%');
 
     mounted.clickButton('Delete stage');
 
@@ -140,6 +142,8 @@ describe('DrawdownStagesPanel editor', () => {
     expect(mounted.config.drawdown_stages?.map(stage => stage.id)).toEqual(['legacy_stage_1']);
     expect(mounted.config.withdrawal_priority).toEqual(['DC Pension', 'ISA']);
     expect(mounted.container.textContent).toContain('ISA');
+    expect(mounted.container.textContent).toContain('Current strategy: Stage 1 — DC Pension 50.0% + ISA 50.0%');
+    expect(mounted.container.textContent).toContain('Stage 1: blended stage using 50.0% DC Pension + 50.0% ISA');
 
     mounted.clickButton('Remove ISA from Stage 1');
 

@@ -172,7 +172,13 @@ export default function DrawdownStagesPanel({ variant }: { variant: Variant }) {
       <div className="mb-3 rounded border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-800">
         <p className="font-medium mb-1">How staged drawdown is used</p>
         <p className="text-blue-700">
+          Changes here update the Current Plan strategy automatically. No separate apply step is needed.
+        </p>
+        <p className="mt-2 text-blue-700">
           The projection works through these stages from top to bottom. A single source is sequential drawdown; multiple sources in the same stage are blended by the shown percentages. If one source depletes, the remaining available sources in that stage are rebalanced before moving to the next stage.
+        </p>
+        <p className="mt-2 font-medium text-blue-800">
+          Current strategy: {formatDrawdownStrategySummary(stages)}
         </p>
         {stages.length > 0 && (
           <ul className="mt-2 list-disc pl-4 text-blue-700 space-y-0.5">

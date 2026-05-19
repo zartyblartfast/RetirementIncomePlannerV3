@@ -53,6 +53,30 @@ afterEach(() => {
 });
 
 describe('SandboxControls pension access scenarios', () => {
+  it('shows the Current Plan strategy snapshot as a read-only baseline rather than a stage editor', () => {
+    mounted = renderSandboxControls({
+      ...cloneConfig(DEFAULT_CONFIG),
+      withdrawal_priority: ['DC Pension', 'ISA'],
+      drawdown_stages: [
+        {
+          id: 'stage_1',
+          name: 'Opening blend',
+          sources: [
+            { source_type: 'dc_pot', source_name: 'DC Pension', target_share: 0.6 },
+            { source_type: 'tax_free_account', source_name: 'ISA', target_share: 0.4 },
+          ],
+        },
+      ],
+    });
+
+    expect(mounted.container.textContent).toContain('Retirement Income Strategy baseline');
+    expect(mounted.container.textContent).toContain('What If starts from the Current Plan strategy');
+    expect(mounted.container.textContent).toContain('Opening blend — DC Pension 60.0% + ISA 40.0%');
+    expect(mounted.container.textContent).not.toContain('Drawdown Order:');
+    expect(mounted.container.querySelector('[title="Move up"]')).toBeNull();
+    expect(mounted.container.querySelector('[title="Move down"]')).toBeNull();
+  });
+
   it('requires an explicit pension pot choice for a What If TFC event when multiple DC pots exist', () => {
     mounted = renderSandboxControls({
       ...cloneConfig(DEFAULT_CONFIG),

@@ -1,5 +1,5 @@
 import { Plus, Trash2 } from 'lucide-react';
-import { validatePensionAccessEvents } from '../../engine/pensionAccessEvents';
+import { validatePensionAccessEvents, type PensionAccessEventValidationIssue } from '../../engine/pensionAccessEvents';
 import type { PensionAccessEventConfig, PlannerConfig } from '../../engine/types';
 import { useConfig } from '../../store/configStore';
 
@@ -49,6 +49,22 @@ function formatPensionAccessDestination(event: PensionAccessEventConfig): string
 
 export function formatPensionAccessEventSummary(event: PensionAccessEventConfig, index: number): string {
   return `Event ${index + 1}: ${event.pot_ref} — ${formatPensionAccessEventType(event)} ${formatPensionAccessTiming(event)}, ${formatPensionAccessAmount(event)} paid ${formatPensionAccessDestination(event)}`;
+}
+
+export function formatPensionAccessValidationMessage(issue: PensionAccessEventValidationIssue, eventIndex: number): string {
+  const eventLabel = `Event ${eventIndex + 1}`;
+  switch (issue.code) {
+    case 'duplicate_event_id':
+      return `${eventLabel}: duplicate internal event ID. Remove and re-add this event if it was copied from another case.`;
+    case 'missing_pot_ref':
+      return `${eventLabel}: selected pension pot “${issue.pot_ref ?? issue.event_id}” was not found. Choose an existing DC pension pot.`;
+    case 'invalid_fixed_amount':
+      return `${eventLabel}: fixed amount must be more than £0.`;
+    case 'invalid_percentage_amount':
+      return `${eventLabel}: percentage must be more than 0% and no more than 100% of the selected pot/basis.`;
+    case 'missing_destination_target':
+      return `${eventLabel}: in-plan destination is incomplete. Keep Outside plan selected, or choose a destination account when destination modelling is available.`;
+  }
 }
 
 export function nextPensionAccessEventId(events: PensionAccessEventConfig[]): string {
@@ -116,7 +132,10 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 export default function PensionAccessEventsPanel() {
   const { config, updateConfig } = useConfig();
   const pensionAccessEvents = Array.isArray(config.pension_access_events) ? config.pension_access_events : [];
-  const validationMessages = validatePensionAccessEvents(config).map(issue => issue.message);
+  const validationMessages = validatePensionAccessEvents(config).map(issue => {
+    const eventIndex = pensionAccessEvents.findIndex(event => event.id === issue.event_id);
+    return formatPensionAccessValidationMessage(issue, eventIndex >= 0 ? eventIndex : 0);
+  });
 
   return (
     <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-4">

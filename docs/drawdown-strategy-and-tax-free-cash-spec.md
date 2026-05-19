@@ -556,7 +556,32 @@ Suggested validation rules:
 
 The UI should avoid presenting this as one overloaded advanced setting.
 
-Recommended structure:
+Detailed workflow/fine-tuning plan: `docs/plans/2026-05-19-strategy-impact-and-what-if-workflow.md`.
+
+Recommended page responsibilities:
+
+1. Dashboard
+   - Read-only output for the Current Plan shown on the Dashboard.
+   - Shows the result of the currently selected Retirement Income Strategy.
+   - Does not become the strategy authoring surface.
+
+2. Strategy / Retirement Income Strategy
+   - Authors the Current Plan strategy: income strategy, drawdown stages/order/blending, and planned pension-access/TFC events.
+   - Makes clear that stage edits apply automatically to the Current Plan; no separate apply button is needed for manual edits.
+   - Shows a compact current-strategy summary, including blended stage percentages.
+   - Hosts the enhanced strategy comparison table.
+
+3. What If
+   - Consumes the Current Plan strategy as its baseline.
+   - Varies a controlled set of scenario levers rather than duplicating the full drawdown-stage/blending editor.
+   - Saves full scenario snapshots so Stress Test and Shootout can still compare powerful alternatives.
+   - Can explicitly update scoped strategy fields back into the Current Plan via `Update Current Plan`.
+
+4. Review
+   - Records actuals, actual pension-access/TFC taken, and re-baseline decisions.
+   - Detects material strategy changes but does not author future strategy structures.
+
+Recommended Strategy page structure:
 
 1. Income strategy
    - How much to draw.
@@ -568,9 +593,17 @@ Recommended structure:
    - Ordered stages UI.
    - Single-source stage appears as simple sequential order.
    - Multi-source stage appears as a blend.
+   - Copy should state: `Changes here update the Current Plan strategy automatically. No separate apply step is needed.`
 
-3. Pension tax-free cash
-   - Per DC pot.
+3. Strategy Impact Comparison
+   - Evolves the old Drawdown Order Analysis table.
+   - Compares the current user-authored strategy with common sequential and blended alternatives.
+   - Should include the Current strategy row, sequential alternatives, and simple blended alternatives such as `Blend DC pensions first, then tax-free accounts`.
+   - Preferred framing: `Compare common source-order and blending patterns`, not `best strategy` or hidden tax optimisation.
+   - Generated alternatives may offer `Use Selected Strategy in Current Plan`; the already-active Current strategy row should be labelled as already active.
+
+4. Pension tax-free cash
+   - Per DC pot / planned pension-access event.
    - Default: gradual pro-rata.
    - More advanced options hidden or clearly marked until adviser-reviewed.
 
@@ -590,8 +623,10 @@ Recommended wording for current simple TFC default:
 4. Should the first implementation reject the same source appearing in multiple stages?
 5. Is gradual pro-rata pension tax-free cash an acceptable default approximation at this stage?
 6. Which upfront tax-free lump-sum cases are important enough to model in the first version, if any?
-7. Should tax-aware optimisation remain a later optional feature rather than part of the initial blended drawdown model?
-8. What caveat wording would be appropriate for adviser/client use?
+7. Is the Strategy / What If responsibility split right: Strategy authors source-order/blending/TFC rules, while What If consumes those rules and varies only controlled scenario levers?
+8. Which common blended/sequential patterns should appear in the first Strategy Impact Comparison table?
+9. Should tax-aware optimisation remain a later optional feature rather than part of the initial blended drawdown model?
+10. What caveat wording would be appropriate for adviser/client use?
 
 ## Out of scope for first implementation
 
@@ -656,11 +691,25 @@ Suggested phases:
 4. Workings and UI transparency
    - Surface active stage, requested split, actual split, tax, and shortfall/benchmark gap.
    - Keep target-led vs portfolio-driven wording consistent.
+   - Add Strategy-page copy that manual stage edits update the Current Plan automatically.
+   - Show a compact Current strategy summary after edits, especially for blended stages.
 
-5. Optional per-pot TFC treatment expansion
+5. Strategy Impact Comparison
+   - Reframe the old Drawdown Order Analysis table as `Strategy Impact Comparison`.
+   - Compare Current strategy, common sequential alternatives, and simple blended alternatives.
+   - Ensure every comparison candidate rebuilds matching `drawdown_stages`; do not evaluate rows against stale legacy `withdrawal_priority`.
+   - Provide `Use Selected Strategy in Current Plan` only for generated alternatives; label the Current strategy row as already active.
+
+6. What If integration
+   - Keep What If as scenario comparison, not full strategy authoring.
+   - Start sandbox configs from the Current Plan strategy.
+   - Saved scenarios should preserve strategy snapshots for Stress Test and Shootout.
+   - Promotion back to Current Plan remains scoped to strategy/TFC fields and must preserve fund values, tax settings, income sources, Review history, and saved scenarios.
+
+7. Optional per-pot TFC treatment expansion
    - Keep gradual pro-rata as default.
    - Add upfront lump-sum only if adviser/user review confirms scope.
 
-6. Later optimisation work
-   - Add explicit optimiser-suggested stage structures only after the manual staged model is trusted.
+8. Later optimisation work
+   - Add explicit optimiser-suggested stage structures only after the manual staged model and Strategy Impact Comparison are trusted.
    - Clearly distinguish user-authored rules from optimiser suggestions.

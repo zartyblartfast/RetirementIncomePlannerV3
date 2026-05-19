@@ -2,14 +2,16 @@
  * SandboxControls — compact parameter panel for What If exploration.
  *
  * Edits a local config copy; does NOT touch the dashboard config.
- * Only exposes the "what if" levers: strategy, drawdown order, CPI,
- * retirement age, end age, strategy-specific params, and a scenario-only TFC lever.
+ * Only exposes the "what if" levers: strategy choice, CPI, retirement timing,
+ * end age, strategy-specific params, and a scenario-only TFC lever. The staged
+ * drawdown/blending strategy is shown as a read-only Current Plan baseline.
  */
 
-import { ChevronUp, ChevronDown } from 'lucide-react';
 import { STRATEGIES, STRATEGY_IDS } from '../../engine/strategies';
 import type { PensionAccessEventAmount, PlannerConfig } from '../../engine/types';
 import { deriveRetirementAge, retirementDateForAge } from '../../engine/dateUtils';
+import { deriveDrawdownStagesFromPriority } from '../../engine/drawdownStages';
+import { formatDrawdownStrategySummary } from '../dashboard/drawdownStageSummary';
 import {
   formatSandboxTfcAmount,
   pensionAccessScenarioMode,
@@ -54,12 +56,10 @@ export default function SandboxControls({ config, onChange }: Props) {
     });
   }
 
-  function swapOrder(i: number, j: number) {
-    patch(c => {
-      const arr = c.withdrawal_priority;
-      [arr[i]!, arr[j]!] = [arr[j]!, arr[i]!];
-    });
-  }
+  const strategyStages = Array.isArray(config.drawdown_stages)
+    ? config.drawdown_stages
+    : deriveDrawdownStagesFromPriority(config);
+  const strategySummary = formatDrawdownStrategySummary(strategyStages);
 
   function setSandboxTfcAmountKind(kind: PensionAccessEventAmount['kind']) {
     const amount: PensionAccessEventAmount = kind === 'fixed_amount'
@@ -169,36 +169,15 @@ export default function SandboxControls({ config, onChange }: Props) {
         </div>
       )}
 
-      {/* Row 3: Withdrawal order (compact inline) */}
-      <div>
-        <span className="text-xs font-medium text-gray-600 mr-2">Drawdown Order:</span>
-        <div className="inline-flex items-center gap-1 flex-wrap">
-          {config.withdrawal_priority.map((name, i) => (
-            <span key={name} className="inline-flex items-center gap-0.5 bg-gray-100 rounded px-2 py-1 text-xs text-gray-700">
-              <span className="font-medium text-gray-400 mr-0.5">{i + 1}.</span>
-              {name}
-              <button
-                disabled={i === 0}
-                onClick={() => swapOrder(i, i - 1)}
-                className="p-0 text-gray-400 hover:text-gray-700 disabled:opacity-25 disabled:cursor-not-allowed"
-                title="Move up"
-              >
-                <ChevronUp className="w-3.5 h-3.5" />
-              </button>
-              <button
-                disabled={i === config.withdrawal_priority.length - 1}
-                onClick={() => swapOrder(i, i + 1)}
-                className="p-0 text-gray-400 hover:text-gray-700 disabled:opacity-25 disabled:cursor-not-allowed"
-                title="Move down"
-              >
-                <ChevronDown className="w-3.5 h-3.5" />
-              </button>
-              {i < config.withdrawal_priority.length - 1 && (
-                <span className="text-gray-300 ml-0.5">→</span>
-              )}
-            </span>
-          ))}
-        </div>
+      {/* Row 3: strategy snapshot, read-only in What If */}
+      <div className="rounded border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-900">
+        <p className="font-semibold">Retirement Income Strategy baseline</p>
+        <p className="mt-1">
+          What If starts from the Current Plan strategy. Edit stages, order and blending on the Strategy page; use the controls here for scenario levers only.
+        </p>
+        <p className="mt-1 text-blue-800">
+          {strategySummary}
+        </p>
       </div>
 
       {/* Row 4: Pension access / tax-free cash scenario lever */}
