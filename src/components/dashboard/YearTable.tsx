@@ -1,6 +1,6 @@
 import { useState, Fragment } from 'react';
 import { ChevronDown, ChevronRight, Calculator } from 'lucide-react';
-import type { YearRow } from '../../engine/types';
+import type { PensionAccessResolvedEvent, YearRow } from '../../engine/types';
 import type { TaxContext } from '../../engine/taxContext';
 import YearWorkingsModal from '../common/YearWorkingsModal';
 
@@ -11,6 +11,14 @@ interface Props {
 
 function fmt(n: number): string {
   return '£' + Math.round(n).toLocaleString('en-GB');
+}
+
+function pensionAccessEventTypeLabel(event: PensionAccessResolvedEvent): string {
+  switch (event.event_type) {
+    case 'tax_free_cash': return 'tax-free cash';
+    case 'ordinary_drawdown_marker': return 'ordinary drawdown marker';
+    case 'already_taken_marker': return 'already-taken marker';
+  }
 }
 
 export default function YearTable({ years, taxContext }: Props) {
@@ -91,6 +99,8 @@ export default function YearTable({ years, taxContext }: Props) {
 }
 
 function ExpandedDetail({ yr, onShowWorkings }: { yr: YearRow; onShowWorkings: () => void }) {
+  const pensionAccessEvents = yr.pension_access_events ?? [];
+
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
@@ -118,6 +128,22 @@ function ExpandedDetail({ yr, onShowWorkings }: { yr: YearRow; onShowWorkings: (
             <div className="flex justify-between text-gray-500 mt-1">
               <span>DC tax-free portion</span>
               <span>{fmt(yr.dc_tax_free_portion)}</span>
+            </div>
+          )}
+          {pensionAccessEvents.length > 0 && (
+            <div className="mt-3 rounded border border-emerald-100 bg-emerald-50 px-2 py-1 text-emerald-800">
+              <h4 className="font-semibold mb-1">Pension access / TFC capital events</h4>
+              {pensionAccessEvents.map(event => (
+                <div key={event.id} className="space-y-0.5 text-emerald-800">
+                  <div className="flex justify-between gap-2">
+                    <span>{event.pot_name} {pensionAccessEventTypeLabel(event)}: {fmt(event.gross_amount)}</span>
+                    <span className="text-emerald-700">month {event.month}</span>
+                  </div>
+                  <div className="text-emerald-700">
+                    Pot balance {fmt(event.pot_balance_before)} → {fmt(event.pot_balance_after)}. Not included in ordinary DC gross, taxable income, or tax.
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
