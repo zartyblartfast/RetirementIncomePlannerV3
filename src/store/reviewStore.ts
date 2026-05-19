@@ -22,7 +22,8 @@ export interface ReviewSnapshot {
   id: string;
   date: string;                                   // "YYYY-MM"
   pot_balances: Record<string, number>;           // pot name → closing balance
-  income_since_last: Record<string, number>;      // source name → income drawn since previous review
+  income_since_last: Record<string, number>;      // source name → net income drawn since previous review
+  pension_access_since_last?: Record<string, number>; // DC pot name → actual pension access/TFC taken since previous review
   guaranteed_monthly: Record<string, number>;     // source → current monthly guaranteed income amount
   guaranteed_income_update_mode?: 'record_only' | 'update_current_assumption';
   strategy: string;                                // active drawdown strategy at review time

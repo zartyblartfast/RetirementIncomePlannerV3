@@ -65,4 +65,25 @@ describe('reviewStore', () => {
     expect(next.guaranteed_income[0]?.gross_annual).toBe(DEFAULT_CONFIG.guaranteed_income[0]?.gross_annual);
     expect(next.guaranteed_income[0]?.values_as_of).toBe(DEFAULT_CONFIG.guaranteed_income[0]?.values_as_of);
   });
+
+  it('records actual pension access separately from net income and live balances', () => {
+    addReview({
+      date: '2032-05',
+      pot_balances: { 'DC Pension': 150_000 },
+      income_since_last: { 'DC Pension': 0 },
+      pension_access_since_last: { 'DC Pension': 25_000 },
+      guaranteed_monthly: {},
+      guaranteed_income_update_mode: 'record_only',
+      strategy: 'fixed_target',
+      strategy_params: {},
+      notes: 'took TFC',
+    });
+
+    const stored = loadReviewStore();
+    expect(stored.reviews[0]?.income_since_last['DC Pension']).toBe(0);
+    expect(stored.reviews[0]?.pension_access_since_last?.['DC Pension']).toBe(25_000);
+
+    const next = applyReviewToConfig(DEFAULT_CONFIG, stored.reviews[0]!);
+    expect(next.dc_pots[0]?.starting_balance).toBe(150_000);
+  });
 });

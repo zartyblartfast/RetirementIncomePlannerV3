@@ -58,6 +58,7 @@ export default function Review() {
   const [formDate, setFormDate] = useState(currentYM);
   const [formBalances, setFormBalances] = useState<Record<string, string>>({});
   const [formIncome, setFormIncome] = useState<Record<string, string>>({});
+  const [formPensionAccess, setFormPensionAccess] = useState<Record<string, string>>({});
   const [formGuarMonthly, setFormGuarMonthly] = useState<Record<string, string>>({});
   const [applyGuaranteedIncomeUpdate, setApplyGuaranteedIncomeUpdate] = useState(true);
   const [formNotes, setFormNotes] = useState('');
@@ -164,6 +165,10 @@ export default function Review() {
     for (const name of [...dcNames, ...tfNames]) inc[name] = '0';
     setFormIncome(inc);
 
+    const pensionAccess: Record<string, string> = {};
+    for (const name of dcNames) pensionAccess[name] = '0';
+    setFormPensionAccess(pensionAccess);
+
     const guar: Record<string, string> = {};
     for (const g of config.guaranteed_income) guar[g.name] = String(Math.round(g.gross_annual / 12));
     setFormGuarMonthly(guar);
@@ -181,6 +186,9 @@ export default function Review() {
     const incDrawn: Record<string, number> = {};
     for (const [k, v] of Object.entries(formIncome)) incDrawn[k] = Number(v) || 0;
 
+    const pensionAccessTaken: Record<string, number> = {};
+    for (const [k, v] of Object.entries(formPensionAccess)) pensionAccessTaken[k] = Number(v) || 0;
+
     const guarMonthly: Record<string, number> = {};
     for (const [k, v] of Object.entries(formGuarMonthly)) guarMonthly[k] = Number(v) || 0;
 
@@ -188,6 +196,7 @@ export default function Review() {
       date: formDate,
       pot_balances: potBals,
       income_since_last: incDrawn,
+      pension_access_since_last: pensionAccessTaken,
       guaranteed_monthly: guarMonthly,
       guaranteed_income_update_mode: applyGuaranteedIncomeUpdate ? 'update_current_assumption' : 'record_only',
       strategy: config.drawdown_strategy ?? 'fixed_target',
@@ -203,7 +212,7 @@ export default function Review() {
     updateConfig(prev => applyReviewToConfig(prev, { ...snapshot, id: 'pending' }));
 
     setShowForm(false);
-  }, [formDate, formBalances, formIncome, formGuarMonthly, applyGuaranteedIncomeUpdate, formNotes, config.drawdown_strategy, config.drawdown_strategy_params, currentTaxContext, updateConfig]);
+  }, [formDate, formBalances, formIncome, formPensionAccess, formGuarMonthly, applyGuaranteedIncomeUpdate, formNotes, config.drawdown_strategy, config.drawdown_strategy_params, currentTaxContext, updateConfig]);
 
   const handleDeleteReview = useCallback((id: string) => {
     if (window.confirm('Delete this review?')) {
@@ -436,6 +445,30 @@ export default function Review() {
             </div>
           </div>
 
+          {/* Pension access / TFC actually taken since last review */}
+          {dcNames.length > 0 && (
+            <div>
+              <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Pension Access / TFC Taken Since Last Review</h4>
+              <p className="text-xs text-gray-400 mb-2">
+                Record tax-free cash or other pension access actually taken. This is review history only; pot balances above are the source of truth for future projections.
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                {dcNames.map(name => (
+                  <label key={name} className="block">
+                    <span className="text-xs font-medium text-gray-600">{name} (£)</span>
+                    <input
+                      type="number"
+                      value={formPensionAccess[name] ?? '0'}
+                      step={100}
+                      onChange={e => setFormPensionAccess(prev => ({ ...prev, [name]: e.target.value }))}
+                      className="input-field"
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Guaranteed income — current monthly amounts */}
           <div>
             <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Current Monthly Guaranteed Income</h4>
@@ -539,6 +572,7 @@ function ReviewRow({ review, onDelete }: { review: ReviewSnapshot; onDelete: (id
   const [expanded, setExpanded] = useState(false);
   const totalCapital = Object.values(review.pot_balances).reduce((s, v) => s + v, 0);
   const totalIncome = Object.values(review.income_since_last).reduce((s, v) => s + v, 0);
+  const totalPensionAccess = Object.values(review.pension_access_since_last ?? {}).reduce((s, v) => s + v, 0);
 
   return (
     <div>
@@ -551,6 +585,7 @@ function ReviewRow({ review, onDelete }: { review: ReviewSnapshot; onDelete: (id
           <span className="text-sm font-medium text-gray-700">{formatDate(review.date)}</span>
           <span className="text-xs text-gray-500">Capital: {fmt(totalCapital)}</span>
           {totalIncome > 0 && <span className="text-xs text-gray-500">Income: {fmt(totalIncome)}</span>}
+          {totalPensionAccess > 0 && <span className="text-xs text-gray-500">Pension access: {fmt(totalPensionAccess)}</span>}
           {review.strategy && <span className="text-xs text-gray-400">{getStrategyDisplayName(review.strategy)}</span>}
           {review.notes && <span className="text-xs text-gray-400 italic truncate max-w-[200px]">{review.notes}</span>}
         </div>
@@ -588,6 +623,22 @@ function ReviewRow({ review, onDelete }: { review: ReviewSnapshot; onDelete: (id
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+          {Object.values(review.pension_access_since_last ?? {}).some(v => v > 0) && (
+            <div>
+              <p className="text-xs font-medium text-gray-500 mb-1">Pension Access / TFC Taken</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-0.5 text-xs">
+                {Object.entries(review.pension_access_since_last ?? {}).filter(([, v]) => v > 0).map(([name, val]) => (
+                  <div key={name} className="flex justify-between">
+                    <span className="text-gray-600">{name}</span>
+                    <span className="text-gray-900 font-medium tabular-nums">{fmt(val)}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                Recorded as actual pension access history; future projections use the closing pot balances above.
+              </p>
             </div>
           )}
           {Object.values(review.guaranteed_monthly).some(v => v > 0) && (
