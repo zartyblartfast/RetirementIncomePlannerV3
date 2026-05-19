@@ -151,30 +151,11 @@ export default function Optimise() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Retirement Income Strategy</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Edit drawdown stages, withdrawal order and planned pension-access/TFC events for the Current Plan shown on the Dashboard · Strategy: {getStrategyDisplayName(strategyId)}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <select
-            value={windowView}
-            onChange={e => setWindowView(e.target.value as WindowView)}
-            className="text-sm border border-gray-300 rounded-md px-2 py-1 bg-white"
-          >
-            <option value="static">Static Growth</option>
-            {keyWindows && (
-              <>
-                <option value="worst">Worst ({keyWindows.worst.label})</option>
-                <option value="median">Median ({keyWindows.median.label})</option>
-                <option value="best">Best ({keyWindows.best.label})</option>
-              </>
-            )}
-          </select>
-          <span className="text-xs text-gray-400">{windowLabel}</span>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Retirement Income Strategy</h1>
+        <p className="text-sm text-gray-500 mt-0.5">
+          Edit drawdown stages, withdrawal order and planned pension-access/TFC events for the Current Plan shown on the Dashboard · Strategy: {getStrategyDisplayName(strategyId)}
+        </p>
       </div>
 
       <DrawdownStagesPanel variant="editor" />
@@ -182,22 +163,42 @@ export default function Optimise() {
       <PensionAccessEventsPanel />
 
       <div className="rounded-lg border border-gray-200 bg-white p-4">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-start justify-between mb-3 flex-wrap gap-3">
           <h2 className="text-sm font-semibold text-gray-700">
             Drawdown Order Analysis
             <span className="ml-2 text-xs font-normal text-gray-400">
               {orderResult.permutations.length} permutations · click header to sort · shift+click for multi-sort
             </span>
           </h2>
-          {selectedOrder && (
-            <button
-              onClick={applyOrder}
-              className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors"
-            >
-              <Check className="w-3.5 h-3.5" />
-              Use Selected Order in Current Plan
-            </button>
-          )}
+          <div className="flex items-center gap-3 flex-wrap">
+            <label className="flex items-center gap-2 text-xs text-gray-500">
+              Growth projection
+              <select
+                value={windowView}
+                onChange={e => setWindowView(e.target.value as WindowView)}
+                className="text-sm border border-gray-300 rounded-md px-2 py-1 bg-white text-gray-700"
+              >
+                <option value="static">Static Growth</option>
+                {keyWindows && (
+                  <>
+                    <option value="worst">Worst ({keyWindows.worst.label})</option>
+                    <option value="median">Median ({keyWindows.median.label})</option>
+                    <option value="best">Best ({keyWindows.best.label})</option>
+                  </>
+                )}
+              </select>
+            </label>
+            <span className="text-xs text-gray-400">{windowLabel}</span>
+            {selectedOrder && (
+              <button
+                onClick={applyOrder}
+                className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+              >
+                <Check className="w-3.5 h-3.5" />
+                Use Selected Order in Current Plan
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="overflow-x-auto">
