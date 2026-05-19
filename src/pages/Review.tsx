@@ -19,6 +19,7 @@ import { getStrategyDisplayName } from '../engine/strategies';
 import { deriveTaxContext } from '../engine/taxContext';
 import ReviewCharts from '../components/review/ReviewCharts';
 import TaxContextSummary from '../components/common/TaxContextSummary';
+import { detectBaselinePlanChanges } from '../components/review/planChangeDetection';
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -88,10 +89,15 @@ export default function Review() {
     return deriveRetirementAge(config.personal.date_of_birth, config.personal.retirement_date);
   }, [config.personal.date_of_birth, config.personal.retirement_date]);
 
-  // ── Strategy change detection ──────────────────────────────────
-  const baselineStrategy = store.baseline_config?.drawdown_strategy ?? null;
+  // ── Baseline-relevant plan change detection ─────────────────────
   const currentStrategy = config.drawdown_strategy ?? 'fixed_target';
-  const strategyChanged = store.baseline_config !== null && baselineStrategy !== currentStrategy;
+  const planChangeSummary = useMemo(
+    () => store.baseline_config
+      ? detectBaselinePlanChanges(store.baseline_config, config)
+      : { changed: false, changedLabels: [] },
+    [store.baseline_config, config],
+  );
+  const planChanged = planChangeSummary.changed;
 
   // ── Baseline projection (for variance) ───────────────────────────
   const baselineResult = useProjection(store.baseline_config ?? config);
@@ -104,7 +110,7 @@ export default function Review() {
 
   // ── Variance summary (only when strategy unchanged) ──────────────
   const variance = useMemo(() => {
-    if (!store.baseline_config || !latestReview || strategyChanged) return null;
+    if (!store.baseline_config || !latestReview || planChanged) return null;
 
     // Current age from latest review date
     const [dobY, dobM] = config.personal.date_of_birth.split('-').map(Number) as [number, number];
@@ -129,7 +135,7 @@ export default function Review() {
       capitalDiffPct,
       onTrack: capitalDiff >= 0,
     };
-  }, [store.baseline_config, latestReview, strategyChanged, baselineResult.years, config.personal.date_of_birth]);
+  }, [store.baseline_config, latestReview, planChanged, baselineResult.years, config.personal.date_of_birth]);
 
   // ── Handlers ─────────────────────────────────────────────────────
 
@@ -287,17 +293,18 @@ export default function Review() {
         </div>
       </div>
 
-      {/* Strategy change banner */}
-      {strategyChanged && store.baseline_config && (
+      {/* Baseline-relevant plan change banner */}
+      {planChanged && store.baseline_config && (
         <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 space-y-2">
           <div className="flex items-start gap-2">
             <AlertCircle className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
             <div>
               <p className="text-sm font-medium text-blue-800">
-                Strategy changed: {getStrategyDisplayName(baselineStrategy ?? 'fixed_target')} → {getStrategyDisplayName(currentStrategy)}
+                Current Plan changed since the baseline
               </p>
               <p className="text-xs text-blue-600 mt-0.5">
-                Plan-vs-actual comparison is paused because the strategies have different income profiles.
+                Changed: {planChangeSummary.changedLabels.join(', ')}.
+                {' '}Plan-vs-actual comparison is paused because the Current Plan now has a different forward strategy.
                 History below shows your actual pot balances and income drawn.
               </p>
             </div>
@@ -311,8 +318,8 @@ export default function Review() {
         </div>
       )}
 
-      {/* Simplified summary when strategy changed */}
-      {strategyChanged && actualCapital !== null && (
+      {/* Simplified summary when baseline-relevant plan changed */}
+      {planChanged && actualCapital !== null && (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <MetricCard label="Actual Capital" value={fmt(actualCapital)} highlight />
           <MetricCard label="Current Strategy" value={getStrategyDisplayName(currentStrategy)} />
@@ -351,7 +358,7 @@ export default function Review() {
           reviews={store.reviews}
           dobYM={config.personal.date_of_birth}
           retirementAge={retirementAge}
-          strategyChanged={strategyChanged}
+          strategyChanged={planChanged}
         />
       )}
 
