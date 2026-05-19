@@ -13,6 +13,7 @@ import type { KeyWindowStarts } from './backtest';
 import { normalizeConfig } from './strategies';
 import { deriveRetirementAge, retirementDateForAge } from './dateUtils';
 import { getDrawableSourceNames, normalizeWithdrawalPriority } from './withdrawalPriority';
+import { deriveDrawdownStagesFromPriority } from './drawdownStages';
 
 // ------------------------------------------------------------------ //
 //  Types
@@ -173,6 +174,7 @@ export function analyseDrawdownOrders(
   for (const perm of perms) {
     const cfg = clone(baseCfg);
     cfg.withdrawal_priority = perm;
+    cfg.drawdown_stages = deriveDrawdownStagesFromPriority(cfg);
     normalizeConfig(cfg);
     const result = runProj(cfg, windowStart);
     results.push(extractMetrics(result, perm));

@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, afterEach } from 'vitest';
 import type { PlannerConfig } from '../../../engine/types';
 import { ConfigContext, DEFAULT_CONFIG, type ConfigContextValue } from '../../../store/configStore';
-import DrawdownStagesPanel, { formatPensionAccessEventSummary } from '../drawdownStageSummary';
+import DrawdownStagesPanel from '../drawdownStageSummary';
 
 (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -149,77 +149,10 @@ describe('DrawdownStagesPanel editor', () => {
     expect(mounted.config.withdrawal_priority).toEqual(['DC Pension']);
   });
 
-  it('formats pension access event summaries as separate selected-pot capital events', () => {
-    expect(formatPensionAccessEventSummary({
-      id: 'event_1',
-      pot_ref: 'DC Pension',
-      event_type: 'tax_free_cash',
-      timing: { kind: 'retirement_date' },
-      amount: { kind: 'percentage_of_estimated_tfc_remaining', value: 1 },
-      destination: { kind: 'outside_plan' },
-    }, 0)).toBe('Event 1: DC Pension — tax-free cash at the plan retirement date, 100.0% of estimated remaining tax-free cash from this pot paid outside the plan');
-
-    expect(formatPensionAccessEventSummary({
-      id: 'event_2',
-      pot_ref: 'SIPP 2',
-      event_type: 'tax_free_cash',
-      timing: { kind: 'retirement_date' },
-      amount: { kind: 'percentage_of_pot', value: 0.25 },
-      destination: { kind: 'outside_plan' },
-    }, 1)).toBe('Event 2: SIPP 2 — tax-free cash at the plan retirement date, 25.0% of selected pot value at the event date paid outside the plan');
-  });
-
-  it('adds and edits an initial tax-free cash event without changing drawdown stages', () => {
+  it('leaves pension access event editing to the separate Strategy panel', () => {
     mounted = renderEditor();
 
-    mounted.clickButton('Add TFC event');
-
-    expect(mounted.config.pension_access_events).toEqual([
-      {
-        id: 'pension_access_event_1',
-        pot_ref: 'DC Pension',
-        event_type: 'tax_free_cash',
-        timing: { kind: 'retirement_date' },
-        amount: { kind: 'percentage_of_estimated_tfc_remaining', value: 1 },
-        destination: { kind: 'outside_plan' },
-      },
-    ]);
-    expect(mounted.config.drawdown_stages).toEqual(DEFAULT_CONFIG.drawdown_stages);
-    expect(mounted.container.textContent).toContain('Optional one-off capital events, separate from ordinary staged income withdrawals.');
-    expect(mounted.container.textContent).toContain('Event 1: DC Pension — tax-free cash at the plan retirement date, 100.0% of estimated remaining tax-free cash from this pot paid outside the plan');
-    expect(mounted.container.textContent).toContain('Capital event treatment');
-    expect(mounted.container.textContent).toContain('Reduces the selected pension pot balance. Does not count as ordinary income, taxable income, or taxable drawdown.');
-    expect(mounted.container.textContent).toContain('Selected pot context: % options are calculated against the pension pot chosen above.');
-    expect(mounted.container.textContent).toContain('Currently modelled as: outside-plan cash, informational only.');
-    expect(mounted.container.textContent).toContain('Released cash is not yet added to a modelled cash, ISA, or other destination account.');
-
-    mounted.chooseFirstSelectByValue('percentage_of_estimated_tfc_remaining', 'fixed_amount');
-    mounted.changeFirstInputValue('10000', '25000');
-
-    expect(mounted.config.pension_access_events?.[0]?.amount).toEqual({ kind: 'fixed_amount', value: 25000 });
-    expect(mounted.container.textContent).toContain('£25,000 paid outside the plan');
-  });
-
-  it('surfaces pension access validation messages and removes the last event cleanly', () => {
-    mounted = renderEditor({
-      ...deepClone(DEFAULT_CONFIG),
-      pension_access_events: [
-        {
-          id: 'bad_event',
-          pot_ref: 'Missing pension',
-          event_type: 'tax_free_cash',
-          timing: { kind: 'retirement_date' },
-          amount: { kind: 'fixed_amount', value: 0 },
-          destination: { kind: 'outside_plan' },
-        },
-      ],
-    });
-
-    expect(mounted.container.textContent).toContain('Pension access event bad_event references Missing pension, but that pension pot was not found.');
-    expect(mounted.container.textContent).toContain('Pension access event bad_event must use a positive fixed amount.');
-
-    mounted.clickButton('Remove TFC event');
-
-    expect(mounted.config.pension_access_events).toBeUndefined();
+    expect(mounted.container.textContent).not.toContain('Pension access / tax-free cash events');
+    expect(mounted.container.textContent).not.toContain('Add TFC event');
   });
 });

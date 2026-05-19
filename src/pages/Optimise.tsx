@@ -16,6 +16,7 @@ import type {
   OrderMetrics,
 } from '../engine/optimiser';
 import DrawdownStagesPanel from '../components/dashboard/drawdownStageSummary';
+import PensionAccessEventsPanel from '../components/strategy/PensionAccessEventsPanel';
 import { deriveDrawdownStagesFromPriority } from '../engine/drawdownStages';
 
 function fmt(n: number): string {
@@ -177,6 +178,8 @@ export default function Optimise() {
       </div>
 
       <DrawdownStagesPanel variant="editor" />
+
+      <PensionAccessEventsPanel />
 
       <div className="rounded-lg border border-gray-200 bg-white p-4">
         <div className="flex items-center justify-between mb-3">

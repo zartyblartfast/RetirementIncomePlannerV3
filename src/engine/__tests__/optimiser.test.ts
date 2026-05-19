@@ -6,6 +6,7 @@ import {
 } from '../optimiser';
 import { runProjection } from '../projection';
 import { DEFAULT_CONFIG, SIMPLE_CONFIG } from './fixtures';
+import { deriveDrawdownStagesFromPriority } from '../drawdownStages';
 import type { OrderMetrics } from '../optimiser';
 import type { PlannerConfig, ProjectionResult } from '../types';
 
@@ -146,6 +147,23 @@ describe('Optimiser — drawdown order analysis', () => {
       const directProjection = runProjection(directCfg);
       expect(metric).toEqual(expectedMetricsFor(metric.order, directProjection));
     }
+  });
+
+  it('keeps staged-drawdown configs order-sensitive by evaluating each permutation as matching stages', () => {
+    const cfg = makeMixedTaxFreePotConfig();
+    cfg.drawdown_stages = deriveDrawdownStagesFromPriority(cfg);
+
+    const result = analyseDrawdownOrders(cfg);
+
+    const uniqueTaxValues = new Set(result.permutations.map(metric => metric.total_tax));
+    expect(uniqueTaxValues.size).toBeGreaterThan(1);
+
+    const taxFreeFirst = byLabel(result.permutations, 'Fully Tax-Free DC → TFC DC → Taxable DC');
+    const directCfg = cloneConfig(cfg);
+    directCfg.withdrawal_priority = taxFreeFirst.order;
+    directCfg.drawdown_stages = deriveDrawdownStagesFromPriority(directCfg);
+
+    expect(taxFreeFirst).toEqual(expectedMetricsFor(taxFreeFirst.order, runProjection(directCfg)));
   });
 
   it('keeps mixed tax-free DC pot cases order-sensitive and consistent with direct projections', () => {
