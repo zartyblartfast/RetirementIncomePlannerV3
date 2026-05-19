@@ -417,6 +417,8 @@ interface TimelineEntry {
   age: number;
   calendar_year: number;
   market_return: number | null;
+  pension_access_amount: number;
+  pension_access_event_count: number;
   total_capital: number;
   net_income: number;
   target_income: number;
@@ -598,10 +600,14 @@ export function extractStressTest(
       const tgt = yr.target_net;
       const inc = yr.net_income_achieved;
       const incRatio = tgt > 0 ? inc / tgt : 1;
+      const pensionAccessEvents = yr.pension_access_events ?? [];
+      const pensionAccessAmount = pensionAccessEvents.reduce((sum, event) => sum + event.gross_amount, 0);
       timeline.push({
         age: yr.age,
         calendar_year: histYear,
         market_return: marketReturn !== null ? round2(marketReturn * 100) : null,
+        pension_access_amount: Math.round(pensionAccessAmount),
+        pension_access_event_count: pensionAccessEvents.length,
         total_capital: Math.round(yr.total_capital),
         net_income: Math.round(inc),
         target_income: Math.round(tgt),

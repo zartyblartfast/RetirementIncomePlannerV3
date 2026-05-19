@@ -57,6 +57,7 @@ export default function StressTestPanel({ config }: Props) {
   const inc = stress.income_stability;
   const worst = stress.worst_window;
   const best = stress.best_window;
+  const hasPensionAccessEvents = (config.pension_access_events?.length ?? 0) > 0;
 
   // Fan chart data — compute band differences for proper stacking
   function buildFanData(field: 'total_capital' | 'net_income') {
@@ -110,6 +111,13 @@ export default function StressTestPanel({ config }: Props) {
         Historical windows are applied from the plan's retirement age, not from today's date.
         The x-axis shows projection age; the historical year labels show which past market/inflation sequence is being replayed.
       </div>
+
+      {hasPensionAccessEvents && (
+        <div className="rounded-lg border border-emerald-100 bg-emerald-50/80 p-3 text-xs text-emerald-900">
+          This stress test includes configured pension access / TFC capital events. Capital bands and timeline capital include the pension-pot reductions;
+          net income bands and income columns exclude those events because they are modelled as capital movements, not ordinary drawdown or taxable income.
+        </div>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -308,6 +316,7 @@ export default function StressTestPanel({ config }: Props) {
                 <th className="px-3 py-2 text-left font-medium text-gray-600">Age</th>
                 <th className="px-3 py-2 text-left font-medium text-gray-600">Year</th>
                 <th className="px-3 py-2 text-right font-medium text-gray-600">Market</th>
+                <th className="px-3 py-2 text-right font-medium text-gray-600">Pension access</th>
                 <th className="px-3 py-2 text-right font-medium text-gray-600">Capital</th>
                 <th className="px-3 py-2 text-right font-medium text-gray-600">Income</th>
                 <th className="px-3 py-2 text-right font-medium text-gray-600">{labels.timelineBenchmarkHeading}</th>
@@ -324,6 +333,11 @@ export default function StressTestPanel({ config }: Props) {
                     <td className="px-3 py-1.5 text-gray-600">{row.calendar_year}</td>
                     <td className="px-3 py-1.5 text-right text-gray-600">
                       {row.market_return !== null ? `${row.market_return > 0 ? '+' : ''}${row.market_return.toFixed(1)}%` : '—'}
+                    </td>
+                    <td className="px-3 py-1.5 text-right text-emerald-700">
+                      {row.pension_access_amount > 0
+                        ? `${fmt(row.pension_access_amount)}${row.pension_access_event_count > 1 ? ` (${row.pension_access_event_count} events)` : ''}`
+                        : '—'}
                     </td>
                     <td className="px-3 py-1.5 text-right text-gray-700">{fmt(row.total_capital)}</td>
                     <td className="px-3 py-1.5 text-right text-gray-700">{fmt(row.net_income)}</td>

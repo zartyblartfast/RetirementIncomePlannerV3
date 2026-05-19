@@ -1,7 +1,23 @@
 import { describe, it, expect } from 'vitest';
 import { runBacktest, extractStressTest } from '../backtest';
 import { DEFAULT_CONFIG } from './fixtures';
-import type { PlannerConfig } from '../types';
+import type { PensionAccessEventConfig, PlannerConfig } from '../types';
+
+function cloneConfig(cfg: PlannerConfig): PlannerConfig {
+  return JSON.parse(JSON.stringify(cfg)) as PlannerConfig;
+}
+
+function pensionAccessEvent(overrides: Partial<PensionAccessEventConfig> = {}): PensionAccessEventConfig {
+  return {
+    id: 'stress_tfc',
+    pot_ref: 'Consolidated DC Pot',
+    event_type: 'tax_free_cash',
+    timing: { kind: 'retirement_date' },
+    amount: { kind: 'fixed_amount', value: 10000 },
+    destination: { kind: 'outside_plan' },
+    ...overrides,
+  };
+}
 
 describe('Backtest — small window run', () => {
   // Use maxWindows=3 for speed
@@ -128,6 +144,31 @@ describe('Backtest — empty result handling', () => {
       },
     });
     expect(result).toBeNull();
+  });
+});
+
+describe('Backtest — pension access events in stress outputs', () => {
+  const baseline = cloneConfig(DEFAULT_CONFIG);
+  const withTfc = cloneConfig(DEFAULT_CONFIG);
+  withTfc.pension_access_events = [pensionAccessEvent()];
+
+  const baselineStress = extractStressTest(runBacktest(baseline, 5))!;
+  const tfcStress = extractStressTest(runBacktest(withTfc, 5))!;
+  const firstIdx = 0;
+
+  it('reduces capital percentile bands while leaving net income percentile bands unchanged in the event year', () => {
+    expect(tfcStress.percentile_trajectories.p50![firstIdx]!.total_capital)
+      .toBeLessThan(baselineStress.percentile_trajectories.p50![firstIdx]!.total_capital);
+    expect(tfcStress.percentile_trajectories.p50![firstIdx]!.net_income)
+      .toBeCloseTo(baselineStress.percentile_trajectories.p50![firstIdx]!.net_income, 2);
+  });
+
+  it('surfaces pension access amounts in the period timeline as capital events', () => {
+    const firstTimelineRow = tfcStress.worst_window.timeline[0]!;
+
+    expect(firstTimelineRow.pension_access_amount).toBe(10000);
+    expect(firstTimelineRow.pension_access_event_count).toBe(1);
+    expect(firstTimelineRow.net_income).toBeGreaterThan(0);
   });
 });
 

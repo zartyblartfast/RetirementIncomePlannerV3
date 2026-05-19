@@ -3,7 +3,7 @@
  *
  * Edits a local config copy; does NOT touch the dashboard config.
  * Only exposes the "what if" levers: strategy, drawdown order, CPI,
- * retirement age, end age, and strategy-specific params.
+ * retirement age, end age, strategy-specific params, and a scenario-only TFC lever.
  */
 
 import { ChevronUp, ChevronDown } from 'lucide-react';
@@ -204,7 +204,7 @@ export default function SandboxControls({ config, onChange }: Props) {
       {/* Row 4: Pension access / tax-free cash scenario lever */}
       <div className="rounded border border-emerald-100 bg-emerald-50 px-3 py-2">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
-          <Field label="Tax-free cash event" tooltip="Scenario-only lever. Adds or removes a retirement-date pension access event from this sandbox copy without changing dashboard settings.">
+          <Field label="Tax-free cash event" tooltip="Scenario-only lever. Adds or removes a retirement-date pension access event from this sandbox copy without changing the Current Plan shown on the Dashboard.">
             <select
               value={pensionAccessMode}
               onChange={e => onChange(setRetirementTfcScenario(config, e.target.value === 'retirement_tfc'))}

@@ -5,7 +5,7 @@ import { useConfig } from '../store/configStore'
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/what-if', label: 'What If', icon: GitCompareArrows },
-  { to: '/optimise', label: 'Drawdown Order', icon: Target },
+  { to: '/optimise', label: 'Strategy', icon: Target },
   { to: '/review', label: 'Review', icon: ClipboardCheck },
 ]
 

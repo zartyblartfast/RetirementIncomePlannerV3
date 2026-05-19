@@ -12,6 +12,7 @@ import type { CompareItem } from '../components/whatif/ComparePanel';
 import StressTestPanel from '../components/whatif/StressTestPanel';
 import ShootoutPanel from '../components/whatif/ShootoutPanel';
 import type { PlannerConfig } from '../engine/types';
+import { applySandboxStrategySettingsToCurrentPlan } from '../components/whatif/applySandboxToCurrentPlan';
 import {
   loadScenarios,
   saveScenario,
@@ -25,7 +26,7 @@ function deepClone<T>(obj: T): T {
 }
 
 export default function WhatIf() {
-  const { config: dashboardConfig } = useConfig();
+  const { config: dashboardConfig, setConfig } = useConfig();
 
   // Sandbox config — starts as a copy of the dashboard config
   const [sandboxConfig, setSandboxConfig] = useState<PlannerConfig>(() =>
@@ -121,13 +122,22 @@ export default function WhatIf() {
     setSandboxConfig(deepClone(sc.config));
   }, []);
 
+  // Copy only strategy/TFC settings from the sandbox into the live Current Plan.
+  const updateCurrentPlanFromSandbox = useCallback(() => {
+    const confirmed = window.confirm(
+      'Update the Current Plan shown on the Dashboard?\n\nThis will copy the sandbox\'s drawdown strategy, staged drawdown order and planned pension-access/TFC events into the live Current Plan. The Dashboard and Strategy page will then reflect those settings.\n\nReview history, saved scenarios, fund values, income sources and tax settings will not be changed.',
+    );
+    if (!confirmed) return;
+    setConfig(applySandboxStrategySettingsToCurrentPlan(dashboardConfig, sandboxConfig));
+  }, [dashboardConfig, sandboxConfig, setConfig]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">What If</h1>
         <p className="text-sm text-gray-500 mt-0.5">
-          Explore scenarios without changing your dashboard settings.
+          Try changes in a sandbox copy of your Current Plan. The Dashboard is unchanged unless you update the Current Plan.
         </p>
       </div>
 
@@ -140,7 +150,7 @@ export default function WhatIf() {
           <button
             onClick={resetSandbox}
             className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 transition-colors"
-            title="Reset to dashboard settings"
+            title="Reset this sandbox to the Current Plan shown on the Dashboard"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             Reset
@@ -178,6 +188,14 @@ export default function WhatIf() {
             </button>
           </div>
           <div className="w-px h-6 bg-amber-200 mx-1" />
+          <button
+            onClick={updateCurrentPlanFromSandbox}
+            className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
+            title="Copy drawdown and TFC settings from this sandbox into the Current Plan shown on the Dashboard"
+          >
+            <Check className="w-3.5 h-3.5" />
+            Update Current Plan
+          </button>
         </div>
 
         {/* Save as scenario */}

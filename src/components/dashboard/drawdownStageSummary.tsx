@@ -250,7 +250,7 @@ export default function DrawdownStagesPanel({ variant }: { variant: Variant }) {
         </h4>
         <div className="rounded bg-gray-50 px-3 py-2 text-sm text-gray-700">
           <p className="text-xs text-gray-500 mb-1">
-            Active source order/blending used by the projection. Draft empty stages are edited on the Drawdown Order page and are not listed here.
+            Active source order/blending used by the projection. Draft empty stages are edited on the Strategy page and are not listed here.
           </p>
           <p className="text-xs text-gray-700 leading-relaxed">
             {formatDrawdownStrategySummary(stages)}

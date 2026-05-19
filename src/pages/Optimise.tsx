@@ -1,5 +1,5 @@
 /**
- * Drawdown Order Page - drawdown order analysis with a multi-column sortable table.
+ * Strategy Page - retirement income strategy and drawdown order analysis.
  */
 
 import { useMemo, useState } from 'react';
@@ -16,6 +16,7 @@ import type {
   OrderMetrics,
 } from '../engine/optimiser';
 import DrawdownStagesPanel from '../components/dashboard/drawdownStageSummary';
+import { deriveDrawdownStagesFromPriority } from '../engine/drawdownStages';
 
 function fmt(n: number): string {
   return '\u00A3' + Math.round(n).toLocaleString('en-GB');
@@ -135,19 +136,25 @@ export default function Optimise() {
 
   function applyOrder() {
     if (!selectedOrder) return;
-    updateConfig(prev => ({
-      ...prev,
-      withdrawal_priority: selectedOrder,
-    }));
+    updateConfig(prev => {
+      const next = {
+        ...prev,
+        withdrawal_priority: selectedOrder,
+      };
+      return {
+        ...next,
+        drawdown_stages: deriveDrawdownStagesFromPriority(next),
+      };
+    });
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Drawdown Order</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Retirement Income Strategy</h1>
           <p className="text-sm text-gray-500 mt-0.5">
-            Compare withdrawal order permutations · Strategy: {getStrategyDisplayName(strategyId)}
+            Edit drawdown stages, withdrawal order and planned pension-access/TFC events for the Current Plan shown on the Dashboard · Strategy: {getStrategyDisplayName(strategyId)}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -185,7 +192,7 @@ export default function Optimise() {
               className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 transition-colors"
             >
               <Check className="w-3.5 h-3.5" />
-              Apply Selected Order
+              Use Selected Order in Current Plan
             </button>
           )}
         </div>
