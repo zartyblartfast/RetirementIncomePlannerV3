@@ -56,6 +56,7 @@ export interface DCPotConfig {
   growth_rate: number;
   annual_fees: number;
   tax_free_portion: number;
+  pension_access?: DCPotPensionAccessConfig;
   tax_free_cash?: DCPotTaxFreeCashConfig;
   allocation?: AllocationConfig;
   values_as_of?: string;
@@ -93,6 +94,21 @@ export interface DCPotTaxFreeCashConfig {
   destination?: 'outside_plan' | 'tax_free_account' | 'cash_account';
   residual_mode?: 'gradual_pro_rata' | 'none';
 }
+
+export type PensionAccessCompatibilityApproximation = 'simplified_pro_rata';
+export type PensionAccessExplicitRoute = 'ufpls' | 'pcls_crystallisation' | 'taxable_flexi_access_drawdown';
+export type PensionAccessTimingPattern = 'phased' | 'upfront' | 'ad_hoc';
+
+export type DCPotPensionAccessConfig =
+  | {
+      category: 'compatibility_approximation';
+      approximation: PensionAccessCompatibilityApproximation;
+    }
+  | {
+      category: 'explicit_access_route';
+      event_type: PensionAccessExplicitRoute;
+      timing_pattern?: PensionAccessTimingPattern;
+    };
 
 export type PensionAccessEventType = 'tax_free_cash' | 'ordinary_drawdown_marker' | 'already_taken_marker';
 

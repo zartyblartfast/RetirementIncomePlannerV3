@@ -13,6 +13,7 @@ import { normalizeConfigDrawdownStages } from '../engine/drawdownStages';
 import { DEFAULT_TAX_FREE_CASH_CONFIG, normalizeConfigTaxFreeCash } from '../engine/taxFreeCash';
 import { normalizeConfigWithdrawalPriority } from '../engine/withdrawalPriority';
 import { normalizeConfigPensionAccessEvents } from '../engine/pensionAccessEvents';
+import { DEFAULT_PENSION_ACCESS_MODE, normalizeConfigPensionAccessModes } from '../engine/pensionAccessModes';
 
 const STORAGE_KEY = 'rip_v2_config';
 
@@ -50,6 +51,7 @@ export const DEFAULT_CONFIG: PlannerConfig = {
       growth_rate: defaultGrowthRateFromAllocation(makeDefaultAllocation()),
       annual_fees: 0.005,
       tax_free_portion: 0.25,
+      pension_access: { ...DEFAULT_PENSION_ACCESS_MODE },
       tax_free_cash: { ...DEFAULT_TAX_FREE_CASH_CONFIG },
       allocation: makeDefaultAllocation(),
       values_as_of: '2026-04',
@@ -108,7 +110,8 @@ export function hasStoredConfig(): boolean {
 
 export function saveConfig(cfg: PlannerConfig): void {
   const normalizedAllocations = normalizeConfigAssetAllocations(JSON.parse(JSON.stringify(cfg)) as PlannerConfig);
-  const normalizedTaxFreeCash = normalizeConfigTaxFreeCash(normalizedAllocations);
+  const normalizedAccessModes = normalizeConfigPensionAccessModes(normalizedAllocations);
+  const normalizedTaxFreeCash = normalizeConfigTaxFreeCash(normalizedAccessModes);
   const normalizedAccessEvents = normalizeConfigPensionAccessEvents(normalizedTaxFreeCash);
   const normalizedPriority = normalizeConfigWithdrawalPriority(normalizedAccessEvents);
   const normalized = normalizeConfigDrawdownStages(normalizedPriority, { repairEmptyStages: true });
