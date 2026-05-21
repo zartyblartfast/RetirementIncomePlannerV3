@@ -147,7 +147,16 @@ export type PensionLedgerWarning =
   | 'lsa_warning_only'
   | 'mpaa_prior_access_not_modelled'
   | 'provider_rules_not_modelled'
-  | 'iom_rules_not_modelled';
+  | 'iom_rules_not_modelled'
+  | 'ufpls_tax_free_fraction_assumed_25pct'
+  | 'lsa_exceeded_ufpls_tax_free_reduced'
+  | 'pcls_capped_at_25pct_of_crystallised'
+  | 'pcls_above_lsa_headroom_not_modelled'
+  | 'mpaa_not_triggered_pcls_only'
+  | 'crystallised_balance_insufficient_for_drawdown'
+  | 'uncrystallised_balance_insufficient_for_access'
+  | 'mpaa_triggered_by_ufpls'
+  | 'mpaa_triggered_by_taxable_drawdown';
 
 export interface PensionLedgerState {
   pot_ref: string;
