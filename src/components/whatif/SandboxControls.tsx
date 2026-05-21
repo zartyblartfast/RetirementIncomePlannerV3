@@ -207,7 +207,7 @@ export default function SandboxControls({ config, onChange }: Props) {
                   ))}
                 </select>
               </Field>
-              <Field label="TFC amount basis">
+              <Field label="How TFC amount is calculated">
                 <select
                   value={sandboxTfcAmount.kind}
                   onChange={e => setSandboxTfcAmountKind(e.target.value as PensionAccessEventAmount['kind'])}
