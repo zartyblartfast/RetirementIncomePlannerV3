@@ -614,6 +614,10 @@ export function runProjection(
       let taxFreeAmount = 0;
       let taxableAmount = 0;
       let potBalanceAfter = potBalanceBefore;
+      let uncrystallisedBalanceBefore: number | undefined;
+      let uncrystallisedBalanceAfter: number | undefined;
+      let crystallisedDrawdownBalanceBefore: number | undefined;
+      let crystallisedDrawdownBalanceAfter: number | undefined;
       let estimatedTfcUsed = 0;
       let estimatedTfcRemaining = potBalanceBefore * (dcMeta[baseEvent.pot_ref]?.tax_free_portion ?? 0);
       const caveats: string[] = [];
@@ -637,6 +641,8 @@ export function runProjection(
         const crystalliseAmount = Math.min(requestedCrystalliseAmount, potBalanceBefore);
         const ledger = pensionLedgerByPot[baseEvent.pot_ref];
         if (ledger && crystalliseAmount > 0.01) {
+          uncrystallisedBalanceBefore = ledger.uncrystallised_balance;
+          crystallisedDrawdownBalanceBefore = ledger.crystallised_drawdown_balance;
           const result = applyPensionLedgerEvent(ledger, {
             id: baseEvent.id,
             event_type: 'crystallise_and_take_pcls',
@@ -644,6 +650,8 @@ export function runProjection(
             crystallise_amount: crystalliseAmount,
           });
           pensionLedgerByPot[baseEvent.pot_ref] = result.ledger;
+          uncrystallisedBalanceAfter = result.ledger.uncrystallised_balance;
+          crystallisedDrawdownBalanceAfter = result.ledger.crystallised_drawdown_balance;
           grossAmount = result.gross_amount;
           taxFreeAmount = result.tax_free_amount;
           estimatedTfcUsed = taxFreeAmount;
@@ -664,6 +672,8 @@ export function runProjection(
         const requestedDrawdown = Math.max(0, amountFromPensionAccessRule(configEvent, potBalanceBefore, estimatedTfcRemaining));
         const drawdownAmount = Math.min(requestedDrawdown, ledger?.crystallised_drawdown_balance ?? 0);
         if (ledger && drawdownAmount > 0.01) {
+          uncrystallisedBalanceBefore = ledger.uncrystallised_balance;
+          crystallisedDrawdownBalanceBefore = ledger.crystallised_drawdown_balance;
           const result = applyPensionLedgerEvent(ledger, {
             id: baseEvent.id,
             event_type: 'taxable_flexi_access_drawdown',
@@ -671,6 +681,8 @@ export function runProjection(
             gross_amount: drawdownAmount,
           });
           pensionLedgerByPot[baseEvent.pot_ref] = result.ledger;
+          uncrystallisedBalanceAfter = result.ledger.uncrystallised_balance;
+          crystallisedDrawdownBalanceAfter = result.ledger.crystallised_drawdown_balance;
           grossAmount = result.gross_amount;
           taxFreeAmount = result.tax_free_amount;
           taxableAmount = result.taxable_amount;
@@ -702,6 +714,10 @@ export function runProjection(
         taxable_amount: taxableAmount,
         pot_balance_before: potBalanceBefore,
         pot_balance_after: potBalanceAfter,
+        uncrystallised_balance_before: uncrystallisedBalanceBefore,
+        uncrystallised_balance_after: uncrystallisedBalanceAfter,
+        crystallised_drawdown_balance_before: crystallisedDrawdownBalanceBefore,
+        crystallised_drawdown_balance_after: crystallisedDrawdownBalanceAfter,
         estimated_tfc_used: estimatedTfcUsed,
         estimated_tfc_remaining: estimatedTfcRemaining,
         caveats,

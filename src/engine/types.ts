@@ -339,6 +339,10 @@ export interface PensionAccessResolvedEvent {
   taxable_amount: number;
   pot_balance_before: number;
   pot_balance_after: number;
+  uncrystallised_balance_before?: number;
+  uncrystallised_balance_after?: number;
+  crystallised_drawdown_balance_before?: number;
+  crystallised_drawdown_balance_after?: number;
   estimated_tfc_used: number;
   estimated_tfc_remaining: number;
   caveats: string[];

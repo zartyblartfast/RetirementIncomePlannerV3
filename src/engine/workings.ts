@@ -55,6 +55,9 @@ function transitionReasonLabel(reason: string): string {
 function pensionAccessEventLabel(eventType: string): string {
   switch (eventType) {
     case 'tax_free_cash': return 'tax-free cash event';
+    case 'crystallise_and_take_pcls': return 'crystallise and take PCLS';
+    case 'ufpls': return 'UFPLS';
+    case 'taxable_flexi_access_drawdown': return 'taxable flexi-access drawdown';
     case 'ordinary_drawdown_marker': return 'ordinary drawdown marker';
     case 'already_taken_marker': return 'already-taken marker';
     default: return eventType.replace(/_/g, ' ');
@@ -66,6 +69,10 @@ function pensionAccessCaveatLabel(caveat: string): string {
     case 'foundation_only_not_applied': return 'foundation metadata only — not applied to balances, income, or tax yet';
     case 'simplified_tfc_event_no_lsa_lsdba_tracking': return 'simplified TFC event — no LSA/LSDBA/provider/MPAA tracking is modelled';
     case 'destination_inside_plan_not_yet_modelled': return 'destination is caveated — inside-plan cash/account destination is not yet financially modelled';
+    case 'pcls_above_lsa_headroom_not_modelled': return 'PCLS may exceed available Lump Sum Allowance headroom — warning only, not enforced yet';
+    case 'mpaa_not_triggered_pcls_only': return 'MPAA not triggered by PCLS-only crystallisation';
+    case 'mpaa_triggered_by_taxable_drawdown': return 'MPAA triggered by taxable drawdown';
+    case 'crystallised_balance_insufficient_for_drawdown': return 'requested taxable drawdown exceeds available crystallised drawdown balance';
     default: return caveat.replace(/_/g, ' ');
   }
 }
@@ -105,9 +112,13 @@ export function computeYearWorkings(yr: YearRow, taxContext?: TaxContext): Worki
     : 0;
   const hasAppliedPensionAccessEvents = (yr.pension_access_events ?? [])
     .some(event => !event.caveats.includes('foundation_only_not_applied'));
-  const pensionAccessEventNote = hasAppliedPensionAccessEvents
-    ? 'Separate pension access / TFC capital events for this year are shown below and are not counted as ordinary DC income.'
-    : 'No upfront lump sum is modelled in this workings path.';
+  const hasTaxableFadEvents = (yr.pension_access_events ?? [])
+    .some(event => event.event_type === 'taxable_flexi_access_drawdown' && !event.caveats.includes('foundation_only_not_applied'));
+  const pensionAccessEventNote = hasTaxableFadEvents
+    ? 'This year includes explicit taxable flexi-access drawdown events shown below; those are 100% taxable pension income from crystallised drawdown, not gradual pro-rata tax-free cash.'
+    : hasAppliedPensionAccessEvents
+      ? 'Separate pension access / TFC capital events for this year are shown below and are not counted as ordinary DC income.'
+      : 'No upfront lump sum is modelled in this workings path.';
   steps.push({
     id: 'dc_tax_free',
     label: 'DC tax-free pension element',
@@ -166,11 +177,19 @@ export function computeYearWorkings(yr: YearRow, taxContext?: TaxContext): Worki
     const isFoundationOnly = event.caveats.includes('foundation_only_not_applied');
     const eventTreatment = isFoundationOnly
       ? 'planned only'
-      : 'applied as a separate capital event, reducing the pension pot but not ordinary income, taxable income, or tax';
+      : event.event_type === 'taxable_flexi_access_drawdown'
+        ? 'applied as taxable flexi-access drawdown from crystallised drawdown balance; 100% taxable pension income and no further tax-free element'
+        : event.event_type === 'crystallise_and_take_pcls'
+          ? 'applied as crystallisation/PCLS: PCLS reduces capital but is not ordinary taxable income; remainder moves to crystallised drawdown'
+          : 'applied as a separate capital event, reducing the pension pot but not ordinary income, taxable income, or tax';
+    const ledgerMovement = event.uncrystallised_balance_before !== undefined && event.uncrystallised_balance_after !== undefined
+      && event.crystallised_drawdown_balance_before !== undefined && event.crystallised_drawdown_balance_after !== undefined
+      ? ` Uncrystallised balance ${fmtGBP(event.uncrystallised_balance_before)} → ${fmtGBP(event.uncrystallised_balance_after)}. Crystallised drawdown balance ${fmtGBP(event.crystallised_drawdown_balance_before)} → ${fmtGBP(event.crystallised_drawdown_balance_after)}.`
+      : '';
     steps.push({
       id: `pension_access_event_${safeIdPart(event.id)}`,
       label: `Pension access event: ${event.pot_name}`,
-      formula: `Month ${event.month}: ${pensionAccessEventLabel(event.event_type)} for ${event.pot_name}; ${eventTreatment}. Gross/tax-free amount ${fmtGBP(event.gross_amount)}; taxable amount ${fmtGBP(event.taxable_amount)}. Pot balance ${fmtGBP(event.pot_balance_before)} before → ${fmtGBP(event.pot_balance_after)} after. Estimated TFC used ${fmtGBP(event.estimated_tfc_used)}; estimated remaining ${fmtGBP(event.estimated_tfc_remaining)}. Caveats: ${pensionAccessCaveatSummary(event.caveats)}.`,
+      formula: `Month ${event.month}: ${pensionAccessEventLabel(event.event_type)} for ${event.pot_name}; ${eventTreatment}. Gross/tax-free amount ${fmtGBP(event.gross_amount)}; taxable amount ${fmtGBP(event.taxable_amount)}. Pot balance ${fmtGBP(event.pot_balance_before)} before → ${fmtGBP(event.pot_balance_after)} after.${ledgerMovement} Estimated TFC used ${fmtGBP(event.estimated_tfc_used)}; estimated remaining ${fmtGBP(event.estimated_tfc_remaining)}. Caveats: ${pensionAccessCaveatSummary(event.caveats)}.`,
       value: event.gross_amount,
       isCrossCheck: false,
     });

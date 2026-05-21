@@ -192,4 +192,50 @@ describe('computeYearWorkings', () => {
     expect(eventStep!.formula).toContain('simplified TFC event — no LSA/LSDBA/provider/MPAA tracking is modelled');
     expect(eventStep!.value).toBeCloseTo(10000, 2);
   });
+
+  it('explains explicit taxable flexi-access drawdown as taxable income from crystallised drawdown balance', () => {
+    const yr = {
+      ...yr1,
+      dc_withdrawal_gross: 20000,
+      dc_tax_free_portion: 0,
+      total_taxable_income: 20000,
+      pension_access_events: [
+        {
+          id: 'taxable_fad_1',
+          pot_ref: 'DC Pension',
+          pot_name: 'DC Pension',
+          projection_year: '2032',
+          month: 1,
+          order_in_month: 1,
+          event_type: 'taxable_flexi_access_drawdown' as const,
+          gross_amount: 20000,
+          tax_free_amount: 0,
+          taxable_amount: 20000,
+          pot_balance_before: 90000,
+          pot_balance_after: 70000,
+          uncrystallised_balance_before: 60000,
+          uncrystallised_balance_after: 60000,
+          crystallised_drawdown_balance_before: 30000,
+          crystallised_drawdown_balance_after: 10000,
+          estimated_tfc_used: 0,
+          estimated_tfc_remaining: 22500,
+          caveats: ['mpaa_triggered_by_taxable_drawdown'],
+        },
+      ],
+    };
+
+    const w = computeYearWorkings(yr);
+
+    const dcTaxFreeStep = w.steps.find(s => s.id === 'dc_tax_free');
+    expect(dcTaxFreeStep).toBeDefined();
+    expect(dcTaxFreeStep!.formula).toContain('includes explicit taxable flexi-access drawdown events');
+
+    const eventStep = w.steps.find(s => s.id === 'pension_access_event_taxable_fad_1');
+    expect(eventStep).toBeDefined();
+    expect(eventStep!.formula).toContain('applied as taxable flexi-access drawdown from crystallised drawdown balance');
+    expect(eventStep!.formula).toContain('100% taxable pension income');
+    expect(eventStep!.formula).toContain('Crystallised drawdown balance £30,000 → £10,000');
+    expect(eventStep!.formula).toContain('Uncrystallised balance £60,000 → £60,000');
+    expect(eventStep!.formula).toContain('MPAA triggered by taxable drawdown');
+  });
 });

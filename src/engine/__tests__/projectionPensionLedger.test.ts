@@ -226,6 +226,10 @@ describe('projection pension ledger foundation', () => {
       taxable_amount: 20_000,
       pot_balance_before: 90_000,
       pot_balance_after: 70_000,
+      uncrystallised_balance_before: 60_000,
+      uncrystallised_balance_after: 60_000,
+      crystallised_drawdown_balance_before: 30_000,
+      crystallised_drawdown_balance_after: 10_000,
     }));
     expect(fadEvent!.caveats).toContain('mpaa_triggered_by_taxable_drawdown');
     expect(eventYear.pot_pnl['DC Pension']!.withdrawal).toBeCloseTo(30_000, 2);

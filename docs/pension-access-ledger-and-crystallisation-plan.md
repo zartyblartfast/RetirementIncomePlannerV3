@@ -69,6 +69,7 @@ Current compatible behaviour:
 - Dev03 now carries a projection-time pension ledger side-channel for DC pots, including uncrystallised balance, crystallised drawdown balance, tax-free cash taken, taxable drawdown taken, and MPAA/LSA warning state.
 - The first explicit crystallise-and-take-PCLS event application is narrow: it crystallises a configured slice in the ledger, pays the PCLS as a separate tax-free capital event, keeps PCLS out of ordinary/taxable income, and does not trigger MPAA.
 - Dev03 also now applies explicit taxable flexi-access drawdown events from the ledger's crystallised drawdown balance. These events reduce pension capital, count as 100% taxable pension income, and trigger MPAA warning/status.
+- Expanded Year Table detail and year workings now surface explicit pension-access events, including PCLS/FAD treatment, pot balance movement, uncrystallised/crystallised ledger movement when available, and MPAA/caveat wording.
 - The app does not yet drive ordinary staged withdrawals from crystallised drawdown balances, apply UFPLS events in projection, or fully enforce LSA/LSDBA rules.
 
 This mode should remain available for migration and simpler users, but it must be labelled honestly.

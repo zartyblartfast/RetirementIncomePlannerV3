@@ -73,6 +73,43 @@ function yearWithTfcEvent(): YearRow {
   };
 }
 
+function yearWithTaxableFadEvent(): YearRow {
+  return {
+    ...yearWithTfcEvent(),
+    dc_withdrawal_gross: 20000,
+    dc_tax_free_portion: 0,
+    withdrawal_detail: { 'DC Pension': 20000 },
+    total_taxable_income: 20000,
+    tax_due: 1486,
+    net_income_achieved: 18514,
+    pot_balances: { 'DC Pension': 70000 },
+    total_capital: 70000,
+    pension_access_events: [
+      {
+        id: 'taxable_fad_1',
+        pot_ref: 'DC Pension',
+        pot_name: 'DC Pension',
+        projection_year: '2032',
+        month: 1,
+        order_in_month: 1,
+        event_type: 'taxable_flexi_access_drawdown',
+        gross_amount: 20000,
+        tax_free_amount: 0,
+        taxable_amount: 20000,
+        pot_balance_before: 90000,
+        pot_balance_after: 70000,
+        uncrystallised_balance_before: 60000,
+        uncrystallised_balance_after: 60000,
+        crystallised_drawdown_balance_before: 30000,
+        crystallised_drawdown_balance_after: 10000,
+        estimated_tfc_used: 0,
+        estimated_tfc_remaining: 22500,
+        caveats: ['mpaa_triggered_by_taxable_drawdown'],
+      },
+    ],
+  };
+}
+
 function renderYearTable(years: YearRow[]) {
   const container = document.createElement('div');
   document.body.appendChild(container);
@@ -106,10 +143,23 @@ describe('YearTable pension access event visibility', () => {
 
     mounted.clickText('67');
 
-    expect(mounted.container.textContent).toContain('Pension access / TFC capital events');
+    expect(mounted.container.textContent).toContain('Pension access events');
     expect(mounted.container.textContent).toContain('DC Pension tax-free cash: £10,000');
     expect(mounted.container.textContent).toContain('Pot balance £200,000 → £190,000');
-    expect(mounted.container.textContent).toContain('Not included in ordinary DC gross, taxable income, or tax.');
+    expect(mounted.container.textContent).toContain('Capital event: not included in ordinary DC gross, taxable income, or tax.');
     expect(mounted.container.textContent).toContain('Pot Withdrawals (net)');
+  });
+
+  it('surfaces explicit taxable FAD as taxable income from crystallised drawdown in expanded detail', () => {
+    mounted = renderYearTable([yearWithTaxableFadEvent()]);
+
+    mounted.clickText('67');
+
+    expect(mounted.container.textContent).toContain('Pension access events');
+    expect(mounted.container.textContent).toContain('DC Pension taxable flexi-access drawdown: £20,000');
+    expect(mounted.container.textContent).toContain('Taxable drawdown: £20,000 taxable pension income, £0 tax-free.');
+    expect(mounted.container.textContent).toContain('Crystallised drawdown £30,000 → £10,000');
+    expect(mounted.container.textContent).toContain('Uncrystallised £60,000 → £60,000');
+    expect(mounted.container.textContent).toContain('MPAA triggered by taxable drawdown');
   });
 });

@@ -24,6 +24,44 @@ function pensionAccessEventTypeLabel(event: PensionAccessResolvedEvent): string 
   }
 }
 
+function pensionAccessCaveatLabel(caveat: string): string {
+  switch (caveat) {
+    case 'foundation_only_not_applied': return 'foundation only — not applied yet';
+    case 'simplified_tfc_event_no_lsa_lsdba_tracking': return 'simplified TFC event — LSA/LSDBA not tracked';
+    case 'pcls_above_lsa_headroom_not_modelled': return 'PCLS / LSA warning only';
+    case 'mpaa_not_triggered_pcls_only': return 'MPAA not triggered by PCLS-only crystallisation';
+    case 'mpaa_triggered_by_taxable_drawdown': return 'MPAA triggered by taxable drawdown';
+    case 'crystallised_balance_insufficient_for_drawdown': return 'crystallised balance insufficient for requested drawdown';
+    case 'destination_inside_plan_not_yet_modelled': return 'destination caveated — inside-plan destination not yet modelled';
+    default: return caveat.replace(/_/g, ' ');
+  }
+}
+
+function pensionAccessEventTreatment(event: PensionAccessResolvedEvent): string {
+  if (event.caveats.includes('foundation_only_not_applied')) {
+    return 'Foundation only: shown for planning metadata but not applied to balances, income, or tax yet.';
+  }
+  if (event.event_type === 'taxable_flexi_access_drawdown') {
+    return `Taxable drawdown: ${fmt(event.taxable_amount)} taxable pension income, ${fmt(event.tax_free_amount)} tax-free.`;
+  }
+  if (event.event_type === 'crystallise_and_take_pcls') {
+    return `PCLS: ${fmt(event.tax_free_amount)} tax-free cash; ${fmt(event.gross_amount - event.tax_free_amount)} designated to crystallised drawdown.`;
+  }
+  return 'Capital event: not included in ordinary DC gross, taxable income, or tax.';
+}
+
+function pensionAccessLedgerMovement(event: PensionAccessResolvedEvent): string | null {
+  if (
+    event.uncrystallised_balance_before === undefined ||
+    event.uncrystallised_balance_after === undefined ||
+    event.crystallised_drawdown_balance_before === undefined ||
+    event.crystallised_drawdown_balance_after === undefined
+  ) {
+    return null;
+  }
+  return `Uncrystallised ${fmt(event.uncrystallised_balance_before)} → ${fmt(event.uncrystallised_balance_after)}. Crystallised drawdown ${fmt(event.crystallised_drawdown_balance_before)} → ${fmt(event.crystallised_drawdown_balance_after)}.`;
+}
+
 export default function YearTable({ years, taxContext }: Props) {
   const [expandedAge, setExpandedAge] = useState<number | null>(null);
   const [workingsYear, setWorkingsYear] = useState<YearRow | null>(null);
@@ -135,18 +173,29 @@ function ExpandedDetail({ yr, onShowWorkings }: { yr: YearRow; onShowWorkings: (
           )}
           {pensionAccessEvents.length > 0 && (
             <div className="mt-3 rounded border border-emerald-100 bg-emerald-50 px-2 py-1 text-emerald-800">
-              <h4 className="font-semibold mb-1">Pension access / TFC capital events</h4>
-              {pensionAccessEvents.map(event => (
-                <div key={event.id} className="space-y-0.5 text-emerald-800">
-                  <div className="flex justify-between gap-2">
-                    <span>{event.pot_name} {pensionAccessEventTypeLabel(event)}: {fmt(event.gross_amount)}</span>
-                    <span className="text-emerald-700">month {event.month}</span>
+              <h4 className="font-semibold mb-1">Pension access events</h4>
+              {pensionAccessEvents.map(event => {
+                const ledgerMovement = pensionAccessLedgerMovement(event);
+                return (
+                  <div key={event.id} className="space-y-0.5 text-emerald-800">
+                    <div className="flex justify-between gap-2">
+                      <span>{event.pot_name} {pensionAccessEventTypeLabel(event)}: {fmt(event.gross_amount)}</span>
+                      <span className="text-emerald-700">month {event.month}</span>
+                    </div>
+                    <div className="text-emerald-700">
+                      Pot balance {fmt(event.pot_balance_before)} → {fmt(event.pot_balance_after)}. {pensionAccessEventTreatment(event)}
+                    </div>
+                    {ledgerMovement && (
+                      <div className="text-emerald-700">{ledgerMovement}</div>
+                    )}
+                    {event.caveats.length > 0 && (
+                      <div className="text-emerald-700">
+                        Caveats: {event.caveats.map(pensionAccessCaveatLabel).join('; ')}.
+                      </div>
+                    )}
                   </div>
-                  <div className="text-emerald-700">
-                    Pot balance {fmt(event.pot_balance_before)} → {fmt(event.pot_balance_after)}. Not included in ordinary DC gross, taxable income, or tax.
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
