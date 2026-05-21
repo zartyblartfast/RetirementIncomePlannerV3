@@ -68,7 +68,8 @@ Current compatible behaviour:
 - Existing Dev02 pension-access/TFC capital events can reduce a pot balance without adding to ordinary net income, taxable income, or tax.
 - Dev03 now carries a projection-time pension ledger side-channel for DC pots, including uncrystallised balance, crystallised drawdown balance, tax-free cash taken, taxable drawdown taken, and MPAA/LSA warning state.
 - The first explicit crystallise-and-take-PCLS event application is narrow: it crystallises a configured slice in the ledger, pays the PCLS as a separate tax-free capital event, keeps PCLS out of ordinary/taxable income, and does not trigger MPAA.
-- The app does not yet drive ordinary staged withdrawals from crystallised drawdown balances, apply taxable flexi-access drawdown events in projection, apply UFPLS events in projection, or fully enforce LSA/LSDBA rules.
+- Dev03 also now applies explicit taxable flexi-access drawdown events from the ledger's crystallised drawdown balance. These events reduce pension capital, count as 100% taxable pension income, and trigger MPAA warning/status.
+- The app does not yet drive ordinary staged withdrawals from crystallised drawdown balances, apply UFPLS events in projection, or fully enforce LSA/LSDBA rules.
 
 This mode should remain available for migration and simpler users, but it must be labelled honestly.
 
@@ -125,6 +126,25 @@ Implementation implication:
 - For now, encode annual-first cadence as metadata and planning semantics, not as a broad projection rewrite.
 - Keep event timing deterministic and tax-year-aware when recurring explicit crystallisation is implemented.
 - Do not imply that annual cadence is a rule; it is a planning default requiring adviser/user validation.
+
+## Crystallised drawdown investment-growth assumption
+
+Default modelling stance:
+
+- Crystallised flexi-access drawdown funds are assumed to remain invested and earn the same growth rate and fee drag as the parent DC pot unless a later user/adviser setting says otherwise.
+- This reflects the common modern drawdown wrapper pattern: crystallised and uncrystallised balances may be separate administrative sub-balances, but the member can often keep them invested in the same or similar funds.
+- Provider behaviour varies. Some providers may use separate drawdown accounts, and some advisers may recommend holding near-term income in cash or money-market funds.
+- RIP does not yet model a separate crystallised drawdown growth rate or cash-buffer strategy.
+
+Implementation implication:
+
+- Monthly projection growth and fees still apply to the total DC pot balance as before.
+- The ledger side-channel attributes that net investment return proportionally across the pot's uncrystallised and crystallised drawdown balances.
+- This keeps `uncrystallised_balance + crystallised_drawdown_balance` reconciled to the projected DC pot balance without changing the existing pot-level growth source of truth.
+
+Suggested caveat wording:
+
+> Crystallised drawdown funds are assumed to remain invested and earn the same growth rate as the pension pot. Provider behaviour varies; some users/advisers hold near-term income in cash or lower-risk funds. This model does not yet support a separate crystallised drawdown growth rate.
 
 ## Pension access modes
 
@@ -484,10 +504,11 @@ Recommended checkpoints:
    - Surface LSA/MPAA caveats.
    - Current limitation: the projection balance is reduced by the paid PCLS/outside-plan capital amount, while the designated crystallised remainder is tracked in the ledger side-channel; ordinary staged withdrawals are not yet switched to draw from that crystallised balance.
 
-5. Taxable flexi-access drawdown event
+5. Taxable flexi-access drawdown event — first narrow slice implemented on Dev03
    - Withdraw from crystallised drawdown balance.
    - Treat as 100% taxable pension income.
    - Trigger MPAA warning/status.
+   - Current limitation: only explicit `taxable_flexi_access_drawdown` pension-access events are applied. Ordinary staged DC withdrawals still use the existing simplified pro-rata mechanics unless a later slice switches a pot/source into explicit crystallised-drawdown mode.
 
 6. UFPLS mode/event
    - Withdraw from uncrystallised balance.

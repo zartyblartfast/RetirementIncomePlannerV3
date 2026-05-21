@@ -491,6 +491,24 @@ export function runProjection(
     }
   }
 
+  function applyPensionLedgerInvestmentReturn(potRef: string, delta: number): void {
+    const ledger = pensionLedgerByPot[potRef];
+    if (!ledger || delta === 0) return;
+    const uncrystallisedBefore = Math.max(0, ledger.uncrystallised_balance);
+    const crystallisedBefore = Math.max(0, ledger.crystallised_drawdown_balance);
+    const totalBefore = uncrystallisedBefore + crystallisedBefore;
+
+    if (totalBefore <= 0 || crystallisedBefore <= 0) {
+      ledger.uncrystallised_balance = Math.max(0, ledger.uncrystallised_balance + delta);
+      return;
+    }
+
+    const uncrystallisedDelta = delta * (uncrystallisedBefore / totalBefore);
+    const crystallisedDelta = delta - uncrystallisedDelta;
+    ledger.uncrystallised_balance = Math.max(0, ledger.uncrystallised_balance + uncrystallisedDelta);
+    ledger.crystallised_drawdown_balance = Math.max(0, ledger.crystallised_drawdown_balance + crystallisedDelta);
+  }
+
   // Pre-compute monthly rates
   const dcMonthly: Record<string, { growth: number; fees: number }> = {};
   for (const [name, meta] of Object.entries(dcMeta)) {
@@ -594,7 +612,7 @@ export function runProjection(
       const potBalanceBefore = dcBalances[baseEvent.pot_ref] ?? 0;
       let grossAmount = 0;
       let taxFreeAmount = 0;
-      const taxableAmount = 0;
+      let taxableAmount = 0;
       let potBalanceAfter = potBalanceBefore;
       let estimatedTfcUsed = 0;
       let estimatedTfcRemaining = potBalanceBefore * (dcMeta[baseEvent.pot_ref]?.tax_free_portion ?? 0);
@@ -640,6 +658,37 @@ export function runProjection(
         } else {
           grossAmount = baseEvent.gross_amount;
           caveats.push('foundation_only_not_applied');
+        }
+      } else if (configEvent?.event_type === 'taxable_flexi_access_drawdown' && potBalanceBefore > 0.01) {
+        const ledger = pensionLedgerByPot[baseEvent.pot_ref];
+        const requestedDrawdown = Math.max(0, amountFromPensionAccessRule(configEvent, potBalanceBefore, estimatedTfcRemaining));
+        const drawdownAmount = Math.min(requestedDrawdown, ledger?.crystallised_drawdown_balance ?? 0);
+        if (ledger && drawdownAmount > 0.01) {
+          const result = applyPensionLedgerEvent(ledger, {
+            id: baseEvent.id,
+            event_type: 'taxable_flexi_access_drawdown',
+            date: `${eventYear}-${String(eventMonth).padStart(2, '0')}`,
+            gross_amount: drawdownAmount,
+          });
+          pensionLedgerByPot[baseEvent.pot_ref] = result.ledger;
+          grossAmount = result.gross_amount;
+          taxFreeAmount = result.tax_free_amount;
+          taxableAmount = result.taxable_amount;
+          potBalanceAfter = Math.max(0, potBalanceBefore - grossAmount);
+          dcBalances[baseEvent.pot_ref] = potBalanceAfter < 0.01 ? 0 : potBalanceAfter;
+          currentAgg!.dc_gross += grossAmount;
+          currentAgg!.withdrawal_detail[baseEvent.pot_ref] = (currentAgg!.withdrawal_detail[baseEvent.pot_ref] ?? 0) + grossAmount;
+          currentAgg!.pnl[baseEvent.pot_ref]!.withdrawal += grossAmount;
+          caveats.push(...result.warnings);
+          if (requestedDrawdown > drawdownAmount + 0.01) {
+            caveats.push('crystallised_balance_insufficient_for_drawdown');
+          }
+          if (configEvent.destination?.kind && configEvent.destination.kind !== 'outside_plan') {
+            caveats.push('destination_inside_plan_not_yet_modelled');
+          }
+        } else {
+          grossAmount = 0;
+          caveats.push('crystallised_balance_insufficient_for_drawdown');
         }
       } else {
         grossAmount = baseEvent.gross_amount;
@@ -818,7 +867,7 @@ export function runProjection(
         const g = bal * dcMonthly[name]!.growth;
         const f = bal * dcMonthly[name]!.fees;
         dcBalances[name] = bal + g - f;
-        updatePensionLedger(name, g - f);
+        applyPensionLedgerInvestmentReturn(name, g - f);
         currentAgg!.pnl[name]!.growth += g;
         currentAgg!.pnl[name]!.fees += f;
       }
