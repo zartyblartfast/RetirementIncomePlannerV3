@@ -25,6 +25,7 @@ import type {
   DrawdownStageSourceConfig,
   PensionAccessEventConfig,
   PensionAccessResolvedEvent,
+  PensionLedgerState,
 } from './types';
 
 import { calculateTax, calculateTaxFromEventsWithModule, grossUp } from './tax';
@@ -38,6 +39,8 @@ import {
   hasBlendedDrawdownStages,
 } from './drawdownAllocation';
 import { resolvePensionAccessEvents } from './pensionAccessEvents';
+import { createInitialPensionLedgerStates } from './pensionLedgerState';
+import { summarizePensionLedgerStates } from './pensionLedgerResolution';
 
 // ------------------------------------------------------------------ //
 //  Helpers
@@ -77,6 +80,19 @@ function sumValues(obj: Record<string, number>): number {
     total += v;
   }
   return total;
+}
+
+function roundPensionLedgerState(ledger: PensionLedgerState): PensionLedgerState {
+  return {
+    ...ledger,
+    uncrystallised_balance: round2(ledger.uncrystallised_balance),
+    crystallised_drawdown_balance: round2(ledger.crystallised_drawdown_balance),
+    tax_free_cash_taken: round2(ledger.tax_free_cash_taken),
+    taxable_drawdown_taken: round2(ledger.taxable_drawdown_taken),
+    lsa_used: ledger.lsa_used === undefined ? undefined : round2(ledger.lsa_used),
+    lsa_remaining: ledger.lsa_remaining === undefined ? undefined : round2(ledger.lsa_remaining),
+    warnings: [...ledger.warnings],
+  };
 }
 
 // ------------------------------------------------------------------ //
@@ -453,6 +469,28 @@ export function runProjection(
 
   const priority = resolveSequentialDrawdownPriority(cfg);
 
+  const pensionLedgerByPot: Record<string, PensionLedgerState> = {};
+  for (const ledger of createInitialPensionLedgerStates(cfg)) {
+    pensionLedgerByPot[ledger.pot_ref] = {
+      ...ledger,
+      uncrystallised_balance: dcBalances[ledger.pot_ref] ?? ledger.uncrystallised_balance,
+      warnings: [...ledger.warnings],
+    };
+  }
+
+  function updatePensionLedger(
+    potRef: string,
+    uncrystallisedDelta: number,
+    taxFreeCashDelta = 0,
+  ): void {
+    const ledger = pensionLedgerByPot[potRef];
+    if (!ledger) return;
+    ledger.uncrystallised_balance = Math.max(0, ledger.uncrystallised_balance + uncrystallisedDelta);
+    if (taxFreeCashDelta !== 0) {
+      ledger.tax_free_cash_taken += taxFreeCashDelta;
+    }
+  }
+
   // Pre-compute monthly rates
   const dcMonthly: Record<string, { growth: number; fees: number }> = {};
   for (const [name, meta] of Object.entries(dcMeta)) {
@@ -570,6 +608,7 @@ export function runProjection(
         estimatedTfcRemaining = Math.max(0, estimatedTfcRemaining - estimatedTfcUsed);
         potBalanceAfter = potBalanceBefore - grossAmount;
         dcBalances[baseEvent.pot_ref] = potBalanceAfter < 0.01 ? 0 : potBalanceAfter;
+        updatePensionLedger(baseEvent.pot_ref, -grossAmount, taxFreeAmount);
         currentAgg!.pnl[baseEvent.pot_ref]!.withdrawal += grossAmount;
         caveats.push('simplified_tfc_event_no_lsa_lsdba_tracking');
         if (configEvent.destination?.kind && configEvent.destination.kind !== 'outside_plan') {
@@ -752,6 +791,7 @@ export function runProjection(
         const g = bal * dcMonthly[name]!.growth;
         const f = bal * dcMonthly[name]!.fees;
         dcBalances[name] = bal + g - f;
+        updatePensionLedger(name, g - f);
         currentAgg!.pnl[name]!.growth += g;
         currentAgg!.pnl[name]!.fees += f;
       }
@@ -868,6 +908,7 @@ export function runProjection(
         const actual = Math.min(grossNeeded, available);
         if (actual <= 0.01) return 0;
         dcBalances[sourceName] = dcBalances[sourceName]! - actual;
+        updatePensionLedger(sourceName, -actual);
         if (dcBalances[sourceName]! < 0.01) dcBalances[sourceName] = 0;
         const tfp = dcMeta[sourceName]!.tax_free_portion;
         currentAgg!.dc_gross += actual;
@@ -973,6 +1014,7 @@ export function runProjection(
         grossNeeded = Math.min(grossNeeded, dcBalances[sourceName]!);
         if (grossNeeded <= 0.01) return 0;
         dcBalances[sourceName] = dcBalances[sourceName]! - grossNeeded;
+        updatePensionLedger(sourceName, -grossNeeded);
         if (dcBalances[sourceName]! < 0.01) dcBalances[sourceName] = 0;
         const tfpAmt = grossNeeded * tfp;
         currentAgg!.dc_gross += grossNeeded;
@@ -1070,6 +1112,7 @@ export function runProjection(
         currentAgg!.pnl[pname]!.withdrawal += bal;
         monthlyWithdrawalDetail[pname] = (monthlyWithdrawalDetail[pname] ?? 0) + netFromRes;
         monthlyGrossIncome += bal;
+        updatePensionLedger(pname, -bal);
         dcBalances[pname] = 0;
       }
     }
@@ -1193,7 +1236,14 @@ export function runProjection(
     depletion_events: depletionEvents,
   };
 
-  const result: ProjectionResult = { years, summary, warnings };
+  const pensionLedgerStates = Object.values(pensionLedgerByPot).map(roundPensionLedgerState);
+  const result: ProjectionResult = {
+    years,
+    summary,
+    warnings,
+    pension_ledger_states: pensionLedgerStates,
+    pension_ledger_summary: summarizePensionLedgerStates(pensionLedgerStates),
+  };
   if (appliedPensionAccessEvents.length > 0) {
     result.pension_access_events = appliedPensionAccessEvents;
   }

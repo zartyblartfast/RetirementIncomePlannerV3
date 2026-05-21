@@ -173,6 +173,14 @@ export interface PensionLedgerState {
   warnings: PensionLedgerWarning[];
 }
 
+export interface PensionLedgerPlanSummary {
+  lsa_used_total?: number;
+  lsa_remaining_total?: number;
+  lsa_tracking_status: PensionLedgerLsaTrackingStatus;
+  mpaa_triggered: boolean;
+  mpaa_trigger_date?: string;
+}
+
 export interface TaxBandConfig {
   name: string;
   width: number | null;
@@ -373,6 +381,8 @@ export interface ProjectionResult {
   summary: ProjectionSummary;
   warnings: string[];
   pension_access_events?: PensionAccessResolvedEvent[];
+  pension_ledger_states?: PensionLedgerState[];
+  pension_ledger_summary?: PensionLedgerPlanSummary;
   monthly_rows?: MonthlyRow[];
 }
 

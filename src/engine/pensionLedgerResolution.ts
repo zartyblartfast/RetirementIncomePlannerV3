@@ -1,4 +1,4 @@
-import type { PensionLedgerState, PensionLedgerWarning } from './types';
+import type { PensionLedgerPlanSummary, PensionLedgerState, PensionLedgerWarning } from './types';
 
 export type PensionLedgerResolutionOutcome = 'applied' | 'insufficient_balance' | 'zero_amount_skipped';
 
@@ -38,14 +38,6 @@ export interface PensionLedgerAppliedEvent {
 export interface PensionLedgerResolutionResult extends PensionLedgerAppliedEvent {
   ledger: PensionLedgerState;
   applied_events: PensionLedgerAppliedEvent[];
-}
-
-export interface PensionLedgerPlanSummary {
-  lsa_used_total?: number;
-  lsa_remaining_total?: number;
-  lsa_tracking_status: PensionLedgerState['lsa_tracking_status'];
-  mpaa_triggered: boolean;
-  mpaa_trigger_date?: string;
 }
 
 const DEFAULT_UFPLS_TAX_FREE_FRACTION = 0.25;
