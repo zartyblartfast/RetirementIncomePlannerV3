@@ -140,6 +140,30 @@ export interface PensionAccessEventConfig {
   notes?: string;
 }
 
+export type PensionLedgerLsaTrackingStatus = 'tracked' | 'warning_only' | 'not_modelled';
+
+export type PensionLedgerWarning =
+  | 'lsa_not_modelled'
+  | 'lsa_warning_only'
+  | 'mpaa_prior_access_not_modelled'
+  | 'provider_rules_not_modelled'
+  | 'iom_rules_not_modelled';
+
+export interface PensionLedgerState {
+  pot_ref: string;
+  pot_name: string;
+  uncrystallised_balance: number;
+  crystallised_drawdown_balance: number;
+  tax_free_cash_taken: number;
+  taxable_drawdown_taken: number;
+  lsa_used?: number;
+  lsa_remaining?: number;
+  lsa_tracking_status: PensionLedgerLsaTrackingStatus;
+  mpaa_triggered: boolean;
+  mpaa_trigger_date?: string;
+  warnings: PensionLedgerWarning[];
+}
+
 export interface TaxBandConfig {
   name: string;
   width: number | null;
