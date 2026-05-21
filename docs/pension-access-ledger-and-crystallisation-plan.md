@@ -66,7 +66,9 @@ Current compatible behaviour:
 - Ordinary DC withdrawals are split using `tax_free_portion`.
 - A 25% `tax_free_portion` means each ordinary pension withdrawal is treated as 25% tax-free and 75% taxable.
 - Existing Dev02 pension-access/TFC capital events can reduce a pot balance without adding to ordinary net income, taxable income, or tax.
-- The app does not yet maintain formal uncrystallised/crystallised sub-balances or enforce LSA/LSDBA/MPAA rules.
+- Dev03 now carries a projection-time pension ledger side-channel for DC pots, including uncrystallised balance, crystallised drawdown balance, tax-free cash taken, taxable drawdown taken, and MPAA/LSA warning state.
+- The first explicit crystallise-and-take-PCLS event application is narrow: it crystallises a configured slice in the ledger, pays the PCLS as a separate tax-free capital event, keeps PCLS out of ordinary/taxable income, and does not trigger MPAA.
+- The app does not yet drive ordinary staged withdrawals from crystallised drawdown balances, apply taxable flexi-access drawdown events in projection, apply UFPLS events in projection, or fully enforce LSA/LSDBA rules.
 
 This mode should remain available for migration and simpler users, but it must be labelled honestly.
 
@@ -476,10 +478,11 @@ Recommended checkpoints:
    - Preserve existing simplified mode outputs.
    - Add tests proving no change to old configs.
 
-4. Explicit crystallisation/PCLS event
+4. Explicit crystallisation/PCLS event — first narrow slice implemented on Dev03
    - Apply crystallisation/PCLS events to the ledger.
    - Keep PCLS out of ordinary taxable income.
    - Surface LSA/MPAA caveats.
+   - Current limitation: the projection balance is reduced by the paid PCLS/outside-plan capital amount, while the designated crystallised remainder is tracked in the ledger side-channel; ordinary staged withdrawals are not yet switched to draw from that crystallised balance.
 
 5. Taxable flexi-access drawdown event
    - Withdraw from crystallised drawdown balance.

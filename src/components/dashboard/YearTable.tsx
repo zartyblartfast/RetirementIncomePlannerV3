@@ -16,6 +16,9 @@ function fmt(n: number): string {
 function pensionAccessEventTypeLabel(event: PensionAccessResolvedEvent): string {
   switch (event.event_type) {
     case 'tax_free_cash': return 'tax-free cash';
+    case 'crystallise_and_take_pcls': return 'crystallise and take PCLS';
+    case 'ufpls': return 'UFPLS';
+    case 'taxable_flexi_access_drawdown': return 'taxable flexi-access drawdown';
     case 'ordinary_drawdown_marker': return 'ordinary drawdown marker';
     case 'already_taken_marker': return 'already-taken marker';
   }

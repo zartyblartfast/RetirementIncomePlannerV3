@@ -112,7 +112,13 @@ export type DCPotPensionAccessConfig =
       cadence?: PensionAccessCadence;
     };
 
-export type PensionAccessEventType = 'tax_free_cash' | 'ordinary_drawdown_marker' | 'already_taken_marker';
+export type PensionAccessEventType =
+  | 'tax_free_cash'
+  | 'crystallise_and_take_pcls'
+  | 'ufpls'
+  | 'taxable_flexi_access_drawdown'
+  | 'ordinary_drawdown_marker'
+  | 'already_taken_marker';
 
 export type PensionAccessEventTiming =
   | { kind: 'date'; date: string }

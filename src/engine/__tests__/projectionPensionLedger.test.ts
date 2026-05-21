@@ -98,4 +98,61 @@ describe('projection pension ledger foundation', () => {
       2,
     );
   });
+
+  it('applies explicit crystallise-and-take-PCLS events as tax-free capital events without ordinary income or MPAA side effects', () => {
+    const cfg = cloneConfig(DEFAULT_CONFIG);
+    cfg.target_income.net_annual = 0;
+    cfg.guaranteed_income = [];
+    cfg.tax_free_accounts = [];
+    cfg.dc_pots = [{
+      ...cfg.dc_pots[0]!,
+      name: 'DC Pension',
+      starting_balance: 100_000,
+      growth_rate: 0,
+      annual_fees: 0,
+      values_as_of: cfg.personal.retirement_date,
+    }];
+    cfg.withdrawal_priority = ['DC Pension'];
+    cfg.drawdown_stages = [{
+      id: 'stage_1',
+      name: 'Pension only',
+      sources: [{ source_type: 'dc_pot', source_name: 'DC Pension', target_share: 1 }],
+    }];
+    cfg.pension_access_events = [
+      {
+        id: 'annual_pcls_1',
+        pot_ref: 'DC Pension',
+        event_type: 'crystallise_and_take_pcls',
+        timing: { kind: 'retirement_date' },
+        amount: { kind: 'fixed_amount', value: 40_000 },
+        destination: { kind: 'outside_plan' },
+      },
+    ];
+
+    const result = runProjection(cfg);
+    const eventYear = result.years.find(year => year.pension_access_events?.some(event => event.id === 'annual_pcls_1'))!;
+    const event = eventYear.pension_access_events![0]!;
+    const ledger = result.pension_ledger_states?.find(state => state.pot_ref === 'DC Pension')!;
+
+    expect(event).toEqual(expect.objectContaining({
+      event_type: 'crystallise_and_take_pcls',
+      gross_amount: 40_000,
+      tax_free_amount: 10_000,
+      taxable_amount: 0,
+      pot_balance_before: 100_000,
+      pot_balance_after: 90_000,
+    }));
+    expect(event.caveats).toContain('pcls_above_lsa_headroom_not_modelled');
+    expect(eventYear.pot_pnl['DC Pension']!.withdrawal).toBeCloseTo(10_000, 2);
+    expect(eventYear.dc_withdrawal_gross).toBe(0);
+    expect(eventYear.dc_tax_free_portion).toBe(0);
+    expect(eventYear.total_taxable_income).toBe(0);
+    expect(eventYear.tax_due).toBe(0);
+    expect(eventYear.net_income_achieved).toBe(0);
+    expect(ledger.uncrystallised_balance).toBeCloseTo(60_000, 2);
+    expect(ledger.crystallised_drawdown_balance).toBeCloseTo(30_000, 2);
+    expect(ledger.tax_free_cash_taken).toBeCloseTo(10_000, 2);
+    expect(ledger.mpaa_triggered).toBe(false);
+    expect(result.summary.remaining_pots['DC Pension']).toBeCloseTo(90_000, 2);
+  });
 });

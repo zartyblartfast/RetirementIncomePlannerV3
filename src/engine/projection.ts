@@ -40,7 +40,7 @@ import {
 } from './drawdownAllocation';
 import { resolvePensionAccessEvents } from './pensionAccessEvents';
 import { createInitialPensionLedgerStates } from './pensionLedgerState';
-import { summarizePensionLedgerStates } from './pensionLedgerResolution';
+import { applyPensionLedgerEvent, summarizePensionLedgerStates } from './pensionLedgerResolution';
 
 // ------------------------------------------------------------------ //
 //  Helpers
@@ -613,6 +613,33 @@ export function runProjection(
         caveats.push('simplified_tfc_event_no_lsa_lsdba_tracking');
         if (configEvent.destination?.kind && configEvent.destination.kind !== 'outside_plan') {
           caveats.push('destination_inside_plan_not_yet_modelled');
+        }
+      } else if (configEvent?.event_type === 'crystallise_and_take_pcls' && potBalanceBefore > 0.01) {
+        const requestedCrystalliseAmount = Math.max(0, amountFromPensionAccessRule(configEvent, potBalanceBefore, estimatedTfcRemaining));
+        const crystalliseAmount = Math.min(requestedCrystalliseAmount, potBalanceBefore);
+        const ledger = pensionLedgerByPot[baseEvent.pot_ref];
+        if (ledger && crystalliseAmount > 0.01) {
+          const result = applyPensionLedgerEvent(ledger, {
+            id: baseEvent.id,
+            event_type: 'crystallise_and_take_pcls',
+            date: `${eventYear}-${String(eventMonth).padStart(2, '0')}`,
+            crystallise_amount: crystalliseAmount,
+          });
+          pensionLedgerByPot[baseEvent.pot_ref] = result.ledger;
+          grossAmount = result.gross_amount;
+          taxFreeAmount = result.tax_free_amount;
+          estimatedTfcUsed = taxFreeAmount;
+          estimatedTfcRemaining = Math.max(0, estimatedTfcRemaining - estimatedTfcUsed);
+          potBalanceAfter = Math.max(0, potBalanceBefore - taxFreeAmount);
+          dcBalances[baseEvent.pot_ref] = potBalanceAfter < 0.01 ? 0 : potBalanceAfter;
+          currentAgg!.pnl[baseEvent.pot_ref]!.withdrawal += taxFreeAmount;
+          caveats.push(...result.warnings);
+          if (configEvent.destination?.kind && configEvent.destination.kind !== 'outside_plan') {
+            caveats.push('destination_inside_plan_not_yet_modelled');
+          }
+        } else {
+          grossAmount = baseEvent.gross_amount;
+          caveats.push('foundation_only_not_applied');
         }
       } else {
         grossAmount = baseEvent.gross_amount;
