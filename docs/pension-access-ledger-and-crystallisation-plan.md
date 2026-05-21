@@ -100,6 +100,30 @@ Structural implication for code:
 - Use separate internal categories for `compatibility_approximation`, `pension_access_event_type`, and `timing_pattern` rather than one flat enum that implies all entries are legally equivalent routes.
 - In UI, keep “Simplified pro-rata” and “Full/partial upfront PCLS” visually distinct from official event types such as UFPLS and taxable flexi-access drawdown.
 
+## Cadence decision for phased access
+
+Default modelling stance:
+
+- Annual, tax-year-aligned crystallisation is the default cadence for phased crystallisation/PCLS and UFPLS planning.
+- The common adviser planning question is normally annual: how much should be crystallised or accessed in this tax year, given guaranteed income, desired spending, tax bands, LSA headroom, and MPAA implications?
+- More frequent crystallisation cadences are possible, but should be treated as later enhancements unless adviser feedback says they are important for the first explicit model.
+- Monthly income from an already crystallised flexi-access drawdown fund is a separate concept from the crystallisation/PCLS event itself.
+
+Initial cadence options for the model:
+
+| Cadence | Initial status | Intended use |
+|---|---|---|
+| `annual` | Default | Tax-year planning for phased crystallisation/PCLS and UFPLS. |
+| `ad_hoc` | Supported as one-off event timing | Retirement-date or user-specified lump events. |
+| `monthly` | Later / drawdown-income oriented | Regular taxable income from already crystallised FAD, not the default crystallisation cadence. |
+| `half_yearly` / `quarterly` | Later enhancement | Only if adviser validation says these are materially useful. |
+
+Implementation implication:
+
+- For now, encode annual-first cadence as metadata and planning semantics, not as a broad projection rewrite.
+- Keep event timing deterministic and tax-year-aware when recurring explicit crystallisation is implemented.
+- Do not imply that annual cadence is a rule; it is a planning default requiring adviser/user validation.
+
 ## Pension access modes
 
 ### 1. Simplified pro-rata approximation

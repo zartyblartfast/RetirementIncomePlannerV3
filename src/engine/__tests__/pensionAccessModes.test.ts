@@ -55,6 +55,43 @@ describe('pension access mode metadata', () => {
     ]);
   });
 
+  it('defaults phased crystallisation and UFPLS metadata to annual cadence', () => {
+    const cfg = cloneConfig(DEFAULT_CONFIG);
+    cfg.dc_pots[0]!.pension_access = {
+      category: 'explicit_access_route',
+      event_type: 'pcls_crystallisation',
+      timing_pattern: 'phased',
+    };
+
+    const normalized = normalizeConfigPensionAccessModes(cfg);
+
+    expect(normalized.dc_pots[0]!.pension_access).toEqual({
+      category: 'explicit_access_route',
+      event_type: 'pcls_crystallisation',
+      timing_pattern: 'phased',
+      cadence: 'annual',
+    });
+  });
+
+  it('preserves explicitly configured non-annual cadences for later adviser-led enhancement paths', () => {
+    const cfg = cloneConfig(DEFAULT_CONFIG);
+    cfg.dc_pots[0]!.pension_access = {
+      category: 'explicit_access_route',
+      event_type: 'ufpls',
+      timing_pattern: 'phased',
+      cadence: 'quarterly',
+    };
+
+    const normalized = normalizeConfigPensionAccessModes(cfg);
+
+    expect(normalized.dc_pots[0]!.pension_access).toEqual({
+      category: 'explicit_access_route',
+      event_type: 'ufpls',
+      timing_pattern: 'phased',
+      cadence: 'quarterly',
+    });
+  });
+
   it('describes simplified pro-rata as an approximation rather than a legal access route', () => {
     const cfg = normalizeConfigPensionAccessModes(cloneConfig(DEFAULT_CONFIG));
 

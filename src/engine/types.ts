@@ -98,6 +98,7 @@ export interface DCPotTaxFreeCashConfig {
 export type PensionAccessCompatibilityApproximation = 'simplified_pro_rata';
 export type PensionAccessExplicitRoute = 'ufpls' | 'pcls_crystallisation' | 'taxable_flexi_access_drawdown';
 export type PensionAccessTimingPattern = 'phased' | 'upfront' | 'ad_hoc';
+export type PensionAccessCadence = 'annual' | 'half_yearly' | 'quarterly' | 'monthly' | 'ad_hoc';
 
 export type DCPotPensionAccessConfig =
   | {
@@ -108,6 +109,7 @@ export type DCPotPensionAccessConfig =
       category: 'explicit_access_route';
       event_type: PensionAccessExplicitRoute;
       timing_pattern?: PensionAccessTimingPattern;
+      cadence?: PensionAccessCadence;
     };
 
 export type PensionAccessEventType = 'tax_free_cash' | 'ordinary_drawdown_marker' | 'already_taken_marker';

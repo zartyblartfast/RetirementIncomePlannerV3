@@ -1,4 +1,11 @@
-import type { DCPotConfig, DCPotPensionAccessConfig, PlannerConfig } from './types';
+import type {
+  DCPotConfig,
+  DCPotPensionAccessConfig,
+  PensionAccessCadence,
+  PensionAccessExplicitRoute,
+  PensionAccessTimingPattern,
+  PlannerConfig,
+} from './types';
 
 export const DEFAULT_PENSION_ACCESS_MODE: DCPotPensionAccessConfig = {
   category: 'compatibility_approximation',
@@ -13,6 +20,22 @@ export interface PensionAccessModeValidationIssue {
   message: string;
 }
 
+export function defaultCadenceForExplicitAccessRoute(
+  route: PensionAccessExplicitRoute,
+  timingPattern?: PensionAccessTimingPattern,
+): PensionAccessCadence {
+  if (timingPattern === 'ad_hoc') return 'ad_hoc';
+  if (route === 'taxable_flexi_access_drawdown') return 'monthly';
+  return 'annual';
+}
+
+function normalizeExplicitAccessRoute(mode: Extract<DCPotPensionAccessConfig, { category: 'explicit_access_route' }>): DCPotPensionAccessConfig {
+  return {
+    ...mode,
+    cadence: mode.cadence ?? defaultCadenceForExplicitAccessRoute(mode.event_type, mode.timing_pattern),
+  };
+}
+
 export function normalizePensionAccessModeForPot(pot: DCPotConfig): DCPotConfig {
   const existing = pot.pension_access;
 
@@ -21,7 +44,7 @@ export function normalizePensionAccessModeForPot(pot: DCPotConfig): DCPotConfig 
   }
 
   if (existing?.category === 'explicit_access_route') {
-    return { ...pot, pension_access: existing };
+    return { ...pot, pension_access: normalizeExplicitAccessRoute(existing) };
   }
 
   return { ...pot, pension_access: DEFAULT_PENSION_ACCESS_MODE };
