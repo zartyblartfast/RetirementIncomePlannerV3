@@ -226,7 +226,7 @@ npx vitest run --config vitest.config.ts src/engine/__tests__/projectionPensionL
 Status: implemented in Dev03 checkpoints:
 - `76366b0 feat: warn on ledger-aware FAD shortfalls`: insufficient crystallised-balance warnings are explicit and visible in projection, workings, and Year Table.
 - `637bf10 feat: handle ledger-aware FAD allocation edge cases`: blended staged allocation now treats unavailable crystallised drawdown as depleted for opted-in ledger-aware FAD sources, moves to the next source/stage, and cleardown of a crystallised residual is 100% taxable FAD.
-- `pending`: regression coverage confirms explicit FAD events and ordinary ledger-aware FAD withdrawals share the same crystallised pool and suppress the old compatibility mixed-mode warning.
+- `1c1bdc4 test: cover ledger-aware FAD shared pool`: regression coverage confirms explicit FAD events and ordinary ledger-aware FAD withdrawals share the same crystallised pool and suppress the old compatibility mixed-mode warning.
 
 **Objective:** Make edge cases explicit and visible.
 
