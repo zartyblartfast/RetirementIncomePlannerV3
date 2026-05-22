@@ -97,7 +97,7 @@ Display wording:
 
 ## Task 1: Add type/validation support only
 
-Status: implemented in Dev03 checkpoint `96d6191 feat: add ledger-aware pension access mode`.
+Status: implemented in Dev03 checkpoint `298436b feat: add ledger-aware pension access mode`.
 
 **Objective:** Add the pot-level config shape without changing projection outputs.
 
