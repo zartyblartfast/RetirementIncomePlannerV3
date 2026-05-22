@@ -73,6 +73,7 @@ function pensionAccessCaveatLabel(caveat: string): string {
     case 'mpaa_not_triggered_pcls_only': return 'MPAA not triggered by PCLS-only crystallisation';
     case 'mpaa_triggered_by_taxable_drawdown': return 'MPAA triggered by taxable drawdown';
     case 'crystallised_balance_insufficient_for_drawdown': return 'requested taxable drawdown exceeds available crystallised drawdown balance';
+    case 'ordinary_drawdown_also_targets_this_pot': return 'ordinary staged withdrawals also target this pot; those withdrawals remain compatibility simplified pro-rata until ledger-aware withdrawals are explicitly enabled';
     default: return caveat.replace(/_/g, ' ');
   }
 }

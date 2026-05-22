@@ -71,6 +71,7 @@ Current compatible behaviour:
 - Dev03 also now applies explicit taxable flexi-access drawdown events from the ledger's crystallised drawdown balance. These events reduce pension capital, count as 100% taxable pension income, and trigger MPAA warning/status.
 - Expanded Year Table detail and year workings now surface explicit pension-access events, including PCLS/FAD treatment, pot balance movement, uncrystallised/crystallised ledger movement when available, and MPAA/caveat wording.
 - Strategy now has guarded authoring controls for explicit PCLS crystallisation and taxable FAD events alongside the older simple TFC event, with UFPLS deliberately not exposed pending adviser/provider validation.
+- DeepSeek/keepseek research review confirmed the staged-withdrawal interaction choice: ordinary staged DC withdrawals must remain compatibility simplified-pro-rata for now, with mixed-mode warnings when the same pot also has explicit PCLS/FAD/TFC events. Do not silently switch ordinary withdrawals to consume crystallised drawdown.
 - The app does not yet drive ordinary staged withdrawals from crystallised drawdown balances, apply UFPLS events in projection, or fully enforce LSA/LSDBA rules.
 
 This mode should remain available for migration and simpler users, but it must be labelled honestly.
@@ -147,6 +148,16 @@ Implementation implication:
 Suggested caveat wording:
 
 > Crystallised drawdown funds are assumed to remain invested and earn the same growth rate as the pension pot. Provider behaviour varies; some users/advisers hold near-term income in cash or lower-risk funds. This model does not yet support a separate crystallised drawdown growth rate.
+
+## Compatibility stance for ordinary staged DC withdrawals vs explicit events
+
+DeepSeek/keepseek research review confirmed the near-term design choice:
+
+- Ordinary staged DC withdrawals remain the existing compatibility simplified-pro-rata path.
+- Explicit PCLS/FAD events are the ledger-aware path.
+- If the same pot has explicit pension-access events and is also targeted by ordinary staged DC withdrawals, projection emits a mixed-mode warning and event caveat.
+- The model must not silently switch ordinary withdrawals to consume crystallised drawdown because that would change tax treatment from pro-rata to 100% taxable without an explicit user opt-in.
+- Future ledger-aware ordinary withdrawals should be a separate explicit mode/flag, not an automatic side effect of adding a PCLS event.
 
 ## Pension access modes
 

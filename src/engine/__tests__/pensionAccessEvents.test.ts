@@ -152,16 +152,22 @@ describe('pension access event config foundation', () => {
       gross_amount: 10000,
       tax_free_amount: 10000,
       taxable_amount: 0,
-      caveats: ['simplified_tfc_event_no_lsa_lsdba_tracking'],
     }));
+    expect(result.pension_access_events![0]!.caveats).toEqual(expect.arrayContaining([
+      'ordinary_drawdown_also_targets_this_pot',
+      'simplified_tfc_event_no_lsa_lsdba_tracking',
+    ]));
     expect(result.pension_access_events![1]).toEqual(expect.objectContaining({
       id: 'same_month_second',
       projection_year: '2032',
       month: 1,
       order_in_month: 1,
       taxable_amount: 0,
-      caveats: ['simplified_tfc_event_no_lsa_lsdba_tracking'],
     }));
+    expect(result.pension_access_events![1]!.caveats).toEqual(expect.arrayContaining([
+      'ordinary_drawdown_also_targets_this_pot',
+      'simplified_tfc_event_no_lsa_lsdba_tracking',
+    ]));
     expect(result.pension_access_events![1]!.gross_amount)
       .toBeCloseTo(result.pension_access_events![1]!.pot_balance_before * 0.1, 2);
     expect(result.pension_access_events![1]!.tax_free_amount)
@@ -186,24 +192,32 @@ describe('pension access event config foundation', () => {
     const retirementYear = result.years.find(year => year.tax_year === '2032/33');
     const laterYear = result.years.find(year => year.tax_year === '2033/34');
 
-    expect(retirementYear?.pension_access_events).toEqual([
+    expect(retirementYear?.pension_access_events).toHaveLength(1);
+    expect(retirementYear?.pension_access_events?.[0]).toEqual(
       expect.objectContaining({
         id: 'retirement_tfc',
         projection_year: '2032',
         month: 1,
         gross_amount: 10000,
-        caveats: ['simplified_tfc_event_no_lsa_lsdba_tracking'],
       }),
-    ]);
-    expect(laterYear?.pension_access_events).toEqual([
+    );
+    expect(retirementYear?.pension_access_events?.[0]?.caveats).toEqual(expect.arrayContaining([
+      'ordinary_drawdown_also_targets_this_pot',
+      'simplified_tfc_event_no_lsa_lsdba_tracking',
+    ]));
+    expect(laterYear?.pension_access_events).toHaveLength(1);
+    expect(laterYear?.pension_access_events?.[0]).toEqual(
       expect.objectContaining({
         id: 'later_tfc',
         projection_year: '2033',
         month: 1,
         gross_amount: 10000,
-        caveats: ['simplified_tfc_event_no_lsa_lsdba_tracking'],
       }),
-    ]);
+    );
+    expect(laterYear?.pension_access_events?.[0]?.caveats).toEqual(expect.arrayContaining([
+      'ordinary_drawdown_also_targets_this_pot',
+      'simplified_tfc_event_no_lsa_lsdba_tracking',
+    ]));
   });
 
   it('does not treat applied tax-free cash events as income or taxable drawdown', () => {

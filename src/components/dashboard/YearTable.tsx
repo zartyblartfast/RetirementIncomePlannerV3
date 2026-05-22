@@ -33,6 +33,7 @@ function pensionAccessCaveatLabel(caveat: string): string {
     case 'mpaa_triggered_by_taxable_drawdown': return 'MPAA triggered by taxable drawdown';
     case 'crystallised_balance_insufficient_for_drawdown': return 'crystallised balance insufficient for requested drawdown';
     case 'destination_inside_plan_not_yet_modelled': return 'destination caveated — inside-plan destination not yet modelled';
+    case 'ordinary_drawdown_also_targets_this_pot': return 'ordinary staged withdrawals also target this pot — compatibility pro-rata treatment retained';
     default: return caveat.replace(/_/g, ' ');
   }
 }

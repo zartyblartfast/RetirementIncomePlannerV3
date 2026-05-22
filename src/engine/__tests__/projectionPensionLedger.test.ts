@@ -82,8 +82,11 @@ describe('projection pension ledger foundation', () => {
       gross_amount: 10_000,
       tax_free_amount: 10_000,
       taxable_amount: 0,
-      caveats: ['simplified_tfc_event_no_lsa_lsdba_tracking'],
     }));
+    expect(eventYear.pension_access_events![0]!.caveats).toEqual(expect.arrayContaining([
+      'ordinary_drawdown_also_targets_this_pot',
+      'simplified_tfc_event_no_lsa_lsdba_tracking',
+    ]));
     expect(ledger.tax_free_cash_taken).toBeCloseTo(10_000, 2);
     expect(ledger.uncrystallised_balance).toBeCloseTo(result.summary.remaining_pots['DC Pension']!, 2);
     expect(ledger.mpaa_triggered).toBe(false);
@@ -183,6 +186,32 @@ describe('projection pension ledger foundation', () => {
     expect(ledger.crystallised_drawdown_balance).toBeGreaterThan(30_000);
     expect(ledger.uncrystallised_balance).toBeGreaterThan(60_000);
     expect(ledger.uncrystallised_balance + ledger.crystallised_drawdown_balance).toBeCloseTo(remainingPot, 2);
+  });
+
+  it('warns but preserves compatibility tax treatment when ordinary staged withdrawals target a pot with explicit pension-access events', () => {
+    const cfg = pensionOnlyConfig();
+    cfg.target_income.net_annual = 12_000;
+    cfg.pension_access_events = [
+      {
+        id: 'annual_pcls_1',
+        pot_ref: 'DC Pension',
+        event_type: 'crystallise_and_take_pcls',
+        timing: { kind: 'retirement_date' },
+        amount: { kind: 'fixed_amount', value: 40_000 },
+        destination: { kind: 'outside_plan' },
+      },
+    ];
+
+    const result = runProjection(cfg);
+    const eventYear = result.years.find(year => year.pension_access_events?.some(event => event.id === 'annual_pcls_1'))!;
+    const event = eventYear.pension_access_events![0]!;
+
+    expect(event.caveats).toContain('ordinary_drawdown_also_targets_this_pot');
+    expect(result.warnings).toContain('Mixed pension-access mode: DC Pension has explicit pension-access events and ordinary staged DC withdrawals also target this pot; ordinary withdrawals remain compatibility simplified pro-rata until ledger-aware withdrawals are explicitly enabled.');
+    expect(result.warnings.filter(warning => warning.startsWith('Mixed pension-access mode: DC Pension'))).toHaveLength(1);
+    expect(eventYear.dc_withdrawal_gross).toBeGreaterThan(0);
+    expect(eventYear.dc_tax_free_portion).toBeGreaterThan(0);
+    expect(eventYear.dc_tax_free_portion / eventYear.dc_withdrawal_gross).toBeCloseTo(0.25, 2);
   });
 
   it('applies same-month taxable flexi-access drawdown from crystallised balance as taxable income and triggers MPAA', () => {

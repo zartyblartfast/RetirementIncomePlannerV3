@@ -82,6 +82,25 @@ function sumValues(obj: Record<string, number>): number {
   return total;
 }
 
+function ordinaryDrawdownPotRefs(cfg: PlannerConfig): Set<string> {
+  const refs = new Set<string>();
+  for (const ref of cfg.withdrawal_priority ?? []) {
+    refs.add(ref);
+  }
+  for (const stage of cfg.drawdown_stages ?? []) {
+    for (const source of stage.sources ?? []) {
+      if (source.source_type === 'dc_pot') {
+        refs.add(source.source_name);
+      }
+    }
+  }
+  return refs;
+}
+
+function mixedPensionAccessModeWarning(potRef: string): string {
+  return `Mixed pension-access mode: ${potRef} has explicit pension-access events and ordinary staged DC withdrawals also target this pot; ordinary withdrawals remain compatibility simplified pro-rata until ledger-aware withdrawals are explicitly enabled.`;
+}
+
 function roundPensionLedgerState(ledger: PensionLedgerState): PensionLedgerState {
   return {
     ...ledger,
@@ -297,6 +316,17 @@ export function runProjection(
 
   const { includeMonthly = false, initialStrategyState = null } = options;
   const pensionAccessEvents = resolvePensionAccessEvents(cfg);
+  const ordinaryPensionDrawdownPotRefs = ordinaryDrawdownPotRefs(cfg);
+  const explicitPensionAccessPotRefs = new Set(
+    pensionAccessEvents
+      .filter(event => event.event_type === 'tax_free_cash'
+        || event.event_type === 'crystallise_and_take_pcls'
+        || event.event_type === 'taxable_flexi_access_drawdown')
+      .map(event => event.pot_ref),
+  );
+  const mixedPensionAccessPotRefs = new Set(
+    [...explicitPensionAccessPotRefs].filter(potRef => ordinaryPensionDrawdownPotRefs.has(potRef)),
+  );
   const taxCfg = cfg.tax;
   const endAgeCfg = cfg.personal.end_age;
   let cpi = cfg.target_income.cpi_rate;
@@ -550,6 +580,9 @@ export function runProjection(
   let chartDeplCtr = 0;
   const recordedDrawdownStageTransitions = new Set<string>();
   const appliedPensionAccessEvents: PensionAccessResolvedEvent[] = [];
+  for (const potRef of mixedPensionAccessPotRefs) {
+    warnings.push(mixedPensionAccessModeWarning(potRef));
+  }
 
   // Monthly rows
   const monthlyRows: MonthlyRow[] | null = includeMonthly ? [] : null;
@@ -621,6 +654,9 @@ export function runProjection(
       let estimatedTfcUsed = 0;
       let estimatedTfcRemaining = potBalanceBefore * (dcMeta[baseEvent.pot_ref]?.tax_free_portion ?? 0);
       const caveats: string[] = [];
+      if (mixedPensionAccessPotRefs.has(baseEvent.pot_ref)) {
+        caveats.push('ordinary_drawdown_also_targets_this_pot');
+      }
 
       if (configEvent?.event_type === 'tax_free_cash' && potBalanceBefore > 0.01) {
         const requestedAmount = Math.max(0, amountFromPensionAccessRule(configEvent, potBalanceBefore, estimatedTfcRemaining));
