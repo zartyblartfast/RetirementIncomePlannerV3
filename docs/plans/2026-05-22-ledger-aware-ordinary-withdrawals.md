@@ -260,7 +260,7 @@ npx vitest run --config vitest.config.ts src/engine/__tests__/projectionPensionL
 
 ## Task 4: Add guarded UI affordance
 
-Status: implemented in Dev03 checkpoint `pending`.
+Status: implemented in Dev03 checkpoint `b6f49fb feat: expose ledger-aware ordinary FAD opt-in`.
 
 **Objective:** Expose the opt-in clearly without making it the default.
 
