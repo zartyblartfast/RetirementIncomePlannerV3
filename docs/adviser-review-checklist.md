@@ -35,6 +35,7 @@ software as a financial product.
 
 | Document | Purpose |
 | --- | --- |
+| `docs/adviser-demo-lite.md` | Three-example live walkthrough for a short adviser demo on the `demo` branch. |
 | `docs/adviser-demo-guide.md` | Short live-demo path and wording guardrails for showing the app to an adviser. |
 | `examples/demo-cases/README.md` | Fictional full-case files for restoring prepared adviser walkthrough cases. |
 | `docs/adviser-review-pack.md` | Adviser-facing summary of model scope, mechanics, review questions, and open items. |

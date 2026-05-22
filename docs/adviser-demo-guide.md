@@ -10,6 +10,8 @@ is needed.
 
 ## 1. Suggested Demo Path
 
+For the shortest adviser walkthrough, use `docs/adviser-demo-lite.md`: it keeps the live demo to three examples rather than the fuller worked-example pack.
+
 1. Open or create a case. For a prepared walkthrough, restore one of the
    fictional full-case files in `examples/demo-cases/`.
 2. Confirm the Case Details fields are filled in enough to identify the example:
