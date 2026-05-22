@@ -260,6 +260,8 @@ npx vitest run --config vitest.config.ts src/engine/__tests__/projectionPensionL
 
 ## Task 4: Add guarded UI affordance
 
+Status: implemented in Dev03 checkpoint `pending`.
+
 **Objective:** Expose the opt-in clearly without making it the default.
 
 **Files:**

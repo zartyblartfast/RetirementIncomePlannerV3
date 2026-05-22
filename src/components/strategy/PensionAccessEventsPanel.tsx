@@ -1,6 +1,6 @@
 import { Plus, Trash2 } from 'lucide-react';
 import { validatePensionAccessEvents, type PensionAccessEventValidationIssue } from '../../engine/pensionAccessEvents';
-import type { PensionAccessEventConfig, PensionAccessEventType, PlannerConfig } from '../../engine/types';
+import type { DCPotPensionAccessConfig, PensionAccessEventConfig, PensionAccessEventType, PlannerConfig } from '../../engine/types';
 import { useConfig } from '../../store/configStore';
 
 function deepClone<T>(value: T): T {
@@ -164,6 +164,66 @@ export function removePensionAccessEventAt(config: PlannerConfig, eventIndex: nu
   return { ...config, pension_access_events: nextEvents };
 }
 
+type OrdinaryPensionAccessUiMode = 'compatibility_approximation' | 'explicit_ledger_aware';
+
+function ordinaryPensionAccessMode(mode: DCPotPensionAccessConfig | undefined): OrdinaryPensionAccessUiMode {
+  return mode?.category === 'explicit_ledger_aware' ? 'explicit_ledger_aware' : 'compatibility_approximation';
+}
+
+export function setOrdinaryPensionAccessMode(
+  config: PlannerConfig,
+  potRef: string,
+  mode: OrdinaryPensionAccessUiMode,
+): PlannerConfig {
+  return {
+    ...config,
+    dc_pots: config.dc_pots.map(pot => {
+      if (pot.name !== potRef) return pot;
+      return {
+        ...pot,
+        pension_access: mode === 'explicit_ledger_aware'
+          ? { category: 'explicit_ledger_aware', route: 'taxable_flexi_access_drawdown', cadence: 'monthly' }
+          : { category: 'compatibility_approximation', approximation: 'simplified_pro_rata' },
+      };
+    }),
+  };
+}
+
+function OrdinaryWithdrawalTreatmentPanel({ config, updateConfig }: {
+  config: PlannerConfig;
+  updateConfig: (updater: (config: PlannerConfig) => PlannerConfig) => void;
+}) {
+  if ((config.dc_pots ?? []).length === 0) return null;
+  return (
+    <div className="mt-3 rounded border border-emerald-100 bg-white px-3 py-2 text-xs text-emerald-800">
+      <p className="font-semibold text-emerald-900">Ordinary staged withdrawal treatment</p>
+      <p className="mt-1">
+        Choose how each DC pot behaves when it is used by ordinary staged withdrawals. Keep compatibility mode unless a PCLS/crystallisation event has created crystallised drawdown for this pot.
+      </p>
+      <div className="mt-2 space-y-2">
+        {config.dc_pots.map(pot => (
+          <Field key={pot.name} label={`${pot.name} ordinary withdrawals`}>
+            <select
+              value={ordinaryPensionAccessMode(pot.pension_access)}
+              onChange={event => {
+                const mode = event.target.value as OrdinaryPensionAccessUiMode;
+                updateConfig(prev => setOrdinaryPensionAccessMode(deepClone(prev) as PlannerConfig, pot.name, mode));
+              }}
+              className="input-field text-xs"
+            >
+              <option value="compatibility_approximation">Compatibility: gradual pro-rata tax-free cash</option>
+              <option value="explicit_ledger_aware">Ledger-aware taxable FAD from crystallised drawdown</option>
+            </select>
+          </Field>
+        ))}
+      </div>
+      <p className="mt-2 text-[11px] text-amber-700">
+        Ledger-aware FAD uses crystallised drawdown only: ordinary withdrawals are 100% taxable, trigger MPAA, and will not auto-crystallise or fall back to pro-rata.
+      </p>
+    </div>
+  );
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
@@ -226,6 +286,7 @@ export default function PensionAccessEventsPanel() {
       <p className="mt-1 text-[11px] text-emerald-700">
         Initial simplified model: no LSA/LSDBA/provider/MPAA tracking, and destinations inside the plan are not yet financially modelled. Use adviser review before relying on the treatment.
       </p>
+      <OrdinaryWithdrawalTreatmentPanel config={config} updateConfig={updateConfig} />
       {validationMessages.length > 0 && (
         <div className="mt-3 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
           <p className="font-medium">Pension access setup needs attention:</p>

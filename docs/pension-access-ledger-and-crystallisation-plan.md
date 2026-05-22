@@ -74,6 +74,7 @@ Current compatible behaviour:
 - DeepSeek/keepseek research review confirmed the staged-withdrawal interaction choice: ordinary staged DC withdrawals must remain compatibility simplified-pro-rata for now, with mixed-mode warnings when the same pot also has explicit PCLS/FAD/TFC events. Do not silently switch ordinary withdrawals to consume crystallised drawdown.
 - The app does not yet drive ordinary staged withdrawals from crystallised drawdown balances, apply UFPLS events in projection, or fully enforce LSA/LSDBA rules.
 - Dev03 now has type/validation support for an explicit per-pot `explicit_ledger_aware` / `taxable_flexi_access_drawdown` mode and projection support for ordinary withdrawals from crystallised drawdown when that mode is opted in.
+- Strategy now exposes this as a guarded per-pot ordinary-withdrawal treatment selector: default compatibility gradual pro-rata remains unchanged, while ledger-aware FAD is explicit and labelled as requiring crystallised drawdown first.
 - Ledger-aware ordinary FAD withdrawals are 100% taxable, trigger MPAA on first taxable drawdown, reduce `crystallised_drawdown_balance`, and do not auto-crystallise or fall back to simplified pro-rata when crystallised balance is unavailable.
 
 This mode should remain available for migration and simpler users, but it must be labelled honestly.

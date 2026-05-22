@@ -9,6 +9,7 @@ import PensionAccessEventsPanel, {
   formatPensionAccessEventSummary,
   formatPensionAccessValidationMessage,
   removePensionAccessEventAt,
+  setOrdinaryPensionAccessMode,
 } from '../PensionAccessEventsPanel';
 
 (globalThis as unknown as { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -237,6 +238,40 @@ describe('PensionAccessEventsPanel', () => {
       event_type: 'taxable_flexi_access_drawdown',
       amount: { kind: 'fixed_amount', value: 10000 },
     });
+  });
+
+  it('sets ordinary staged withdrawals to guarded ledger-aware taxable FAD mode per pot', () => {
+    const next = setOrdinaryPensionAccessMode(deepClone(DEFAULT_CONFIG), 'DC Pension', 'explicit_ledger_aware');
+
+    expect(next.dc_pots[0]!.pension_access).toEqual({
+      category: 'explicit_ledger_aware',
+      route: 'taxable_flexi_access_drawdown',
+      cadence: 'monthly',
+    });
+
+    const reverted = setOrdinaryPensionAccessMode(next, 'DC Pension', 'compatibility_approximation');
+    expect(reverted.dc_pots[0]!.pension_access).toEqual({
+      category: 'compatibility_approximation',
+      approximation: 'simplified_pro_rata',
+    });
+  });
+
+  it('exposes guarded ordinary withdrawal treatment copy and lets the UI enable ledger-aware taxable FAD', () => {
+    mounted = renderPanel();
+
+    expect(mounted.container.textContent).toContain('Ordinary staged withdrawal treatment');
+    expect(mounted.container.textContent).toContain('Compatibility: gradual pro-rata tax-free cash');
+    expect(mounted.container.textContent).toContain('Ledger-aware FAD uses crystallised drawdown only: ordinary withdrawals are 100% taxable, trigger MPAA, and will not auto-crystallise or fall back to pro-rata.');
+
+    mounted.chooseFirstSelectByValue('compatibility_approximation', 'explicit_ledger_aware');
+
+    expect(mounted.config.dc_pots[0]!.pension_access).toEqual({
+      category: 'explicit_ledger_aware',
+      route: 'taxable_flexi_access_drawdown',
+      cadence: 'monthly',
+    });
+    expect(mounted.config.drawdown_stages).toEqual(DEFAULT_CONFIG.drawdown_stages);
+    expect(mounted.config.pension_access_events).toBeUndefined();
   });
 
   it('surfaces pension access validation messages and removes the last event cleanly', () => {
