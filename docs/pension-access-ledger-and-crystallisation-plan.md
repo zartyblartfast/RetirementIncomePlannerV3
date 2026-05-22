@@ -77,6 +77,7 @@ Current compatible behaviour:
 - Strategy now exposes this as a guarded per-pot ordinary-withdrawal treatment selector: default compatibility gradual pro-rata remains unchanged, while ledger-aware FAD is explicit and labelled as requiring crystallised drawdown first.
 - Ledger-aware ordinary FAD withdrawals are 100% taxable, trigger MPAA on first taxable drawdown, reduce `crystallised_drawdown_balance`, and do not auto-crystallise or fall back to simplified pro-rata when crystallised balance is unavailable.
 - If ledger-aware ordinary FAD cannot fund a requested ordinary withdrawal from crystallised drawdown, the projection now records warning code `ledger_aware_fad_insufficient_crystallised_balance`, adds a global warning, and surfaces user-facing copy in Year Table expanded detail and full workings.
+- In blended staged allocation, an opted-in ledger-aware FAD source with no available crystallised drawdown is treated as unavailable for allocation/stage-depletion purposes so the engine can move to the next configured source/stage. Sub-£50 cleardown of a crystallised residual is treated as 100% taxable FAD, not compatibility pro-rata tax-free cash.
 
 This mode should remain available for migration and simpler users, but it must be labelled honestly.
 

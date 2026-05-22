@@ -277,6 +277,91 @@ describe('projection pension ledger foundation', () => {
     expect(ledger.mpaa_triggered).toBe(false);
   });
 
+  it('moves to the next staged source when a ledger-aware FAD source has no crystallised balance', () => {
+    const cfg = pensionOnlyConfig();
+    cfg.target_income.net_annual = 12_000;
+    cfg.tax_free_accounts = [{
+      name: 'ISA',
+      starting_balance: 20_000,
+      growth_rate: 0,
+      values_as_of: cfg.personal.retirement_date,
+    }];
+    cfg.dc_pots[0]!.pension_access = {
+      category: 'explicit_ledger_aware',
+      route: 'taxable_flexi_access_drawdown',
+    };
+    cfg.withdrawal_priority = ['DC Pension', 'ISA'];
+    cfg.drawdown_stages = [
+      {
+        id: 'stage_fad_first',
+        name: 'FAD first',
+        sources: [{ source_type: 'dc_pot', source_name: 'DC Pension', target_share: 0.5 }],
+      },
+      {
+        id: 'stage_isa_fallback',
+        name: 'ISA fallback',
+        sources: [{ source_type: 'tax_free_account', source_name: 'ISA', target_share: 1 }],
+      },
+    ];
+
+    const result = runProjection(cfg);
+    const firstYear = result.years[0]!;
+    const ledger = result.pension_ledger_states?.find(state => state.pot_ref === 'DC Pension')!;
+
+    expect(firstYear.projection_warnings).toContain('ledger_aware_fad_insufficient_crystallised_balance');
+    expect(firstYear.dc_withdrawal_gross).toBe(0);
+    expect(firstYear.dc_tax_free_portion).toBe(0);
+    expect(firstYear.tf_withdrawal).toBeCloseTo(firstYear.target_net, 2);
+    expect(firstYear.withdrawal_detail.ISA).toBeCloseTo(firstYear.target_net, 2);
+    expect(firstYear.net_income_achieved).toBeCloseTo(firstYear.target_net, 2);
+    expect(firstYear.shortfall).toBe(false);
+    expect(firstYear.drawdown_stage_transitions).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        from_stage_id: 'stage_fad_first',
+        to_stage_id: 'stage_isa_fallback',
+        reason: 'stage_depleted',
+      }),
+    ]));
+    expect(ledger.uncrystallised_balance).toBeCloseTo(100_000, 2);
+    expect(ledger.crystallised_drawdown_balance).toBe(0);
+    expect(ledger.taxable_drawdown_taken).toBe(0);
+  });
+
+  it('treats ledger-aware crystallised residual cleardown as fully taxable FAD', () => {
+    const cfg = pensionOnlyConfig();
+    cfg.drawdown_strategy = 'fixed_percentage';
+    cfg.drawdown_strategy_params = { withdrawal_rate: 99.98 };
+    cfg.dc_pots[0]!.starting_balance = 40_000;
+    cfg.dc_pots[0]!.pension_access = {
+      category: 'explicit_ledger_aware',
+      route: 'taxable_flexi_access_drawdown',
+    };
+    cfg.pension_access_events = [
+      {
+        id: 'annual_pcls_1',
+        pot_ref: 'DC Pension',
+        event_type: 'crystallise_and_take_pcls',
+        timing: { kind: 'retirement_date' },
+        amount: { kind: 'fixed_amount', value: 40_000 },
+        destination: { kind: 'outside_plan' },
+      },
+    ];
+
+    const result = runProjection(cfg);
+    const firstYear = result.years[0]!;
+    const ledger = result.pension_ledger_states?.find(state => state.pot_ref === 'DC Pension')!;
+
+    expect(firstYear.pension_access_events![0]!.tax_free_amount).toBeCloseTo(10_000, 2);
+    expect(firstYear.dc_withdrawal_gross).toBeCloseTo(30_000, 2);
+    expect(firstYear.dc_tax_free_portion).toBeCloseTo(0, 2);
+    expect(firstYear.total_taxable_income).toBeCloseTo(30_000, 2);
+    expect(ledger.uncrystallised_balance).toBeCloseTo(0, 2);
+    expect(ledger.crystallised_drawdown_balance).toBeCloseTo(0, 2);
+    expect(ledger.taxable_drawdown_taken).toBeCloseTo(30_000, 2);
+    expect(ledger.mpaa_triggered).toBe(true);
+    expect(result.summary.remaining_pots['DC Pension']).toBeCloseTo(0, 2);
+  });
+
   it('applies same-month taxable flexi-access drawdown from crystallised balance as taxable income and triggers MPAA', () => {
     const cfg = pensionOnlyConfig();
     cfg.pension_access_events = [

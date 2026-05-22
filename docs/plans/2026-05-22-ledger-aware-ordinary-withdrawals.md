@@ -223,7 +223,9 @@ npx vitest run --config vitest.config.ts src/engine/__tests__/projectionPensionL
 
 ## Task 3: Handle insufficiency, mixed mode, and cleardown
 
-Status: partially implemented in Dev03 checkpoint `76366b0 feat: warn on ledger-aware FAD shortfalls`: insufficient crystallised-balance warnings are now explicit and visible in projection, workings, and Year Table.
+Status: partially implemented in Dev03 checkpoints:
+- `76366b0 feat: warn on ledger-aware FAD shortfalls`: insufficient crystallised-balance warnings are explicit and visible in projection, workings, and Year Table.
+- `pending`: blended staged allocation now treats unavailable crystallised drawdown as depleted for opted-in ledger-aware FAD sources, moves to the next source/stage, and cleardown of a crystallised residual is 100% taxable FAD.
 
 **Objective:** Make edge cases explicit and visible.
 

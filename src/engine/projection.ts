@@ -1069,6 +1069,16 @@ export function runProjection(
       }
     }
 
+    function stagedSourceBalance(source: DrawdownStageSourceConfig): number {
+      if (source.source_type !== 'dc_pot') return tfBalances[source.source_name] ?? 0;
+      if (!isLedgerAwareOrdinaryFadPot(source.source_name)) return dcBalances[source.source_name] ?? 0;
+      const available = availableOrdinaryFadBalance(source.source_name);
+      if ((dcBalances[source.source_name] ?? 0) > 0.01 && available <= 0.01) {
+        recordLedgerAwareFadShortfall(source.source_name);
+      }
+      return available;
+    }
+
     if (useGrossMode) {
       // GROSS mode: fixed monthly pot withdrawal target
       let remaining = Math.max(0, strategyAmount / 12);
@@ -1152,9 +1162,7 @@ export function runProjection(
           remainingGross: remaining,
           month: ((absM - anchorAbs) % 12) + 1,
           recordedTransitionKeys: recordedDrawdownStageTransitions,
-          sourceBalance: source => source.source_type === 'dc_pot'
-            ? (dcBalances[source.source_name] ?? 0)
-            : (tfBalances[source.source_name] ?? 0),
+          sourceBalance: stagedSourceBalance,
           withdrawSource: (source, grossNeeded, stage, stageIndex) => source.source_type === 'dc_pot'
             ? withdrawGrossDc(source.source_name, grossNeeded, source, stage, stageIndex)
             : withdrawGrossTf(source.source_name, grossNeeded, source, stage, stageIndex),
@@ -1266,9 +1274,7 @@ export function runProjection(
           remainingNet,
           month: ((absM - anchorAbs) % 12) + 1,
           recordedTransitionKeys: recordedDrawdownStageTransitions,
-          sourceBalance: source => source.source_type === 'dc_pot'
-            ? (dcBalances[source.source_name] ?? 0)
-            : (tfBalances[source.source_name] ?? 0),
+          sourceBalance: stagedSourceBalance,
           withdrawSource: (source, netNeeded, stage, stageIndex) => source.source_type === 'dc_pot'
             ? withdrawDc(source.source_name, netNeeded, source, stage, stageIndex)
             : withdrawTf(source.source_name, netNeeded, source, stage, stageIndex),
@@ -1295,7 +1301,13 @@ export function runProjection(
     for (const pname of Object.keys(dcBalances)) {
       const bal = dcBalances[pname]!;
       if (bal > 0.01 && bal < CLEARDOWN_THRESHOLD && !depletedPots.has(pname)) {
-        const tfp = dcMeta[pname]!.tax_free_portion;
+        const ledgerAwareFad = isLedgerAwareOrdinaryFadPot(pname);
+        const availableFad = availableOrdinaryFadBalance(pname);
+        if (ledgerAwareFad && availableFad < bal - 0.01) {
+          recordLedgerAwareFadShortfall(pname);
+          continue;
+        }
+        const tfp = ledgerAwareFad ? 0 : dcMeta[pname]!.tax_free_portion;
         currentAgg!.dc_gross += bal;
         currentAgg!.dc_tf += bal * tfp;
         const netFromRes = netFromDcWithdrawal(bal, tfp);
@@ -1303,7 +1315,11 @@ export function runProjection(
         currentAgg!.pnl[pname]!.withdrawal += bal;
         monthlyWithdrawalDetail[pname] = (monthlyWithdrawalDetail[pname] ?? 0) + netFromRes;
         monthlyGrossIncome += bal;
-        updatePensionLedger(pname, -bal);
+        if (ledgerAwareFad) {
+          applyOrdinaryFadWithdrawalToLedger(pname, bal);
+        } else {
+          updatePensionLedger(pname, -bal);
+        }
         dcBalances[pname] = 0;
       }
     }
