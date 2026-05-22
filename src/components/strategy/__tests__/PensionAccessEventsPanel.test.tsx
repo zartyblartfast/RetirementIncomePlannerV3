@@ -5,6 +5,7 @@ import type { PlannerConfig } from '../../../engine/types';
 import { ConfigContext, DEFAULT_CONFIG, type ConfigContextValue } from '../../../store/configStore';
 import PensionAccessEventsPanel, {
   appendDefaultPensionAccessEvent,
+  defaultPensionAccessEventForType,
   formatPensionAccessEventSummary,
   formatPensionAccessValidationMessage,
   removePensionAccessEventAt,
@@ -146,6 +147,26 @@ describe('PensionAccessEventsPanel', () => {
     expect(removePensionAccessEventAt(withEvent, 0).pension_access_events).toBeUndefined();
   });
 
+  it('builds guarded default PCLS and taxable FAD events without exposing UFPLS as a primary workflow', () => {
+    expect(defaultPensionAccessEventForType(deepClone(DEFAULT_CONFIG), [], 'crystallise_and_take_pcls')).toEqual({
+      id: 'pension_access_event_1',
+      pot_ref: 'DC Pension',
+      event_type: 'crystallise_and_take_pcls',
+      timing: { kind: 'retirement_date' },
+      amount: { kind: 'percentage_of_pot', value: 0.25 },
+      destination: { kind: 'outside_plan' },
+    });
+
+    expect(defaultPensionAccessEventForType(deepClone(DEFAULT_CONFIG), [], 'taxable_flexi_access_drawdown')).toEqual({
+      id: 'pension_access_event_1',
+      pot_ref: 'DC Pension',
+      event_type: 'taxable_flexi_access_drawdown',
+      timing: { kind: 'retirement_date' },
+      amount: { kind: 'fixed_amount', value: 10000 },
+      destination: { kind: 'outside_plan' },
+    });
+  });
+
   it('adds and edits an initial tax-free cash event from the UI', () => {
     mounted = renderPanel();
 
@@ -162,7 +183,7 @@ describe('PensionAccessEventsPanel', () => {
       },
     ]);
     expect(mounted.config.drawdown_stages).toEqual(DEFAULT_CONFIG.drawdown_stages);
-    expect(mounted.container.textContent).toContain('Optional one-off capital events, separate from ordinary staged income withdrawals.');
+    expect(mounted.container.textContent).toContain('Optional pension access events, separate from ordinary staged income withdrawals.');
     expect(mounted.container.textContent).toContain('Event 1: DC Pension — tax-free cash at the plan retirement date, 100.0% of estimated remaining tax-free cash from this pot paid outside the plan');
     expect(mounted.container.textContent).toContain('Reduces the selected pension pot balance. Does not count as ordinary income, taxable income, or taxable drawdown.');
     expect(mounted.container.textContent).toContain('Currently modelled as: outside-plan cash, informational only.');
@@ -177,6 +198,45 @@ describe('PensionAccessEventsPanel', () => {
 
     expect(mounted.config.pension_access_events?.[0]?.amount).toEqual({ kind: 'fixed_amount', value: 25000 });
     expect(mounted.container.textContent).toContain('£25,000 paid outside the plan');
+  });
+
+  it('adds guarded explicit PCLS and taxable FAD events from the UI and explains their treatment', () => {
+    mounted = renderPanel();
+
+    mounted.clickButton('Add PCLS crystallisation');
+    mounted.clickButton('Add taxable FAD');
+
+    expect(mounted.config.pension_access_events).toEqual([
+      {
+        id: 'pension_access_event_1',
+        pot_ref: 'DC Pension',
+        event_type: 'crystallise_and_take_pcls',
+        timing: { kind: 'retirement_date' },
+        amount: { kind: 'percentage_of_pot', value: 0.25 },
+        destination: { kind: 'outside_plan' },
+      },
+      {
+        id: 'pension_access_event_2',
+        pot_ref: 'DC Pension',
+        event_type: 'taxable_flexi_access_drawdown',
+        timing: { kind: 'retirement_date' },
+        amount: { kind: 'fixed_amount', value: 10000 },
+        destination: { kind: 'outside_plan' },
+      },
+    ]);
+    expect(mounted.config.drawdown_stages).toEqual(DEFAULT_CONFIG.drawdown_stages);
+    expect(mounted.container.textContent).toContain('Event 1: DC Pension — crystallise and take PCLS at the plan retirement date, 25.0% of selected pot value at the event date paid outside the plan');
+    expect(mounted.container.textContent).toContain('PCLS: crystallises a slice, pays the tax-free lump sum outside the plan, and designates the remainder to crystallised drawdown. MPAA is not triggered by PCLS alone.');
+    expect(mounted.container.textContent).toContain('Event 2: DC Pension — taxable flexi-access drawdown at the plan retirement date, £10,000 paid outside the plan');
+    expect(mounted.container.textContent).toContain('Taxable FAD: withdraws from crystallised drawdown as 100% taxable pension income. No further 25% tax-free element applies, and MPAA is expected to trigger.');
+    expect(mounted.container.textContent).toContain('UFPLS is deliberately not exposed here pending adviser/provider validation.');
+
+    mounted.chooseFirstSelectByValue('crystallise_and_take_pcls', 'taxable_flexi_access_drawdown');
+
+    expect(mounted.config.pension_access_events?.[0]).toMatchObject({
+      event_type: 'taxable_flexi_access_drawdown',
+      amount: { kind: 'fixed_amount', value: 10000 },
+    });
   });
 
   it('surfaces pension access validation messages and removes the last event cleanly', () => {
@@ -197,7 +257,7 @@ describe('PensionAccessEventsPanel', () => {
     expect(mounted.container.textContent).toContain('Event 1: selected pension pot “Missing pension” was not found. Choose an existing DC pension pot.');
     expect(mounted.container.textContent).toContain('Event 1: fixed amount must be more than £0.');
 
-    mounted.clickButton('Remove TFC event');
+    mounted.clickButton('Remove event');
 
     expect(mounted.config.pension_access_events).toBeUndefined();
   });
