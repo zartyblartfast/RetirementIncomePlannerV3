@@ -4,9 +4,11 @@ Status: short live-demo script for the `demo` branch.
 
 Purpose: show a fairly complete working prototype without asking the adviser to work through a large pack of examples. The review is about the planning model, assumptions, caveats, and priority of missing features. It is not a request to approve the app as regulated advice software.
 
-Demo URL, once Netlify has built the branch:
+Expected demo URL, once Netlify branch deploys are enabled and built:
 
 `https://demo--retirement-income-planner.netlify.app/`
+
+If this returns `Site not found`, check Netlify branch-deploy settings for the `demo` branch. See `docs/demo-branch-smoke-check.md`.
 
 ## Suggested framing
 
