@@ -159,6 +159,22 @@ DeepSeek/keepseek research review confirmed the near-term design choice:
 - The model must not silently switch ordinary withdrawals to consume crystallised drawdown because that would change tax treatment from pro-rata to 100% taxable without an explicit user opt-in.
 - Future ledger-aware ordinary withdrawals should be a separate explicit mode/flag, not an automatic side effect of adding a PCLS event.
 
+## Ledger-aware ordinary withdrawal opt-in
+
+Next implementation should be a narrow, explicit opt-in rather than an automatic behaviour change.
+
+DeepSeek/keepseek review confirmed this design stance:
+
+- Add a per-DC-pot explicit ledger-aware mode for ordinary withdrawals from crystallised flexi-access drawdown.
+- Do not add per-stage-source switches; one pension pot has one crystallised/uncrystallised ledger.
+- In this mode, ordinary staged withdrawals consume only existing `crystallised_drawdown_balance`.
+- Those ordinary withdrawals are 100% taxable pension income and trigger MPAA on the first taxable drawdown pound.
+- NET-mode gross-up should use tax-free portion `0`; GROSS-mode should treat the whole withdrawal as taxable.
+- If crystallised balance is insufficient, cap/shortfall/warn and move to the next source. Do not auto-crystallise more funds and do not fall back to simplified pro-rata.
+- Existing simplified pro-rata remains the default and migration-safe.
+
+Implementation plan: `docs/plans/2026-05-22-ledger-aware-ordinary-withdrawals.md`.
+
 ## Pension access modes
 
 ### 1. Simplified pro-rata approximation
