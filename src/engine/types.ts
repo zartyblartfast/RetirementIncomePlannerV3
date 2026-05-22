@@ -110,6 +110,12 @@ export type DCPotPensionAccessConfig =
       event_type: PensionAccessExplicitRoute;
       timing_pattern?: PensionAccessTimingPattern;
       cadence?: PensionAccessCadence;
+    }
+  | {
+      category: 'explicit_ledger_aware';
+      route: 'taxable_flexi_access_drawdown';
+      timing_pattern?: PensionAccessTimingPattern;
+      cadence?: PensionAccessCadence;
     };
 
 export type PensionAccessEventType =

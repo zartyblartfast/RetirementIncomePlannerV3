@@ -73,6 +73,7 @@ Current compatible behaviour:
 - Strategy now has guarded authoring controls for explicit PCLS crystallisation and taxable FAD events alongside the older simple TFC event, with UFPLS deliberately not exposed pending adviser/provider validation.
 - DeepSeek/keepseek research review confirmed the staged-withdrawal interaction choice: ordinary staged DC withdrawals must remain compatibility simplified-pro-rata for now, with mixed-mode warnings when the same pot also has explicit PCLS/FAD/TFC events. Do not silently switch ordinary withdrawals to consume crystallised drawdown.
 - The app does not yet drive ordinary staged withdrawals from crystallised drawdown balances, apply UFPLS events in projection, or fully enforce LSA/LSDBA rules.
+- Dev03 now has type/validation support for an explicit per-pot `explicit_ledger_aware` / `taxable_flexi_access_drawdown` mode, but this is metadata-only until the projection helper is implemented.
 
 This mode should remain available for migration and simpler users, but it must be labelled honestly.
 

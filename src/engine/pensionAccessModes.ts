@@ -36,6 +36,13 @@ function normalizeExplicitAccessRoute(mode: Extract<DCPotPensionAccessConfig, { 
   };
 }
 
+function normalizeExplicitLedgerAwareMode(mode: Extract<DCPotPensionAccessConfig, { category: 'explicit_ledger_aware' }>): DCPotPensionAccessConfig {
+  return {
+    ...mode,
+    cadence: mode.cadence ?? defaultCadenceForExplicitAccessRoute(mode.route, mode.timing_pattern),
+  };
+}
+
 export function normalizePensionAccessModeForPot(pot: DCPotConfig): DCPotConfig {
   const existing = pot.pension_access;
 
@@ -45,6 +52,10 @@ export function normalizePensionAccessModeForPot(pot: DCPotConfig): DCPotConfig 
 
   if (existing?.category === 'explicit_access_route') {
     return { ...pot, pension_access: normalizeExplicitAccessRoute(existing) };
+  }
+
+  if (existing?.category === 'explicit_ledger_aware' && existing.route === 'taxable_flexi_access_drawdown') {
+    return { ...pot, pension_access: normalizeExplicitLedgerAwareMode(existing) };
   }
 
   return { ...pot, pension_access: DEFAULT_PENSION_ACCESS_MODE };
@@ -74,6 +85,10 @@ export function validatePensionAccessModes(cfg: PlannerConfig): PensionAccessMod
       continue;
     }
 
+    if (mode.category === 'explicit_ledger_aware' && mode.route === 'taxable_flexi_access_drawdown') {
+      continue;
+    }
+
     if (mode.category !== 'compatibility_approximation' || mode.approximation !== 'simplified_pro_rata') {
       issues.push({
         code: 'invalid_pension_access_mode',
@@ -90,6 +105,10 @@ export function describePensionAccessMode(pot: DCPotConfig): string {
   const normalized = normalizePensionAccessModeForPot(pot);
   if (normalized.pension_access?.category === 'compatibility_approximation') {
     return 'Simplified pro-rata pension withdrawals: this is a compatibility approximation, not a formal UFPLS or phased crystallisation ledger. Ordinary withdrawals continue to use the pot tax-free percentage until explicit pension-access routes are implemented.';
+  }
+
+  if (normalized.pension_access?.category === 'explicit_ledger_aware') {
+    return 'Ledger-aware flexi-access drawdown: ordinary withdrawals from this pot are configured to use crystallised drawdown as taxable pension income once projection support is enabled. Create explicit PCLS/crystallisation events first; the model will not auto-crystallise or fall back to pro-rata treatment.';
   }
 
   return 'Explicit pension access route: configured for future ledger modelling but not yet applied to projection behaviour.';

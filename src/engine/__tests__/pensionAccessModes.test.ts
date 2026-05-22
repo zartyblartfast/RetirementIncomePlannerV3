@@ -92,11 +92,74 @@ describe('pension access mode metadata', () => {
     });
   });
 
+  it('accepts explicit ledger-aware taxable FAD ordinary-withdrawal mode as pot-level metadata', () => {
+    const cfg = cloneConfig(DEFAULT_CONFIG);
+    cfg.dc_pots[0]!.pension_access = {
+      category: 'explicit_ledger_aware',
+      route: 'taxable_flexi_access_drawdown',
+    };
+
+    const normalized = normalizeConfigPensionAccessModes(cfg);
+    const issues = validatePensionAccessModes(normalized);
+
+    expect(normalized.dc_pots[0]!.pension_access).toEqual({
+      category: 'explicit_ledger_aware',
+      route: 'taxable_flexi_access_drawdown',
+      cadence: 'monthly',
+    });
+    expect(issues).toEqual([]);
+  });
+
+  it('preserves projection outputs when explicit ledger-aware mode is configured before projection support is wired', () => {
+    const legacyCfg = cloneConfig(DEFAULT_CONFIG);
+    const ledgerAwareCfg = cloneConfig(DEFAULT_CONFIG);
+    ledgerAwareCfg.dc_pots[0]!.pension_access = {
+      category: 'explicit_ledger_aware',
+      route: 'taxable_flexi_access_drawdown',
+    };
+
+    const legacyProjection = runProjection(legacyCfg);
+    const ledgerAwareProjection = runProjection(normalizeConfigPensionAccessModes(ledgerAwareCfg));
+
+    expect(ledgerAwareProjection.years).toEqual(legacyProjection.years);
+    expect(ledgerAwareProjection.summary).toEqual(legacyProjection.summary);
+  });
+
+  it('rejects malformed explicit ledger-aware routes rather than widening the supported mode', () => {
+    const cfg = cloneConfig(DEFAULT_CONFIG);
+    cfg.dc_pots[0]!.pension_access = {
+      category: 'explicit_ledger_aware',
+      route: 'ufpls',
+    } as never;
+
+    const issues = validatePensionAccessModes(cfg);
+
+    expect(issues).toEqual([
+      {
+        code: 'invalid_pension_access_mode',
+        pot_name: 'DC Pension',
+        message: 'DC Pension uses an unsupported pension access mode.',
+      },
+    ]);
+  });
+
   it('describes simplified pro-rata as an approximation rather than a legal access route', () => {
     const cfg = normalizeConfigPensionAccessModes(cloneConfig(DEFAULT_CONFIG));
 
     expect(describePensionAccessMode(cfg.dc_pots[0]!)).toBe(
       'Simplified pro-rata pension withdrawals: this is a compatibility approximation, not a formal UFPLS or phased crystallisation ledger. Ordinary withdrawals continue to use the pot tax-free percentage until explicit pension-access routes are implemented.',
+    );
+  });
+
+  it('describes explicit ledger-aware ordinary FAD as guarded future projection metadata', () => {
+    const cfg = cloneConfig(DEFAULT_CONFIG);
+    cfg.dc_pots[0]!.pension_access = {
+      category: 'explicit_ledger_aware',
+      route: 'taxable_flexi_access_drawdown',
+    };
+
+    expect(describePensionAccessMode(cfg.dc_pots[0]!)).toBe(
+      'Ledger-aware flexi-access drawdown: ordinary withdrawals from this pot are configured to use crystallised drawdown as taxable pension income once projection support is enabled. Create explicit PCLS/crystallisation events first; the model will not auto-crystallise or fall back to pro-rata treatment.',
     );
   });
 });
