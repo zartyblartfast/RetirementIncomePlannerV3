@@ -4,18 +4,16 @@ Status: quick triage of an additional YouTube-derived pension drawdown reference
 
 This note is not a source-verified implementation specification. Any item promoted into code or adviser-facing copy should still be checked against HMRC / GOV.UK / adviser sources, especially post-2024 LSA / LSDBA and post-April-2027 IHT treatment.
 
-## Short conclusion
+## Updated conclusion after consolidated adviser-video review
 
-The current app already covers the core path we have been prioritising:
+The consolidated adviser-video pattern changes the product framing slightly. The app should treat **UFPLS** and **Phased FAD** as the two primary drawdown engines:
 
-- phased crystallisation / PCLS as a capital event;
-- taxable flexi-access drawdown from crystallised funds;
-- MPAA distinction between PCLS-only and taxable drawdown;
-- crystallised vs uncrystallised ledger state;
-- guarded ledger-aware ordinary FAD withdrawals;
-- explicit caveats that LSA / LSDBA are not fully numerically enforced.
+1. **UFPLS path** — for users who mainly want to take one-off or regular lump sums directly from uncrystallised funds. Simple 25% tax-free / 75% taxable treatment, but first payment triggers MPAA and may involve emergency-tax/P55 issues.
+2. **Phased FAD path** — for users who want a planned multi-year retirement-income strategy. Crystallise in slices, take PCLS separately, preserve tax-free entitlement on uncrystallised growth, and draw taxable income from crystallised funds when needed.
 
-The extra reference is still useful because it highlights three good adviser-demo questions and several future feature areas. For the upcoming adviser demo, do not broaden the demo; use these as prompts to ask what matters next.
+Full crystallisation should be demoted from a strategy choice to a warning/comparison column: it helps explain what the app is avoiding, but should not be presented as a recommended normal route.
+
+The current app is strongest on the Phased FAD path. It has the ledger, PCLS, taxable FAD, and ledger-aware ordinary FAD pieces. UFPLS is recognised structurally and in research, but it is not yet a polished first-class calculator/planner path. That is the main functional gap exposed by the video synthesis.
 
 ## Already well covered in the current model
 
@@ -26,7 +24,7 @@ The extra reference is still useful because it highlights three good adviser-dem
 | First taxable FAD income triggers MPAA | Covered for explicit FAD events and ledger-aware ordinary FAD withdrawals. | Show warning/caveat briefly, not as a deep tax lecture. |
 | Phased drawdown as strategy rather than separate product | Covered in design docs: crystallisation/PCLS + taxable FAD as a compound workflow. | Use plain English: “phased crystallisation and drawdown”. |
 | Uncrystallised vs crystallised growth status | Covered as a ledger side-channel with proportional growth attribution; caveat that separate growth rates are not yet modelled. | Mention as current simplifying assumption. |
-| UFPLS vs phased distinction | Covered in research docs and internal event types; UFPLS deliberately not prominent in UI yet. | Ask whether UFPLS needs to be promoted or can remain secondary. |
+| UFPLS vs phased distinction | Covered in research docs and internal event types, but UFPLS is not yet a polished first-class calculator/planner path. | Treat this as the main gap if the adviser agrees UFPLS must sit alongside Phased FAD. |
 | State Pension as taxable guaranteed income | The engine supports taxable guaranteed income. Current app does not yet auto-calculate SPA or ask for State Pension forecast in a rich way. | Demo as configured input, not automated advice. |
 
 ## Partially covered / caveated
@@ -34,7 +32,7 @@ The extra reference is still useful because it highlights three good adviser-dem
 | Topic | Current state | Suggested next treatment |
 | --- | --- | --- |
 | LSA / LSDBA | Ledger state and warnings/caveats exist, but full numerical allowance enforcement is not complete. | Keep as explicit demo caveat. Ask adviser how important this is before wider use. |
-| Emergency tax / P55 reclaim workflow | Recognised in research, but not implemented as a UI workflow. | Good future warning feature, especially if UFPLS is exposed. Not needed for the current three-example demo. |
+| Emergency tax / P55 reclaim workflow | Recognised in research, but not implemented as a UI workflow. | Higher priority if UFPLS becomes one of the two primary engines. |
 | Provider compatibility | Caveated, not modelled. | Add to adviser questions: which provider limitations matter most? |
 | Scottish taxpayer status | Tax packs exist for implemented regions, but automatic postcode detection is not the right first priority. | Keep manual selection / caveat. |
 | Personal allowance taper over £100k | Known limitation in the app. | Caveat for high-income cases; not core to the demo examples unless relevant. |
@@ -55,15 +53,16 @@ The extra reference is still useful because it highlights three good adviser-dem
 
 ## Adviser-demo implications
 
-Do not add more examples before the meeting. The extra material strengthens the questions we ask, not the number of scenarios we show.
+Do not add many more examples before the meeting. But adjust the positioning: the app is moving toward **two engines** — UFPLS and Phased FAD — with the demo currently showing the Phased FAD engine more completely.
 
-Add these as optional adviser prompts:
+Add these adviser prompts:
 
-1. Is phased crystallisation / PCLS / taxable FAD the right primary route for the app to model first, with UFPLS secondary?
-2. Should small pots and trivial commutation be treated as visible options or just caveated edge cases?
-3. Would an annuity-floor comparison be useful enough to prioritise, or would it distract from drawdown planning?
-4. Which warnings are essential before real-case use: MPAA, emergency tax/P55, LSA, provider compatibility, Pension Wise, recycling, or minimum pension age?
-5. Should the next implementation focus on better pension-access warnings, State Pension age/forecast support, or annuity/hybrid comparisons?
+1. Do you agree that UFPLS and Phased FAD are the two main drawdown engines the app should present?
+2. Is it acceptable that the current demo is strongest on Phased FAD, while UFPLS is still a roadmap item?
+3. Should full crystallisation be kept only as a warning/comparison column rather than a normal strategy?
+4. Should small pots and trivial commutation be auto-detected opportunities rather than primary strategy choices?
+5. Should annuity/hybrid sit before the drawdown-path choice as a separate “guaranteed income vs flexibility” decision?
+6. Which warnings are essential before real-case use: MPAA, emergency tax/P55, LSA, provider compatibility, Pension Wise, recycling, or minimum pension age?
 
 ## Suggested roadmap impact
 
@@ -75,8 +74,8 @@ For the demo branch:
 
 For future implementation, the most credible next slices are:
 
-1. Warning/caveat pass: emergency tax/P55, Pension Wise, minimum pension age, provider compatibility, LSA/LSDBA scope.
-2. State Pension helper: DOB-derived SPA and editable State Pension forecast support.
-3. Small pots/trivial commutation detection if adviser says common enough.
-4. Annuity floor comparison as a planning scenario, not a recommendation engine.
-5. UFPLS event implementation only if adviser says it needs to be first-class rather than secondary.
+1. UFPLS calculator/planner path: one-off/regular UFPLS, 25% tax-free / 75% taxable, MPAA trigger, emergency-tax/P55 warning.
+2. Warning/caveat pass: Pension Wise, minimum pension age, provider compatibility, LSA/LSDBA scope, recycling if contributions are modelled.
+3. State Pension helper: DOB-derived SPA and editable State Pension forecast support.
+4. Small pots/trivial commutation auto-detection, if adviser confirms these should be surfaced.
+5. Annuity floor / hybrid comparison as a separate pre-drawdown decision, not a third drawdown engine.

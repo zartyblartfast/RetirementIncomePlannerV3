@@ -22,7 +22,7 @@ Avoid saying:
 
 ## Keep the demo to three examples
 
-The aim is a short walkthrough, not a full technical review.
+The aim is a short walkthrough, not a full technical review. Updated adviser-video synthesis suggests the two main drawdown engines are UFPLS and Phased FAD. The current demo is strongest on Phased FAD; use that honestly, and ask whether UFPLS should be the next first-class path.
 
 ### Example 1: Baseline plan
 
@@ -104,13 +104,13 @@ Known caveats to state:
 
 - LSA / LSDBA are caveated; the app does not yet enforce the full allowance regime numerically.
 - Provider-specific pension access rules are not modelled.
-- UFPLS is recognised as a possible future route but is not the primary exposed workflow in this demo.
+- UFPLS is recognised as one of the two main drawdown engines, but it is not yet as complete in the UI as the Phased FAD path.
 
 ## Five questions to take away
 
 1. Which assumptions are acceptable for planning if clearly caveated?
 2. Which caveats need stronger wording before use with real cases?
-3. Is phased crystallisation / PCLS / taxable FAD the right pension-access priority over UFPLS?
+3. Do you agree the app should present UFPLS and Phased FAD as the two main drawdown engines, with full crystallisation only as a warning/comparison?
 4. What is the smallest extra pension/provider rule that would materially improve adviser confidence?
 5. What output would make the app most useful in a real adviser-client review: clearer workings, better case notes, more exportable reports, or different scenarios?
 
