@@ -110,19 +110,24 @@ describe('pension access mode metadata', () => {
     expect(issues).toEqual([]);
   });
 
-  it('preserves projection outputs when explicit ledger-aware mode is configured before projection support is wired', () => {
-    const legacyCfg = cloneConfig(DEFAULT_CONFIG);
+  it('does not auto-crystallise or fall back to pro-rata when ledger-aware mode has no crystallised balance', () => {
     const ledgerAwareCfg = cloneConfig(DEFAULT_CONFIG);
     ledgerAwareCfg.dc_pots[0]!.pension_access = {
       category: 'explicit_ledger_aware',
       route: 'taxable_flexi_access_drawdown',
     };
 
-    const legacyProjection = runProjection(legacyCfg);
     const ledgerAwareProjection = runProjection(normalizeConfigPensionAccessModes(ledgerAwareCfg));
+    const firstYear = ledgerAwareProjection.years[0]!;
+    const ledger = ledgerAwareProjection.pension_ledger_states?.find(state => state.pot_ref === 'DC Pension')!;
 
-    expect(ledgerAwareProjection.years).toEqual(legacyProjection.years);
-    expect(ledgerAwareProjection.summary).toEqual(legacyProjection.summary);
+    expect(firstYear.dc_withdrawal_gross).toBe(0);
+    expect(firstYear.dc_tax_free_portion).toBe(0);
+    expect(firstYear.withdrawal_detail['DC Pension']).toBeUndefined();
+    expect(firstYear.withdrawal_detail['ISA']).toBeGreaterThan(0);
+    expect(ledger.crystallised_drawdown_balance).toBe(0);
+    expect(ledger.taxable_drawdown_taken).toBe(0);
+    expect(ledger.mpaa_triggered).toBe(false);
   });
 
   it('rejects malformed explicit ledger-aware routes rather than widening the supported mode', () => {

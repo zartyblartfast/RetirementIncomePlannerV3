@@ -324,8 +324,16 @@ export function runProjection(
         || event.event_type === 'taxable_flexi_access_drawdown')
       .map(event => event.pot_ref),
   );
+  const ledgerAwareOrdinaryFadPotRefs = new Set(
+    (cfg.dc_pots ?? [])
+      .filter(pot => pot.pension_access?.category === 'explicit_ledger_aware'
+        && pot.pension_access.route === 'taxable_flexi_access_drawdown')
+      .map(pot => pot.name),
+  );
   const mixedPensionAccessPotRefs = new Set(
-    [...explicitPensionAccessPotRefs].filter(potRef => ordinaryPensionDrawdownPotRefs.has(potRef)),
+    [...explicitPensionAccessPotRefs].filter(potRef =>
+      ordinaryPensionDrawdownPotRefs.has(potRef) && !ledgerAwareOrdinaryFadPotRefs.has(potRef),
+    ),
   );
   const taxCfg = cfg.tax;
   const endAgeCfg = cfg.personal.end_age;
@@ -1021,6 +1029,29 @@ export function runProjection(
       return gross - ((taxAfter - taxBefore) / 12);
     }
 
+    function isLedgerAwareOrdinaryFadPot(sourceName: string): boolean {
+      return ledgerAwareOrdinaryFadPotRefs.has(sourceName);
+    }
+
+    function availableOrdinaryFadBalance(sourceName: string): number {
+      if (!isLedgerAwareOrdinaryFadPot(sourceName)) return dcBalances[sourceName] ?? 0;
+      const ledger = pensionLedgerByPot[sourceName];
+      return Math.min(dcBalances[sourceName] ?? 0, ledger?.crystallised_drawdown_balance ?? 0);
+    }
+
+    function applyOrdinaryFadWithdrawalToLedger(sourceName: string, grossAmount: number): void {
+      if (!isLedgerAwareOrdinaryFadPot(sourceName) || grossAmount <= 0.01) return;
+      const ledger = pensionLedgerByPot[sourceName];
+      if (!ledger) return;
+      ledger.crystallised_drawdown_balance = Math.max(0, ledger.crystallised_drawdown_balance - grossAmount);
+      ledger.taxable_drawdown_taken += grossAmount;
+      if (!ledger.mpaa_triggered) {
+        const [withdrawalYear, withdrawalMonth] = absToYm(absM);
+        ledger.mpaa_triggered = true;
+        ledger.mpaa_trigger_date = `${withdrawalYear}-${String(withdrawalMonth).padStart(2, '0')}`;
+      }
+    }
+
     if (useGrossMode) {
       // GROSS mode: fixed monthly pot withdrawal target
       let remaining = Math.max(0, strategyAmount / 12);
@@ -1032,13 +1063,17 @@ export function runProjection(
         allocationStage?: DrawdownStageConfig,
         allocationStageIndex = 0,
       ): number {
-        const available = dcBalances[sourceName]!;
+        const available = availableOrdinaryFadBalance(sourceName);
         const actual = Math.min(grossNeeded, available);
         if (actual <= 0.01) return 0;
         dcBalances[sourceName] = dcBalances[sourceName]! - actual;
-        updatePensionLedger(sourceName, -actual);
+        if (isLedgerAwareOrdinaryFadPot(sourceName)) {
+          applyOrdinaryFadWithdrawalToLedger(sourceName, actual);
+        } else {
+          updatePensionLedger(sourceName, -actual);
+        }
         if (dcBalances[sourceName]! < 0.01) dcBalances[sourceName] = 0;
-        const tfp = dcMeta[sourceName]!.tax_free_portion;
+        const tfp = isLedgerAwareOrdinaryFadPot(sourceName) ? 0 : dcMeta[sourceName]!.tax_free_portion;
         currentAgg!.dc_gross += actual;
         currentAgg!.dc_tf += actual * tfp;
         const netFromDc = netFromDcWithdrawal(actual, tfp);
@@ -1129,7 +1164,7 @@ export function runProjection(
         allocationStage?: DrawdownStageConfig,
         allocationStageIndex = 0,
       ): number {
-        const tfp = dcMeta[sourceName]!.tax_free_portion;
+        const tfp = isLedgerAwareOrdinaryFadPot(sourceName) ? 0 : dcMeta[sourceName]!.tax_free_portion;
         let grossNeeded: number;
         const taxableIfNetAsGross = netNeeded * 12 * (1 - tfp);
         const taxBefore = calculateTax(monthlyTaxableBaseAnnual, taxCfg).total;
@@ -1139,10 +1174,14 @@ export function runProjection(
         } else {
           grossNeeded = grossUp(netNeeded * 12, monthlyTaxableBaseAnnual, tfp, taxCfg) / 12;
         }
-        grossNeeded = Math.min(grossNeeded, dcBalances[sourceName]!);
+        grossNeeded = Math.min(grossNeeded, availableOrdinaryFadBalance(sourceName));
         if (grossNeeded <= 0.01) return 0;
         dcBalances[sourceName] = dcBalances[sourceName]! - grossNeeded;
-        updatePensionLedger(sourceName, -grossNeeded);
+        if (isLedgerAwareOrdinaryFadPot(sourceName)) {
+          applyOrdinaryFadWithdrawalToLedger(sourceName, grossNeeded);
+        } else {
+          updatePensionLedger(sourceName, -grossNeeded);
+        }
         if (dcBalances[sourceName]! < 0.01) dcBalances[sourceName] = 0;
         const tfpAmt = grossNeeded * tfp;
         currentAgg!.dc_gross += grossNeeded;

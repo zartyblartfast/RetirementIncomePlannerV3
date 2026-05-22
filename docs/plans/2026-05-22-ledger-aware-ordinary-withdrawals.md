@@ -149,6 +149,8 @@ git commit -m "feat: add ledger-aware pension access mode"
 
 ## Task 2: Add projection helper for ledger-aware ordinary FAD withdrawals
 
+Status: implemented in Dev03 checkpoint `pending`.
+
 **Objective:** Implement a small helper path for ordinary withdrawals that draw from crystallised balance and are 100% taxable.
 
 **Files:**

@@ -214,6 +214,46 @@ describe('projection pension ledger foundation', () => {
     expect(eventYear.dc_tax_free_portion / eventYear.dc_withdrawal_gross).toBeCloseTo(0.25, 2);
   });
 
+  it('uses crystallised drawdown for ordinary withdrawals when a pot opts into ledger-aware taxable FAD', () => {
+    const cfg = pensionOnlyConfig();
+    cfg.drawdown_strategy = 'fixed_percentage';
+    cfg.drawdown_strategy_params = { withdrawal_rate: 12 };
+    cfg.dc_pots[0]!.pension_access = {
+      category: 'explicit_ledger_aware',
+      route: 'taxable_flexi_access_drawdown',
+    };
+    cfg.pension_access_events = [
+      {
+        id: 'annual_pcls_1',
+        pot_ref: 'DC Pension',
+        event_type: 'crystallise_and_take_pcls',
+        timing: { kind: 'retirement_date' },
+        amount: { kind: 'fixed_amount', value: 40_000 },
+        destination: { kind: 'outside_plan' },
+      },
+    ];
+
+    const result = runProjection(cfg);
+    const eventYear = result.years.find(year => year.pension_access_events?.some(event => event.id === 'annual_pcls_1'))!;
+    const event = eventYear.pension_access_events![0]!;
+    const ledger = result.pension_ledger_states?.find(state => state.pot_ref === 'DC Pension')!;
+
+    expect(event.caveats).not.toContain('ordinary_drawdown_also_targets_this_pot');
+    expect(result.warnings).not.toContain('Mixed pension-access mode: DC Pension has explicit pension-access events and ordinary staged DC withdrawals also target this pot; ordinary withdrawals remain compatibility simplified pro-rata until ledger-aware withdrawals are explicitly enabled.');
+    expect(eventYear.dc_withdrawal_gross).toBeCloseTo(12_000, 2);
+    expect(eventYear.dc_tax_free_portion).toBeCloseTo(0, 2);
+    expect(eventYear.total_taxable_income).toBeCloseTo(12_000, 2);
+    expect(eventYear.net_income_achieved).toBeCloseTo(12_000, 2);
+    expect(eventYear.pot_pnl['DC Pension']!.withdrawal).toBeCloseTo(22_000, 2);
+    expect(ledger.uncrystallised_balance).toBeCloseTo(60_000, 2);
+    expect(ledger.crystallised_drawdown_balance).toBeCloseTo(8_640, 2);
+    expect(ledger.tax_free_cash_taken).toBeCloseTo(10_000, 2);
+    expect(ledger.taxable_drawdown_taken).toBeCloseTo(21_360, 2);
+    expect(ledger.mpaa_triggered).toBe(true);
+    expect(ledger.mpaa_trigger_date).toBe('2032-01');
+    expect(result.summary.remaining_pots['DC Pension']).toBeCloseTo(68_640, 2);
+  });
+
   it('applies same-month taxable flexi-access drawdown from crystallised balance as taxable income and triggers MPAA', () => {
     const cfg = pensionOnlyConfig();
     cfg.pension_access_events = [
