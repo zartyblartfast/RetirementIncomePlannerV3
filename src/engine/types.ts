@@ -376,6 +376,7 @@ export interface YearRow {
   drawdown_stage_transitions?: DrawdownStageTransition[];
   drawdown_stage_allocations?: DrawdownStageAllocationDetail[];
   pension_access_events?: PensionAccessResolvedEvent[];
+  projection_warnings?: string[];
 }
 
 export interface ProjectionSummary {

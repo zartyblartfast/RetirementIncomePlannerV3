@@ -162,4 +162,16 @@ describe('YearTable pension access event visibility', () => {
     expect(mounted.container.textContent).toContain('Uncrystallised £60,000 → £60,000');
     expect(mounted.container.textContent).toContain('MPAA triggered by taxable drawdown');
   });
+
+  it('surfaces projection warnings such as ledger-aware FAD shortfalls in expanded detail', () => {
+    mounted = renderYearTable([{
+      ...yearWithTfcEvent(),
+      projection_warnings: ['ledger_aware_fad_insufficient_crystallised_balance'],
+    }]);
+
+    mounted.clickText('67');
+
+    expect(mounted.container.textContent).toContain('Projection warnings');
+    expect(mounted.container.textContent).toContain('Ledger-aware FAD could not fund requested ordinary withdrawals from crystallised drawdown. No automatic crystallisation or compatibility pro-rata fallback was applied.');
+  });
 });

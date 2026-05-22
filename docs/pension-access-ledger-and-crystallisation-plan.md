@@ -76,6 +76,7 @@ Current compatible behaviour:
 - Dev03 now has type/validation support for an explicit per-pot `explicit_ledger_aware` / `taxable_flexi_access_drawdown` mode and projection support for ordinary withdrawals from crystallised drawdown when that mode is opted in.
 - Strategy now exposes this as a guarded per-pot ordinary-withdrawal treatment selector: default compatibility gradual pro-rata remains unchanged, while ledger-aware FAD is explicit and labelled as requiring crystallised drawdown first.
 - Ledger-aware ordinary FAD withdrawals are 100% taxable, trigger MPAA on first taxable drawdown, reduce `crystallised_drawdown_balance`, and do not auto-crystallise or fall back to simplified pro-rata when crystallised balance is unavailable.
+- If ledger-aware ordinary FAD cannot fund a requested ordinary withdrawal from crystallised drawdown, the projection now records warning code `ledger_aware_fad_insufficient_crystallised_balance`, adds a global warning, and surfaces user-facing copy in Year Table expanded detail and full workings.
 
 This mode should remain available for migration and simpler users, but it must be labelled honestly.
 

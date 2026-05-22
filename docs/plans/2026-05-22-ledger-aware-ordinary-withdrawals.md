@@ -223,6 +223,8 @@ npx vitest run --config vitest.config.ts src/engine/__tests__/projectionPensionL
 
 ## Task 3: Handle insufficiency, mixed mode, and cleardown
 
+Status: partially implemented in Dev03 checkpoint `pending`: insufficient crystallised-balance warnings are now explicit and visible in projection, workings, and Year Table.
+
 **Objective:** Make edge cases explicit and visible.
 
 **Files:**

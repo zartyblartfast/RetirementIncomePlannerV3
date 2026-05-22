@@ -63,6 +63,15 @@ function pensionAccessLedgerMovement(event: PensionAccessResolvedEvent): string 
   return `Uncrystallised ${fmt(event.uncrystallised_balance_before)} → ${fmt(event.uncrystallised_balance_after)}. Crystallised drawdown ${fmt(event.crystallised_drawdown_balance_before)} → ${fmt(event.crystallised_drawdown_balance_after)}.`;
 }
 
+function projectionWarningLabel(warning: string): string {
+  switch (warning) {
+    case 'ledger_aware_fad_insufficient_crystallised_balance':
+      return 'Ledger-aware FAD could not fund requested ordinary withdrawals from crystallised drawdown. No automatic crystallisation or compatibility pro-rata fallback was applied.';
+    default:
+      return warning.replace(/_/g, ' ');
+  }
+}
+
 export default function YearTable({ years, taxContext }: Props) {
   const [expandedAge, setExpandedAge] = useState<number | null>(null);
   const [workingsYear, setWorkingsYear] = useState<YearRow | null>(null);
@@ -142,6 +151,7 @@ export default function YearTable({ years, taxContext }: Props) {
 
 function ExpandedDetail({ yr, onShowWorkings }: { yr: YearRow; onShowWorkings: () => void }) {
   const pensionAccessEvents = yr.pension_access_events ?? [];
+  const projectionWarnings = yr.projection_warnings ?? [];
 
   return (
     <div className="space-y-3">
@@ -170,6 +180,16 @@ function ExpandedDetail({ yr, onShowWorkings }: { yr: YearRow; onShowWorkings: (
             <div className="flex justify-between text-gray-500 mt-1">
               <span>DC tax-free portion</span>
               <span>{fmt(yr.dc_tax_free_portion)}</span>
+            </div>
+          )}
+          {projectionWarnings.length > 0 && (
+            <div className="mt-3 rounded border border-amber-100 bg-amber-50 px-2 py-1 text-amber-800">
+              <h4 className="font-semibold mb-1">Projection warnings</h4>
+              <ul className="list-disc pl-4">
+                {projectionWarnings.map(warning => (
+                  <li key={warning}>{projectionWarningLabel(warning)}</li>
+                ))}
+              </ul>
             </div>
           )}
           {pensionAccessEvents.length > 0 && (

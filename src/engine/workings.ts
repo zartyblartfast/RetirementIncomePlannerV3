@@ -83,6 +83,15 @@ function pensionAccessCaveatSummary(caveats: string[]): string {
   return caveats.map(pensionAccessCaveatLabel).join('; ');
 }
 
+function projectionWarningLabel(warning: string): string {
+  switch (warning) {
+    case 'ledger_aware_fad_insufficient_crystallised_balance':
+      return 'Ledger-aware FAD could not fund the requested ordinary withdrawal from crystallised drawdown; no automatic crystallisation or compatibility pro-rata fallback was applied.';
+    default:
+      return warning.replace(/_/g, ' ');
+  }
+}
+
 export function computeYearWorkings(yr: YearRow, taxContext?: TaxContext): WorkingsReport {
   const steps: WorkingsStep[] = [];
 
@@ -170,6 +179,16 @@ export function computeYearWorkings(yr: YearRow, taxContext?: TaxContext): Worki
       label: `Drawdown stage transition: month ${transition.month}`,
       formula: `${transition.from_stage_name} → ${transition.to_stage_name ?? 'No further stage'} because ${transitionReasonLabel(transition.reason)}`,
       value: transition.month,
+      isCrossCheck: false,
+    });
+  }
+
+  for (const warning of yr.projection_warnings ?? []) {
+    steps.push({
+      id: `projection_warning_${safeIdPart(warning)}`,
+      label: 'Projection warning',
+      formula: projectionWarningLabel(warning),
+      value: 0,
       isCrossCheck: false,
     });
   }

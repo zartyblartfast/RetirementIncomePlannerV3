@@ -238,4 +238,17 @@ describe('computeYearWorkings', () => {
     expect(eventStep!.formula).toContain('Uncrystallised balance £60,000 → £60,000');
     expect(eventStep!.formula).toContain('MPAA triggered by taxable drawdown');
   });
+
+  it('includes projection warnings such as ledger-aware FAD shortfalls', () => {
+    const w = computeYearWorkings({
+      ...yr1,
+      projection_warnings: ['ledger_aware_fad_insufficient_crystallised_balance'],
+    });
+
+    const step = w.steps.find(s => s.id === 'projection_warning_ledger_aware_fad_insufficient_crystallised_balance');
+    expect(step).toBeDefined();
+    expect(step!.label).toBe('Projection warning');
+    expect(step!.formula).toContain('Ledger-aware FAD could not fund the requested ordinary withdrawal from crystallised drawdown');
+    expect(step!.formula).toContain('no automatic crystallisation or compatibility pro-rata fallback was applied');
+  });
 });

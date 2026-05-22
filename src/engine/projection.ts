@@ -156,6 +156,7 @@ interface AnnualAgg {
   drawdown_stage_transitions: DrawdownStageTransition[];
   drawdown_stage_allocations: DrawdownStageAllocationDetail[];
   pension_access_events: PensionAccessResolvedEvent[];
+  projection_warnings: string[];
 }
 
 interface DcMeta {
@@ -286,6 +287,10 @@ function buildYearRow(
 
   if (agg.pension_access_events.length > 0) {
     row.pension_access_events = agg.pension_access_events;
+  }
+
+  if (agg.projection_warnings.length > 0) {
+    row.projection_warnings = [...agg.projection_warnings];
   }
 
   return row;
@@ -620,6 +625,7 @@ export function runProjection(
       drawdown_stage_transitions: [],
       drawdown_stage_allocations: [],
       pension_access_events: [],
+      projection_warnings: [],
     };
   }
 
@@ -1039,6 +1045,17 @@ export function runProjection(
       return Math.min(dcBalances[sourceName] ?? 0, ledger?.crystallised_drawdown_balance ?? 0);
     }
 
+    function recordLedgerAwareFadShortfall(sourceName: string): void {
+      const code = 'ledger_aware_fad_insufficient_crystallised_balance';
+      const message = `Ledger-aware FAD shortfall: ${sourceName} ordinary withdrawals requested crystallised drawdown, but crystallised drawdown balance was insufficient; no auto-crystallisation or pro-rata fallback was applied.`;
+      if (!currentAgg!.projection_warnings.includes(code)) {
+        currentAgg!.projection_warnings.push(code);
+      }
+      if (!warnings.includes(message)) {
+        warnings.push(message);
+      }
+    }
+
     function applyOrdinaryFadWithdrawalToLedger(sourceName: string, grossAmount: number): void {
       if (!isLedgerAwareOrdinaryFadPot(sourceName) || grossAmount <= 0.01) return;
       const ledger = pensionLedgerByPot[sourceName];
@@ -1064,6 +1081,9 @@ export function runProjection(
         allocationStageIndex = 0,
       ): number {
         const available = availableOrdinaryFadBalance(sourceName);
+        if (isLedgerAwareOrdinaryFadPot(sourceName) && grossNeeded > available + 0.01) {
+          recordLedgerAwareFadShortfall(sourceName);
+        }
         const actual = Math.min(grossNeeded, available);
         if (actual <= 0.01) return 0;
         dcBalances[sourceName] = dcBalances[sourceName]! - actual;
@@ -1174,7 +1194,11 @@ export function runProjection(
         } else {
           grossNeeded = grossUp(netNeeded * 12, monthlyTaxableBaseAnnual, tfp, taxCfg) / 12;
         }
-        grossNeeded = Math.min(grossNeeded, availableOrdinaryFadBalance(sourceName));
+        const available = availableOrdinaryFadBalance(sourceName);
+        if (isLedgerAwareOrdinaryFadPot(sourceName) && grossNeeded > available + 0.01) {
+          recordLedgerAwareFadShortfall(sourceName);
+        }
+        grossNeeded = Math.min(grossNeeded, available);
         if (grossNeeded <= 0.01) return 0;
         dcBalances[sourceName] = dcBalances[sourceName]! - grossNeeded;
         if (isLedgerAwareOrdinaryFadPot(sourceName)) {

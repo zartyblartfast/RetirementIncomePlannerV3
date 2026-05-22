@@ -254,6 +254,29 @@ describe('projection pension ledger foundation', () => {
     expect(result.summary.remaining_pots['DC Pension']).toBeCloseTo(68_640, 2);
   });
 
+  it('warns when ledger-aware ordinary FAD cannot use uncrystallised funds or fall back to pro-rata', () => {
+    const cfg = pensionOnlyConfig();
+    cfg.target_income.net_annual = 12_000;
+    cfg.dc_pots[0]!.pension_access = {
+      category: 'explicit_ledger_aware',
+      route: 'taxable_flexi_access_drawdown',
+    };
+
+    const result = runProjection(cfg);
+    const firstYear = result.years[0]!;
+    const ledger = result.pension_ledger_states?.find(state => state.pot_ref === 'DC Pension')!;
+
+    expect(firstYear.dc_withdrawal_gross).toBe(0);
+    expect(firstYear.dc_tax_free_portion).toBe(0);
+    expect(firstYear.shortfall).toBe(true);
+    expect(firstYear.projection_warnings).toContain('ledger_aware_fad_insufficient_crystallised_balance');
+    expect(result.warnings).toContain('Ledger-aware FAD shortfall: DC Pension ordinary withdrawals requested crystallised drawdown, but crystallised drawdown balance was insufficient; no auto-crystallisation or pro-rata fallback was applied.');
+    expect(ledger.uncrystallised_balance).toBeCloseTo(100_000, 2);
+    expect(ledger.crystallised_drawdown_balance).toBe(0);
+    expect(ledger.taxable_drawdown_taken).toBe(0);
+    expect(ledger.mpaa_triggered).toBe(false);
+  });
+
   it('applies same-month taxable flexi-access drawdown from crystallised balance as taxable income and triggers MPAA', () => {
     const cfg = pensionOnlyConfig();
     cfg.pension_access_events = [
