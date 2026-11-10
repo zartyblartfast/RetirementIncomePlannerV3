@@ -23,13 +23,13 @@ export default function Layout() {
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-gray-900 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-14">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 py-3 sm:py-0 sm:min-h-14">
             <div className="flex items-center gap-2">
               <span className="text-lg font-semibold tracking-tight">
                 Retirement Planner
               </span>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex flex-wrap items-center gap-1">
               {navItems.map(({ to, label, icon: Icon }) => (
                 <NavLink
                   key={to}

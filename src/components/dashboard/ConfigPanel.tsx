@@ -94,7 +94,7 @@ function ageLabelAtMonth(dateOfBirth: string, month?: string | null): string | n
 
 export default function ConfigPanel() {
   const { config, setConfig, updateConfig } = useConfig();
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [caseMetadata, setCaseMetadata] = useState<CaseMetadata>(() => loadCaseMetadata());
 
@@ -330,11 +330,13 @@ export default function ConfigPanel() {
     <div className="rounded-lg border border-gray-200 bg-white">
       <button
         onClick={() => setOpen(!open)}
+        type="button"
+        aria-expanded={open}
         className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
       >
         <div className="flex items-center gap-2">
           <Settings className="w-4 h-4 text-gray-500" />
-          <span className="text-sm font-semibold text-gray-700">Configuration</span>
+          <span className="text-sm font-semibold text-gray-700">Plan inputs and assumptions</span>
         </div>
         {open ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
       </button>

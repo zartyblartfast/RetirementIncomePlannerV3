@@ -45,6 +45,12 @@ describe('ConfigPanel growth assumptions', () => {
 
   it('keeps historical Suggest controls visible beside growth-rate inputs', () => {
     mounted = renderConfigPanel();
+    const toggle = Array.from(mounted.container.querySelectorAll('button')).find(
+      button => button.textContent?.includes('Plan inputs and assumptions'),
+    );
+    expect(toggle?.getAttribute('aria-expanded')).toBe('false');
+    act(() => toggle?.click());
+    expect(toggle?.getAttribute('aria-expanded')).toBe('true');
 
     const suggestButtons = Array.from(mounted.container.querySelectorAll('button')).filter(
       (button) => button.textContent?.trim() === 'Suggest',
