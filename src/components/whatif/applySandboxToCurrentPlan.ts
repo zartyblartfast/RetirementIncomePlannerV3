@@ -32,3 +32,8 @@ export function applySandboxStrategySettingsToCurrentPlan(
 
   return next;
 }
+
+/** Whether the scoped update would actually change the Current Plan. */
+export function hasApplicableSandboxChanges(currentPlan: PlannerConfig, sandbox: PlannerConfig): boolean {
+  return JSON.stringify(applySandboxStrategySettingsToCurrentPlan(currentPlan, sandbox)) !== JSON.stringify(currentPlan);
+}

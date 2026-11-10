@@ -53,6 +53,16 @@ afterEach(() => {
 });
 
 describe('SandboxControls pension access scenarios', () => {
+  it('shows the effective target when a strategy parameter is absent', () => {
+    mounted = renderSandboxControls({
+      ...cloneConfig(DEFAULT_CONFIG),
+      drawdown_strategy: 'fixed_target',
+      target_income: { ...DEFAULT_CONFIG.target_income, net_annual: 32000 },
+    });
+    const field = Array.from(mounted.container.querySelectorAll('label')).find(el => el.textContent?.includes('Target Net Income'));
+    expect(field?.querySelector('input')?.value).toBe('32000');
+  });
+
   it('shows the Current Plan strategy snapshot as a read-only baseline rather than a stage editor', () => {
     mounted = renderSandboxControls({
       ...cloneConfig(DEFAULT_CONFIG),
@@ -69,6 +79,9 @@ describe('SandboxControls pension access scenarios', () => {
       ],
     });
 
+    const details = mounted.container.querySelector('details');
+    expect(details?.open).toBe(false);
+    act(() => { if (details) details.open = true; });
     expect(mounted.container.textContent).toContain('Retirement Income Strategy baseline');
     expect(mounted.container.textContent).toContain('What If starts from the Current Plan strategy');
     expect(mounted.container.textContent).toContain('Opening blend — DC Pension 60.0% + ISA 40.0%');
@@ -86,6 +99,8 @@ describe('SandboxControls pension access scenarios', () => {
       ],
     });
 
+    const details = mounted.container.querySelector('details');
+    act(() => { if (details) details.open = true; });
     mounted.chooseSelectByLabel('Tax-free cash event', 'retirement_tfc');
 
     expect(mounted.container.textContent).toContain('Pension pot');

@@ -12,7 +12,8 @@ import type { CompareItem } from '../components/whatif/ComparePanel';
 import StressTestPanel from '../components/whatif/StressTestPanel';
 import ShootoutPanel from '../components/whatif/ShootoutPanel';
 import type { PlannerConfig } from '../engine/types';
-import { applySandboxStrategySettingsToCurrentPlan } from '../components/whatif/applySandboxToCurrentPlan';
+import { applySandboxStrategySettingsToCurrentPlan, hasApplicableSandboxChanges } from '../components/whatif/applySandboxToCurrentPlan';
+import { incomeBasisForConfig } from '../components/dashboard/incomeBasis';
 import {
   loadScenarios,
   saveScenario,
@@ -85,7 +86,16 @@ export default function WhatIf() {
 
   // Run projection on the extended config (instant — no button needed)
   const result = useProjection(extendedConfig);
+  // Keep the immediate comparison within each plan's selected end age.
+  const currentResult = useProjection(dashboardConfig);
+  const sandboxResult = useProjection(sandboxConfig);
+  const hasChanges = JSON.stringify(sandboxConfig) !== JSON.stringify(dashboardConfig);
+  const hasApplicableChanges = hasApplicableSandboxChanges(dashboardConfig, sandboxConfig);
   const strategyId = sandboxConfig.drawdown_strategy ?? 'fixed_target';
+  const currentIncomeBasis = incomeBasisForConfig(dashboardConfig);
+  const sandboxIncomeBasis = incomeBasisForConfig(sandboxConfig);
+  const pounds = (amount: number) => `£${Math.round(amount).toLocaleString('en-GB')}`;
+  const shortfallLabel = (age: number | null) => age === null ? 'None through plan end' : `Age ${age}`;
 
   // Reset sandbox to current dashboard config
   const resetSandbox = useCallback(() => {
@@ -122,10 +132,10 @@ export default function WhatIf() {
     setSandboxConfig(deepClone(sc.config));
   }, []);
 
-  // Copy only strategy/TFC settings from the sandbox into the live Current Plan.
+  // Copy only strategy/income/TFC settings from the sandbox into the live Current Plan.
   const updateCurrentPlanFromSandbox = useCallback(() => {
     const confirmed = window.confirm(
-      'Update the Current Plan shown on the Dashboard?\n\nThis will copy the sandbox\'s drawdown strategy, staged drawdown order and planned pension-access/TFC events into the live Current Plan. The Dashboard and Strategy page will then reflect those settings.\n\nReview history, saved scenarios, fund values, income sources and tax settings will not be changed.',
+      'Update the Current Plan shown on the Dashboard?\n\nThis copies the sandbox income rule, target, CPI, drawdown order and planned pension-access/TFC events. It does not copy retirement or end ages, balances, income sources or tax settings. Review history and saved scenarios stay unchanged.',
     );
     if (!confirmed) return;
     setConfig(applySandboxStrategySettingsToCurrentPlan(dashboardConfig, sandboxConfig));
@@ -137,7 +147,7 @@ export default function WhatIf() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">What If</h1>
         <p className="text-sm text-gray-500 mt-0.5">
-          Try changes in a sandbox copy of your Current Plan. The Dashboard is unchanged unless you update the Current Plan.
+          Try changes in a sandbox copy of your Current Plan. Nothing changes on the Dashboard until you explicitly update it.
         </p>
       </div>
 
@@ -153,14 +163,14 @@ export default function WhatIf() {
             title="Reset this sandbox to the Current Plan shown on the Dashboard"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            Reset
+            Discard changes
           </button>
         </div>
 
         <SandboxControls config={sandboxConfig} onChange={setSandboxConfig} />
 
         {/* Action buttons */}
-        <div className="flex items-center gap-2 mt-4 pt-3 border-t border-amber-200">
+        <div className="flex flex-wrap items-center gap-2 mt-4 pt-3 border-t border-amber-200">
           <div className="flex items-center gap-2">
             <button
               onClick={() => { setShowStress(v => !v); setShowShootout(false); }}
@@ -190,8 +200,9 @@ export default function WhatIf() {
           <div className="w-px h-6 bg-amber-200 mx-1" />
           <button
             onClick={updateCurrentPlanFromSandbox}
-            className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
-            title="Copy drawdown and TFC settings from this sandbox into the Current Plan shown on the Dashboard"
+            disabled={!hasApplicableChanges}
+            className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            title="Copy income rule, target, CPI, drawdown and pension-access settings; retirement and end ages stay in the Current Plan"
           >
             <Check className="w-3.5 h-3.5" />
             Update Current Plan
@@ -218,6 +229,23 @@ export default function WhatIf() {
           </button>
         </div>
       </div>
+
+      <section className="rounded-lg border border-gray-200 bg-white p-4" aria-labelledby="what-if-comparison">
+        <h2 id="what-if-comparison" className="text-base font-semibold text-gray-900">Current Plan vs sandbox</h2>
+        <p className="text-sm text-gray-600 mt-1">{hasChanges ? 'This is a provisional comparison, not a saved plan.' : 'No changes yet. Adjust a sandbox input to see the effect.'}</p>
+        <div className="overflow-x-auto mt-3">
+          <table className="w-full text-sm text-left">
+            <thead><tr className="border-b border-gray-200"><th scope="col" className="py-2 pr-4">Measure</th><th scope="col" className="py-2 pr-4">Current Plan</th><th scope="col" className="py-2">Sandbox</th></tr></thead>
+            <tbody className="divide-y divide-gray-100">
+              <tr><th scope="row" className="py-2 pr-4 font-medium">Income basis</th><td className="py-2 pr-4">{currentIncomeBasis.label}: {pounds(currentIncomeBasis.amount)}/yr</td><td className="py-2">{sandboxIncomeBasis.label}: {pounds(sandboxIncomeBasis.amount)}/yr</td></tr>
+              <tr><th scope="row" className="py-2 pr-4 font-medium">First modelled shortfall</th><td className="py-2 pr-4">{shortfallLabel(currentResult.summary.first_shortfall_age)}</td><td className="py-2">{shortfallLabel(sandboxResult.summary.first_shortfall_age)}</td></tr>
+              <tr><th scope="row" className="py-2 pr-4 font-medium">Capital at plan end</th><td className="py-2 pr-4">{pounds(currentResult.summary.remaining_capital)}</td><td className="py-2">{pounds(sandboxResult.summary.remaining_capital)}</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p className="text-xs text-gray-600 mt-2">Planning benchmark is not a withdrawal target for portfolio-driven strategies. Each column uses its own plan end age; results depend on model assumptions.</p>
+        <p className="text-xs text-gray-600 mt-1">Update Current Plan copies the income rule, target, CPI, drawdown order and planned pension-access events. It does not copy retirement or end ages, balances, income sources or tax settings.</p>
+      </section>
 
       {/* Stress Test Panel */}
       {showStress && (

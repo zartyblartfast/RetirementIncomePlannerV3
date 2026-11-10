@@ -13,6 +13,7 @@ import { getStrategyDisplayName } from '../engine/strategies';
 import { deriveTaxContext } from '../engine/taxContext';
 import ConfigPanel from '../components/dashboard/ConfigPanel';
 import { dashboardHeaderLabelsForStrategy } from '../components/dashboard/dashboardHeaderLabels';
+import { incomeBasisForConfig } from '../components/dashboard/incomeBasis';
 
 function deepClone<T>(obj: T): T {
   return JSON.parse(JSON.stringify(obj));
@@ -25,14 +26,7 @@ export default function Dashboard() {
   const result = useProjection(config);
   const strategyId = config.drawdown_strategy ?? 'fixed_target';
   const headerLabels = dashboardHeaderLabelsForStrategy(strategyId);
-  const incomeBasis = strategyId === 'fixed_target'
-    ? config.drawdown_strategy_params?.net_annual ?? config.target_income.net_annual
-    : strategyId === 'vanguard_dynamic' || strategyId === 'guyton_klinger'
-      ? config.drawdown_strategy_params?.initial_target ?? config.target_income.net_annual
-      : config.target_income.net_annual;
-  const incomeBasisLabel = strategyId === 'vanguard_dynamic' || strategyId === 'guyton_klinger'
-    ? 'Initial target'
-    : headerLabels.incomeLabel;
+  const incomeBasis = incomeBasisForConfig(config);
   const outcome = dashboardOutcome(result.summary, headerLabels.isPortfolioDriven);
   const messages = dashboardMessages(result);
   const taxContext = useMemo(() => deriveTaxContext(config.tax), [config.tax]);
@@ -81,7 +75,7 @@ export default function Dashboard() {
 
       <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-gray-700" aria-label="Current plan context">
         <span><strong>Strategy:</strong> {getStrategyDisplayName(strategyId)}</span>
-        <span><strong>{incomeBasisLabel}:</strong> £{Math.round(incomeBasis).toLocaleString('en-GB')}/yr</span>
+        <span><strong>{incomeBasis.label}:</strong> £{Math.round(incomeBasis.amount).toLocaleString('en-GB')}/yr</span>
         <span><strong>Plan end:</strong> age {result.summary.end_age}</span>
         <span><strong>Tax rules:</strong> {config.tax.rule_pack_id ?? config.tax.regime}</span>
       </div>

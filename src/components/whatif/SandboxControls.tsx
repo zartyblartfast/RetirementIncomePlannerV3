@@ -159,7 +159,11 @@ export default function SandboxControls({ config, onChange }: Props) {
               <Field key={p.key} label={p.label} tooltip={p.tooltip}>
                 <input
                   type="number"
-                  value={strategyParams[p.key] ?? p.default}
+                  value={strategyParams[p.key] ?? (
+                    p.key === 'net_annual' || p.key === 'initial_target'
+                      ? config.target_income.net_annual
+                      : p.default
+                  )}
                   step={p.step}
                   onChange={e => setStrategyParam(p.key, Number(e.target.value))}
                   className="input-field"
@@ -169,6 +173,9 @@ export default function SandboxControls({ config, onChange }: Props) {
         </div>
       )}
 
+      <details className="rounded border border-gray-200 bg-white px-3 py-2">
+        <summary className="cursor-pointer text-sm font-medium text-gray-700">Pension access and drawdown details</summary>
+        <div className="space-y-3 mt-3">
       {/* Row 3: strategy snapshot, read-only in What If */}
       <div className="rounded border border-blue-100 bg-blue-50 px-3 py-2 text-xs text-blue-900">
         <p className="font-semibold">Retirement Income Strategy baseline</p>
@@ -245,6 +252,8 @@ export default function SandboxControls({ config, onChange }: Props) {
           )}
         </div>
       </div>
+        </div>
+      </details>
     </div>
   );
 }

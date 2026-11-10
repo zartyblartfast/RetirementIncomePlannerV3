@@ -1,13 +1,37 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_CONFIG } from '../../../store/configStore';
 import type { PlannerConfig } from '../../../engine/types';
-import { applySandboxStrategySettingsToCurrentPlan } from '../applySandboxToCurrentPlan';
+import { applySandboxStrategySettingsToCurrentPlan, hasApplicableSandboxChanges } from '../applySandboxToCurrentPlan';
 
 function cloneConfig(): PlannerConfig {
   return JSON.parse(JSON.stringify(DEFAULT_CONFIG)) as PlannerConfig;
 }
 
 describe('applySandboxStrategySettingsToCurrentPlan', () => {
+  it('previews a target-only change and keeps unrelated Current Plan fields untouched', () => {
+    const current = cloneConfig();
+    const sandbox = cloneConfig();
+    sandbox.drawdown_strategy = 'fixed_target';
+    sandbox.drawdown_strategy_params = { ...sandbox.drawdown_strategy_params, net_annual: 45000 };
+    sandbox.target_income.net_annual = 45000;
+    sandbox.personal.end_age = 110;
+
+    expect(hasApplicableSandboxChanges(current, sandbox)).toBe(true);
+    const applied = applySandboxStrategySettingsToCurrentPlan(current, sandbox);
+    expect(applied.target_income.net_annual).toBe(45000);
+    expect(applied.drawdown_strategy_params?.net_annual).toBe(45000);
+    expect(applied.personal.end_age).toBe(current.personal.end_age);
+    expect(current.target_income.net_annual).toBe(DEFAULT_CONFIG.target_income.net_annual);
+  });
+
+  it('does not offer an update for retirement-timing changes that the scoped action cannot copy', () => {
+    const current = cloneConfig();
+    const sandbox = cloneConfig();
+    sandbox.personal.retirement_date = '2040-04';
+    sandbox.personal.end_age = 110;
+    expect(hasApplicableSandboxChanges(current, sandbox)).toBe(false);
+  });
+
   it('copies only drawdown strategy and planned pension-access settings into the current plan', () => {
     const current = cloneConfig();
     const sandbox = cloneConfig();
