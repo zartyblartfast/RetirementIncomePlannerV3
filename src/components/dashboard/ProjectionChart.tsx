@@ -10,6 +10,7 @@ interface Props {
   years: YearRow[];
   summary: ProjectionSummary;
   strategyName?: string;
+  incomeFirst?: boolean;
 }
 
 // ── colour palettes (matching V1) ──────────────────────────────────
@@ -30,7 +31,7 @@ function tickFmtSigned(v: number): string {
   return `${sign}£${(Math.abs(v) / 1000).toFixed(0)}k`;
 }
 
-export default function ProjectionChart({ years, summary, strategyName }: Props) {
+export default function ProjectionChart({ years, summary, strategyName, incomeFirst = false }: Props) {
   // Dynamically discover pot and guaranteed-income names from the data
   const { potNames, tfNames, guarNames } = useMemo(() => {
     const pots = new Set<string>();
@@ -69,50 +70,7 @@ export default function ProjectionChart({ years, summary, strategyName }: Props)
   const planEndAge = summary.end_age;
   const subtitle = strategyName ? `Drawdown Strategy: ${strategyName}` : undefined;
 
-  return (
-    <div className="space-y-6">
-      {/* ── Capital Trajectory ── */}
-      <div className="rounded-lg border border-gray-200 bg-white p-4">
-        <h3 className="text-sm font-semibold text-gray-700 mb-1">Capital Trajectory</h3>
-        {subtitle && <p className="text-xs font-medium text-blue-600 mb-3">{subtitle}</p>}
-        <ResponsiveContainer width="100%" height={300}>
-          <AreaChart data={capitalData} margin={{ top: 10, right: 20, bottom: 5, left: 10 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            <XAxis dataKey="age" tick={{ fontSize: 11 }} />
-            <YAxis tick={{ fontSize: 11 }} tickFormatter={tickFmt} />
-            <Tooltip
-              formatter={(v: number, name: string) => [fmt(v), name.replace(/^cap_/, '')]}
-              labelFormatter={l => `Age ${l}`}
-            />
-            <Legend
-              wrapperStyle={{ fontSize: 12 }}
-              formatter={(v: string) => v.replace(/^cap_/, '')}
-            />
-            {[...potNames, ...tfNames].map((name, i) => (
-              <Area
-                key={name}
-                type="monotone"
-                dataKey={`cap_${name}`}
-                name={`cap_${name}`}
-                fill={CAP_COLOURS[i % CAP_COLOURS.length]}
-                stroke={CAP_COLOURS[i % CAP_COLOURS.length]}
-                fillOpacity={0.2}
-                strokeWidth={2}
-              />
-            ))}
-            <ReferenceLine
-              x={planEndAge}
-              stroke="#dc3545"
-              strokeDasharray="6 4"
-              strokeWidth={2}
-              label={{ value: `Plan end (${planEndAge})`, position: 'top', fill: '#dc3545', fontSize: 11, fontWeight: 600 }}
-            />
-
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* ── Income Breakdown ── */}
+  const incomeChart = (
       <div className="rounded-lg border border-gray-200 bg-white p-4">
         <h3 className="text-sm font-semibold text-gray-700 mb-1">Income Breakdown</h3>
         {subtitle && <p className="text-xs font-medium text-blue-600 mb-3">{subtitle}</p>}
@@ -169,17 +127,6 @@ export default function ProjectionChart({ years, summary, strategyName }: Props)
             {/* Tax (negative bar) */}
             <Bar dataKey="tax" name="Tax Deducted" stackId="tax" fill="#ee5253cc" />
 
-            {/* Target net income line (dashed) */}
-            <Line
-              type="monotone"
-              dataKey="target_net"
-              name="Target Net Income"
-              stroke="#222f3e"
-              strokeWidth={2}
-              strokeDasharray="8 4"
-              dot={false}
-            />
-
             {/* Net income achieved line (solid) */}
             <Line
               type="monotone"
@@ -187,6 +134,7 @@ export default function ProjectionChart({ years, summary, strategyName }: Props)
               name="Net Income Achieved"
               stroke="#10ac84"
               strokeWidth={2.5}
+              isAnimationActive={false}
               dot={(props: Record<string, unknown>) => {
                 const { cx, cy, index } = props as { cx: number; cy: number; index: number };
                 const yr = years[index];
@@ -203,9 +151,67 @@ export default function ProjectionChart({ years, summary, strategyName }: Props)
                 );
               }}
             />
+            {/* Draw the dashed target last so both lines remain visible when they coincide. */}
+            <Line
+              type="monotone"
+              dataKey="target_net"
+              name="Target Net Income"
+              stroke="#222f3e"
+              strokeWidth={3}
+              strokeDasharray="8 6"
+              dot={false}
+              isAnimationActive={false}
+            />
           </ComposedChart>
         </ResponsiveContainer>
+        <p className="text-xs text-gray-600 mt-2">Solid green: net income achieved. Dashed dark: target or strategy-derived spending. Where they overlap, income tracks the comparison line.</p>
       </div>
+  );
+  const capitalChart = (
+      <div className="rounded-lg border border-gray-200 bg-white p-4">
+        <h3 className="text-sm font-semibold text-gray-700 mb-1">Capital Trajectory</h3>
+        {subtitle && <p className="text-xs font-medium text-blue-600 mb-3">{subtitle}</p>}
+        <ResponsiveContainer width="100%" height={300}>
+          <AreaChart data={capitalData} margin={{ top: 10, right: 20, bottom: 5, left: 10 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <XAxis dataKey="age" tick={{ fontSize: 11 }} />
+            <YAxis tick={{ fontSize: 11 }} tickFormatter={tickFmt} />
+            <Tooltip
+              formatter={(v: number, name: string) => [fmt(v), name.replace(/^cap_/, '')]}
+              labelFormatter={l => `Age ${l}`}
+            />
+            <Legend
+              wrapperStyle={{ fontSize: 12 }}
+              formatter={(v: string) => v.replace(/^cap_/, '')}
+            />
+            {[...potNames, ...tfNames].map((name, i) => (
+              <Area
+                key={name}
+                type="monotone"
+                dataKey={`cap_${name}`}
+                name={`cap_${name}`}
+                fill={CAP_COLOURS[i % CAP_COLOURS.length]}
+                stroke={CAP_COLOURS[i % CAP_COLOURS.length]}
+                fillOpacity={0.2}
+                strokeWidth={2}
+              />
+            ))}
+            <ReferenceLine
+              x={planEndAge}
+              stroke="#dc3545"
+              strokeDasharray="6 4"
+              strokeWidth={2}
+              label={{ value: `Plan end (${planEndAge})`, position: 'top', fill: '#dc3545', fontSize: 11, fontWeight: 600 }}
+            />
+
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      {incomeFirst ? <>{incomeChart}{capitalChart}</> : <>{capitalChart}{incomeChart}</>}
     </div>
   );
 }

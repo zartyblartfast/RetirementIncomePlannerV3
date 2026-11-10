@@ -4,7 +4,6 @@ import { useConfig } from '../store/configStore';
 import { useProjection } from '../hooks/useProjection';
 import SummaryCards from '../components/dashboard/SummaryCards';
 import ProjectionChart from '../components/dashboard/ProjectionChart';
-import IncomeGoalChart from '../components/dashboard/IncomeGoalChart';
 import { dashboardOutcome } from '../components/dashboard/dashboardOutcome';
 import { dashboardMessages } from '../components/dashboard/dashboardMessages';
 import YearTable from '../components/dashboard/YearTable';
@@ -31,7 +30,7 @@ export default function Dashboard() {
   const messages = dashboardMessages(result);
   const taxContext = useMemo(() => deriveTaxContext(config.tax), [config.tax]);
 
-  // Preserve the extended projection in the detailed capital/income charts only.
+  // Preserve the extended projection in the capital/income charts only.
   const extendedConfig = useMemo(() => {
     const cfg = deepClone(config);
     (cfg as unknown as Record<string, unknown>).projection_end_age =
@@ -61,7 +60,7 @@ export default function Dashboard() {
         </section>
       )}
 
-      <IncomeGoalChart years={result.years} firstShortfallAge={result.summary.first_shortfall_age} isPortfolioDriven={headerLabels.isPortfolioDriven} />
+      <ProjectionChart years={chartResult.years} summary={result.summary} strategyName={getStrategyDisplayName(strategyId)} incomeFirst />
 
       {messages.milestones.length > 0 && (
         <details className="text-sm text-gray-700">
@@ -95,11 +94,8 @@ export default function Dashboard() {
       </section>
 
       <details className="rounded-lg border border-gray-200 bg-white p-4">
-        <summary className="cursor-pointer text-base font-semibold text-gray-800">More charts and plan statistics</summary>
-        <div className="space-y-5 mt-4">
-          <SummaryCards summary={result.summary} />
-          <ProjectionChart years={chartResult.years} summary={result.summary} strategyName={getStrategyDisplayName(strategyId)} />
-        </div>
+        <summary className="cursor-pointer text-base font-semibold text-gray-800">More plan statistics</summary>
+        <div className="mt-4"><SummaryCards summary={result.summary} /></div>
       </details>
       <VerificationPanel result={result} />
     </div>
